@@ -189,12 +189,12 @@ function ApplyCameraRotation(renderer, v) {
 	const local = v.Add(renderer.cam.Multiply(-1));
 
 	const rotatedX = rotateX(local, renderer.camRot.x * (Math.PI / 180));
-	const rotatedY = rotateY(rotatedX, renderer.camRot.y * (Math.PI / 180));
-	return rotatedY.Add(renderer.cam);
+	return rotateY(rotatedX, renderer.camRot.y * (Math.PI / 180));
+	// return rotatedY.Add(renderer.cam);
 }
 
 /** @type {(offScreenV: Vector3, onScreenV: Vector3, planeZ?: number): Vector3} */
-function LinearInterp(offScreenV, onScreenV, planeZ = 0) {
+function LinearInterp(offScreenV, onScreenV, planeZ) {
 	const denom = onScreenV.z - offScreenV.z;
 
 	if (denom === 0)
@@ -208,7 +208,7 @@ function LinearInterp(offScreenV, onScreenV, planeZ = 0) {
 	return new Vector3(
 		offScreenV.x + (onScreenV.x - offScreenV.x) * percent,
 		offScreenV.y + (onScreenV.y - offScreenV.y) * percent,
-		offScreenV.z + (onScreenV.z - offScreenV.z) * percent
+		planeZ
 	);
 }
 
@@ -233,7 +233,7 @@ class Renderer {
 				],
 				[
 					[0, 1, 2],
-					// [0, 2, 3],
+					[0, 2, 3],
 				],
 				new Vector3(0, 0, 0),
 				new Vector3(0, 0, 0),
@@ -246,7 +246,7 @@ class Renderer {
 
 	Draw() {
 		const focalLength = 300;
-		const near = 0.1;
+		const near = 1;
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -264,57 +264,76 @@ class Renderer {
 				/** @type {Vector3[]} */
 				let verts = draw.map((m) => {
 					const v = obj.vertices[m];
+
 					const localPos = ApplyLocalRotation(obj, v);
-					return ApplyCameraRotation(this, localPos);
+					const finalPos = ApplyCameraRotation(this, localPos);
+
+					const x = finalPos.x - this.cam.x;
+					const y = finalPos.y - this.cam.y;
+					const z = finalPos.z - this.cam.z;
+
+					return new Vector3(x, y, z);
 				});
 
-				const offScreen = verts.filter((v) => v.z - this.cam.z >= near);
-
-				const onScreen = verts.filter((v) => v.z - this.cam.z < near);
+				const offScreen = verts.filter((v) => v.z >= near);
+				const onScreen = verts.filter((v) => v.z < near);
 
 				if (offScreen.length === 3) continue;
 
 				if (offScreen.length === 2 && draw.length === 2) continue;
 
 				if (offScreen.length === 2 && draw.length === 3) {
-					console.log(offScreen);
-
 					verts = [
 						...onScreen,
 						...offScreen.map((v) => {
 							const on = onScreen[0];
 
-							console.log(on, v, LinearInterp(v, on, this.cam.z));
+							const l = LinearInterp(v, on, near);
 
-							return LinearInterp(v, on, 0);
+							if (on.z < 0) {
+								l.z = -l.z;
+							}
+
+							return l;
 						}),
 					];
-					console.log(verts, this.cam.z);
+
+					console.log(verts);
 				}
 
 				if (offScreen.length === 1 && draw.length === 3) {
-					verts = [
-						...onScreen,
-						LinearInterp(offScreen[0], onScreen[0], 0),
-						LinearInterp(offScreen[0], onScreen[1], 0),
-					];
+					const on1 = onScreen[0];
+					const on2 = onScreen[1];
+
+					const v = offScreen[0];
+
+					const l1 = LinearInterp(v, on1, near);
+					const l2 = LinearInterp(v, on2, near);
+
+					if (on1.z < 0) {
+						l1.z = -l1.z;
+					}
+					if (on2.z < 0) {
+						l2.z = -l2.z;
+					}
+					console.log(l1, l2);
+
+					if (l1.x < l2.x) {
+						verts = [l2, ...onScreen, l1];
+					} else {
+						verts = [l1, ...onScreen, l2];
+					}
 				}
 
 				ctx.beginPath();
 
 				for (let [ix, v] of verts.entries()) {
-					const xDiff = v.x - this.cam.x;
-					const yDiff = v.y - this.cam.y;
-					let zDiff = v.z - this.cam.z;
-
-					if (zDiff == 0) continue;
+					if (v.z == 0) continue;
 
 					const projectedX =
-						(xDiff / zDiff) * focalLength + canvas.width / 2;
+						(v.x / v.z) * focalLength + canvas.width / 2;
 					const projectedY =
-						(yDiff / zDiff) * focalLength + canvas.height / 2;
-
-					console.log(zDiff);
+						(v.y / v.z) * focalLength + canvas.height / 2;
 
 					if (ix === 0) {
 						ctx.moveTo(projectedX, projectedY);
@@ -322,6 +341,7 @@ class Renderer {
 						ctx.lineTo(projectedX, projectedY);
 					}
 				}
+
 				ctx.closePath();
 				ctx.stroke();
 				ctx.fill();
@@ -335,7 +355,6 @@ const r = new Renderer();
 document.addEventListener("keydown", (ev) => {
 	if (ev.key === "w") {
 		r.cam = r.cam.Add(new Vector3(0, 0, -1));
-		console.log(r.cam);
 	}
 
 	if (ev.key === "s") {
