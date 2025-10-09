@@ -51,7 +51,7 @@ class ThreeDObject {
 class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(300, 200, 49);
+	cam = new Vector3(125, 125, 100);
 
 	constructor() {
 		this.objects.push(
@@ -109,6 +109,8 @@ class Renderer {
 				const projectedY1 = (y1Diff / z1Diff) * 100;
 				const projectedX2 = (x2Diff / z2Diff) * 100;
 				const projectedY2 = (y2Diff / z2Diff) * 100;
+
+				console.log(projectedX1, projectedY1);
 
 				ctx.beginPath();
 				ctx.moveTo(projectedX1, projectedY1);
