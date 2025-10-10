@@ -35,8 +35,17 @@ class Vector3 {
 		return new Vector3(this.x + a.x, this.y + a.y, this.z + a.z);
 	}
 
+	/** @type {(a: Vector3): Vector3} */
+	Sub(a) {
+		return new Vector3(this.x - a.x, this.y - a.y, this.z - a.z);
+	}
+
 	Multiply(a) {
 		return new Vector3(this.x * a, this.y * a, this.z * a);
+	}
+
+	static Zero() {
+		return new Vector3(0, 0, 0);
 	}
 }
 
@@ -99,20 +108,33 @@ function Cube(origin, size) {
 			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS),
 		],
 		[
+			// BACK
 			[0, 1, 2],
 			[0, 2, 3],
 
+			// FRONT
 			[4, 5, 6],
 			[4, 6, 7],
 
-			[0, 4],
-			[1, 5],
-			[2, 6],
-			[3, 7],
+			// BOTTOM
+			[0, 4, 1],
+			[1, 5, 4],
+
+			// TOP
+			[2, 6, 3],
+			[3, 7, 6],
+
+			// RIGHT
+			[0, 3, 7],
+			[0, 4, 7],
+
+			// LEFT
+			[2, 5, 6],
+			[1, 2, 5],
 		],
 		origin,
-		new Vector3(Math.random() * 90, Math.random() * 90, Math.random() * 90),
-		"rgb(255, 0, 0)"
+		Vector3.Zero(),
+		"rgb(255,0,0)"
 	);
 }
 
@@ -141,7 +163,7 @@ function SquareBasedPyramid(origin, size) {
 			[3, 4, 2],
 		],
 		origin,
-		new Vector3(Math.random() * 90, Math.random() * 90, Math.random() * 90),
+		Vector3.Zero(),
 		"rgb(0,0,255)"
 	);
 }
@@ -184,17 +206,18 @@ function ApplyLocalRotation(obj, v) {
 	return rotatedZ.Add(obj.origin);
 }
 
-/** @type {(renderer: Renderer, rot: Vector3, v: Vector3): Vector3} */
+/** @type {(renderer: Renderer, v: Vector3): Vector3} */
 function ApplyCameraRotation(renderer, v) {
 	const local = v.Add(renderer.cam.Multiply(-1));
 
 	const rotatedX = rotateX(local, renderer.camRot.x * (Math.PI / 180));
-	return rotateY(rotatedX, renderer.camRot.y * (Math.PI / 180));
-	// return rotatedY.Add(renderer.cam);
+	const rotatedY = rotateY(rotatedX, renderer.camRot.y * (Math.PI / 180));
+	const rotatedZ = rotateZ(rotatedY, renderer.camRot.z * (Math.PI / 180));
+	return rotatedZ.Add(renderer.cam);
 }
 
 /** @type {(offScreenV: Vector3, onScreenV: Vector3, planeZ?: number): Vector3} */
-function LinearInterp(offScreenV, onScreenV, planeZ) {
+function lerp(offScreenV, onScreenV, planeZ) {
 	const denom = onScreenV.z - offScreenV.z;
 
 	if (denom === 0)
@@ -216,7 +239,8 @@ class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
 	cam = new Vector3(0, 0, 0);
-	camRot = new Vector2(0, 0);
+	camRot = new Vector3(0, 0, 0);
+	keyMap = new Set();
 
 	constructor() {
 		this.objects.push(Cube(new Vector3(0, 10, -50), 25));
@@ -241,7 +265,83 @@ class Renderer {
 			)
 		);
 
+		this.Update();
+	}
+
+	Update() {
+		this.objects[0].rotation = this.objects[0].rotation.Add(
+			new Vector3(0, 1, 0)
+		);
+
+		if (this.keyMap.has("w")) {
+			r.cam = r.cam.Add(
+				new Vector3(
+					Math.sin((this.camRot.y * Math.PI) / 180),
+					-Math.sin((this.camRot.x * Math.PI) / 180),
+					-Math.cos((this.camRot.y * Math.PI) / 180)
+				)
+			);
+		}
+
+		if (this.keyMap.has("s")) {
+			r.cam = r.cam.Add(
+				new Vector3(
+					-Math.sin((this.camRot.y * Math.PI) / 180),
+					Math.sin((this.camRot.x * Math.PI) / 180),
+					Math.cos((this.camRot.y * Math.PI) / 180)
+				)
+			);
+		}
+
+		if (this.keyMap.has("a")) {
+			r.cam = r.cam.Add(
+				new Vector3(
+					Math.cos((this.camRot.y * Math.PI) / 180),
+					0,
+					Math.sin((this.camRot.y * Math.PI) / 180)
+				)
+			);
+		}
+
+		if (this.keyMap.has("d")) {
+			r.cam = r.cam.Add(
+				new Vector3(
+					-Math.cos((this.camRot.y * Math.PI) / 180),
+					0,
+					-Math.sin((this.camRot.y * Math.PI) / 180)
+				)
+			);
+		}
+
+		if (this.keyMap.has("e")) {
+			r.cam = r.cam.Add(new Vector3(0, 1, 0));
+		}
+
+		if (this.keyMap.has("q")) {
+			r.cam = r.cam.Add(new Vector3(0, -1, 0));
+		}
+
+		if (this.keyMap.has("ArrowRight")) {
+			r.camRot = r.camRot.Add(new Vector3(0, -1, 0));
+		}
+
+		if (this.keyMap.has("ArrowLeft")) {
+			r.camRot = r.camRot.Add(new Vector3(0, 1, 0));
+		}
+
+		if (this.keyMap.has("ArrowUp")) {
+			r.camRot = r.camRot.Add(new Vector3(-1, 0, 0));
+		}
+
+		if (this.keyMap.has("ArrowDown")) {
+			r.camRot = r.camRot.Add(new Vector3(1, 0, 0));
+		}
+
 		this.Draw();
+
+		setTimeout(() => {
+			this.Update();
+		}, 1000 / 60);
 	}
 
 	Draw() {
@@ -288,7 +388,7 @@ class Renderer {
 						...offScreen.map((v) => {
 							const on = onScreen[0];
 
-							const l = LinearInterp(v, on, near);
+							const l = lerp(v, on, near);
 
 							if (on.z < 0) {
 								l.z = -l.z;
@@ -297,8 +397,6 @@ class Renderer {
 							return l;
 						}),
 					];
-
-					console.log(verts);
 				}
 
 				if (offScreen.length === 1 && draw.length === 3) {
@@ -307,8 +405,8 @@ class Renderer {
 
 					const v = offScreen[0];
 
-					const l1 = LinearInterp(v, on1, near);
-					const l2 = LinearInterp(v, on2, near);
+					const l1 = lerp(v, on1, near);
+					const l2 = lerp(v, on2, near);
 
 					if (on1.z < 0) {
 						l1.z = -l1.z;
@@ -316,12 +414,38 @@ class Renderer {
 					if (on2.z < 0) {
 						l2.z = -l2.z;
 					}
-					console.log(l1, l2);
 
 					if (l1.x < l2.x) {
 						verts = [l2, ...onScreen, l1];
 					} else {
 						verts = [l1, ...onScreen, l2];
+					}
+				}
+
+				if (obj.fillCol === "rgb(255,0,0)") {
+					const a = verts[1].Sub(verts[0]);
+					const b = verts[2].Sub(verts[0]);
+
+					const cross = new Vector3(
+						a.y * b.z - a.z * b.y,
+						a.z * b.x - a.x * b.z,
+						a.x * b.y - a.y * b.x
+					);
+
+					const mag = Math.sqrt(
+						cross.x * cross.x,
+						cross.y * cross.y,
+						cross.z * cross.z
+					);
+
+					const normal = new Vector3(
+						cross.x / mag,
+						cross.y / mag,
+						cross.z / mag
+					);
+
+					if (normal.x > 5) {
+						ctx.fillStyle = "rgb(0, 0, 0)";
 					}
 				}
 
@@ -343,7 +467,7 @@ class Renderer {
 				}
 
 				ctx.closePath();
-				ctx.stroke();
+				// ctx.stroke();
 				ctx.fill();
 			}
 		}
@@ -353,45 +477,11 @@ class Renderer {
 const r = new Renderer();
 
 document.addEventListener("keydown", (ev) => {
-	if (ev.key === "w") {
-		r.cam = r.cam.Add(new Vector3(0, 0, -1));
-	}
+	r.keyMap.add(ev.key);
+});
 
-	if (ev.key === "s") {
-		r.cam = r.cam.Add(new Vector3(0, 0, 1));
+document.addEventListener("keyup", (ev) => {
+	if (r.keyMap.has(ev.key)) {
+		r.keyMap.delete(ev.key);
 	}
-
-	if (ev.key === "a") {
-		r.cam = r.cam.Add(new Vector3(1, 0, 0));
-	}
-
-	if (ev.key === "d") {
-		r.cam = r.cam.Add(new Vector3(-1, 0, 0));
-	}
-
-	if (ev.key === "e") {
-		r.cam = r.cam.Add(new Vector3(0, 1, 0));
-	}
-
-	if (ev.key === "q") {
-		r.cam = r.cam.Add(new Vector3(0, -1, 0));
-	}
-
-	if (ev.key === "ArrowRight") {
-		r.camRot = r.camRot.Add(new Vector2(0, -1));
-	}
-
-	if (ev.key === "ArrowLeft") {
-		r.camRot = r.camRot.Add(new Vector2(0, 1));
-	}
-
-	if (ev.key === "ArrowUp") {
-		r.camRot = r.camRot.Add(new Vector2(1, 0));
-	}
-
-	if (ev.key === "ArrowDown") {
-		r.camRot = r.camRot.Add(new Vector2(-1, 0));
-	}
-
-	r.Draw();
 });
