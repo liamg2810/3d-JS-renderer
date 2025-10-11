@@ -518,14 +518,12 @@ class Renderer {
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-		for (let obj of this.objects) {
-			obj.CalculateFrameVerts();
-		}
-
 		/** @type {{obj: ThreeDObject; face: Vector3[]}[]} */
 		let orderedFaces = [];
 
 		for (let obj of this.objects) {
+			obj.CalculateFrameVerts();
+
 			for (let draw of obj.drawOrder) {
 				if (draw.length > 3) {
 					console.error(
