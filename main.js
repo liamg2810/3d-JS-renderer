@@ -8,7 +8,11 @@ class Vector3 {
 	y = 0;
 	z = 0;
 
-	/** @type {(a: Vector3 | number, y: number | undefined, z: number | undefined): Vector3} */
+	/**
+	 * @param {Vector3 | number} a
+	 * @param {number | undefined} y
+	 * @param {number | undefined} z
+	 * */
 	constructor(a, y, z) {
 		if (a instanceof Vector3) {
 			this.x = a.x;
@@ -42,6 +46,10 @@ class Vector3 {
 
 	Multiply(a) {
 		return new Vector3(this.x * a, this.y * a, this.z * a);
+	}
+
+	Divide(a) {
+		return new Vector3(this.x / a, this.y / a, this.z / a);
 	}
 
 	Normalise() {
@@ -89,24 +97,51 @@ class ThreeDObject {
 	vertices = [];
 	/** @type {number[][]} */
 	drawOrder = [];
+	/** @type {Vector3[]} */
+	frameVerts = [];
+
 	origin = new Vector3(0, 0, 0);
 	rotation = new Vector3(0, 20, 30);
-	fillCol = "rgb(0,0,0)";
 
-	constructor(vertices, drawOrder, origin, rotation, fillCol) {
+	hue = 0;
+	saturation = 0;
+	lightness = 0;
+
+	constructor(
+		renderer,
+		vertices,
+		drawOrder,
+		origin,
+		rotation,
+		hue,
+		saturation,
+		lightness
+	) {
+		this.renderer = renderer;
 		this.vertices = vertices;
 		this.drawOrder = drawOrder;
 		this.origin = origin;
 		this.rotation = rotation;
-		this.fillCol = fillCol;
+		this.hue = hue;
+		this.saturation = saturation;
+		this.lightness = lightness;
+	}
+
+	CalculateFrameVerts() {
+		this.frameVerts = this.vertices.map((v) => {
+			const localPos = ApplyLocalRotation(this, v);
+
+			return ApplyCameraRotation(this.renderer, localPos);
+		});
 	}
 }
 
-/** @type {(origin: Vector3, size: number): ThreeDObject} */
-function Cube(origin, size) {
+/** @type {(r: Renderer; origin: Vector3, size: number): ThreeDObject} */
+function Cube(r, origin, size) {
 	const hS = size / 2;
 
 	return new ThreeDObject(
+		r,
 		[
 			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS),
 			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS),
@@ -119,57 +154,64 @@ function Cube(origin, size) {
 		],
 		[
 			// BACK
-			// [0, 1, 2],
-			// [0, 2, 3],
-			// // FRONT
-			// [6, 5, 4],
-			// [7, 6, 4],
+			[2, 1, 0],
+			[3, 2, 0],
+			// FRONT
+			[4, 5, 6],
+			[4, 6, 7],
 			// BOTTOM
-			[0, 4, 1],
-			[4, 5, 1],
-			// // TOP
-			// [2, 6, 3],
-			// [3, 7, 6],
-			// // RIGHT
-			// [0, 3, 7],
-			// [0, 4, 7],
-			// // LEFT
-			// [2, 5, 6],
-			// [1, 2, 5],
+			[1, 4, 0],
+			[1, 5, 4],
+			// TOP
+			[3, 6, 2],
+			[3, 7, 6],
+			// RIGHT
+			[7, 3, 0],
+			[0, 4, 7],
+			// LEFT
+			[6, 5, 2],
+			[1, 2, 5],
 		],
 		origin,
 		new Vector3(0, 25, 0),
-		"rgb(255,0,0)"
+		50,
+		80,
+		40
 	);
 }
 
-function SquareBasedPyramid(origin, size) {
+function SquareBasedPyramid(r, origin, size) {
 	const hS = size / 2;
 
 	return new ThreeDObject(
+		r,
 		[
-			new Vector3(origin.x - hS, origin.y - hS, origin.z - hS),
-			new Vector3(origin.x - hS, origin.y - hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y - hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y - hS, origin.z - hS),
+			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS),
+			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS),
+			new Vector3(origin.x + hS, origin.y + hS, origin.z + hS),
+			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS),
 
-			new Vector3(origin.x, origin.y + hS, origin.z),
+			new Vector3(origin.x, origin.y - hS, origin.z),
 		],
 
 		[
-			// [0, 1],
-			// [1, 2],
-			// [2, 3],
-			// [3, 0],
-
-			// [0, 4],
-			// [1, 4],
-			// [2, 4],
-			[3, 4, 2],
+			// Bottom
+			[2, 1, 0],
+			[3, 2, 0],
+			// Left
+			[2, 3, 4],
+			// Right
+			[1, 4, 0],
+			//Front
+			[2, 4, 1],
+			//Back
+			[0, 4, 3],
 		],
 		origin,
 		Vector3.Zero(),
-		"rgb(0,0,255)"
+		180,
+		100,
+		30
 	);
 }
 
@@ -240,17 +282,19 @@ function lerp(offScreenV, onScreenV, planeZ = 0.1) {
 	);
 }
 
-/** @type {(verts: Vector3[], draw: number[], near: number): Vector3[]} */
-function lerpVerts(verts, draw, near) {
+/** @type {(verts: Vector3[], near: number): Vector3[]} */
+function lerpVerts(verts, near) {
 	const offScreen = verts.filter((v) => v.z < near);
 	const onScreen = verts.filter((v) => v.z >= near);
 
 	if (offScreen.length === 3) return [];
 
-	if (offScreen.length === 2 && draw.length === 2) return [];
+	if (offScreen.length === 2 && verts.length === 2) return [];
 
-	if (offScreen.length === 2 && draw.length === 3) {
-		verts = [
+	let r = verts;
+
+	if (offScreen.length === 2 && verts.length === 3) {
+		r = [
 			...onScreen,
 			...offScreen.map((v) => {
 				const on = onScreen[0];
@@ -266,7 +310,7 @@ function lerpVerts(verts, draw, near) {
 		];
 	}
 
-	if (offScreen.length === 1 && draw.length === 3) {
+	if (offScreen.length === 1 && verts.length === 3) {
 		const on1 = onScreen[0];
 		const on2 = onScreen[1];
 
@@ -276,16 +320,17 @@ function lerpVerts(verts, draw, near) {
 		const l2 = lerp(v, on2, near);
 
 		if (l1.x < l2.x) {
-			verts = [...onScreen, l2, l1];
+			r = [...onScreen, l2, l1];
 		} else {
-			verts = [l1, ...onScreen, l2];
+			r = [l1, ...onScreen, l2];
 		}
 	}
 
-	return verts;
+	return r;
 }
 
-function GetDotProduct(verts) {
+/** @type {(verts: Vector3[], comp: Vector3): number} */
+function GetDotProduct(verts, comp) {
 	const a = verts[1].Sub(verts[0]);
 	const b = verts[2].Sub(verts[0]);
 
@@ -302,9 +347,9 @@ function GetDotProduct(verts) {
 	const normal = new Vector3(cross.x / mag, cross.y / mag, cross.z / mag);
 
 	const viewDir = new Vector3(
-		-verts[0].x,
-		-verts[0].y,
-		-verts[0].z
+		comp.x - verts[0].x,
+		comp.y - verts[0].y,
+		comp.z - verts[0].z
 	).Normalise();
 
 	const dot =
@@ -319,14 +364,20 @@ class Renderer {
 	cam = new Vector3(0, 0, 0);
 	camRot = new Vector3(0, 180, 0);
 	keyMap = new Set();
+	light = new Vector3(50, 50, 50);
+
+	focalLength = 300;
+	near = 0.1;
+	far = 1000;
 
 	constructor() {
-		this.objects.push(Cube(new Vector3(0, 0, -50), 100));
+		this.objects.push(Cube(this, new Vector3(0, 0, -50), 25));
 
-		this.objects.push(SquareBasedPyramid(new Vector3(25, 0, 0), 25));
+		this.objects.push(SquareBasedPyramid(this, new Vector3(25, 0, 0), 25));
 
 		this.objects.push(
 			new ThreeDObject(
+				this,
 				[
 					new Vector3(100, 100, -100),
 					new Vector3(100, 100, 100),
@@ -334,12 +385,14 @@ class Renderer {
 					new Vector3(-100, 100, -100),
 				],
 				[
-					[0, 1, 2],
-					// [0, 2, 3],
+					[2, 1, 0],
+					[3, 2, 0],
 				],
 				new Vector3(0, 0, 0),
 				new Vector3(0, 0, 0),
-				"rgb(0,0,0)"
+				90,
+				100,
+				100
 			)
 		);
 
@@ -400,11 +453,11 @@ class Renderer {
 		}
 
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot = this.camRot.Add(new Vector3(0, 1, 0));
+			this.camRot = this.camRot.Add(new Vector3(0, -1, 0));
 		}
 
 		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot = this.camRot.Add(new Vector3(0, -1, 0));
+			this.camRot = this.camRot.Add(new Vector3(0, 1, 0));
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
@@ -422,26 +475,33 @@ class Renderer {
 		}, 1000 / 60);
 	}
 
+	DrawLight() {
+		const lightPos = ApplyCameraRotation(this, this.light);
+
+		if (lightPos.z < this.near || lightPos.z > this.far) return;
+
+		const projectedX =
+			(lightPos.x / lightPos.z) * this.focalLength + canvas.width / 2;
+		const projectedY =
+			(lightPos.y / lightPos.z) * this.focalLength + canvas.height / 2;
+
+		ctx.fillStyle = "rgb(0, 0, 255)";
+		ctx.fillRect(projectedX, projectedY, 10, 10);
+	}
+
 	Draw() {
-		const focalLength = 300;
-		const near = 0.1;
-		const far = 1000;
+		const lightPos = ApplyCameraRotation(this, this.light);
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		for (let obj of this.objects) {
-			ctx.fillStyle = obj.fillCol;
-			ctx.strokeStyle = obj.fillCol;
+			obj.CalculateFrameVerts();
+		}
 
-			/** @type {Vector3[]} */
-			let convertedVerts = obj.vertices.map((v) => {
-				const localPos = ApplyLocalRotation(obj, v);
+		/** @type {{obj: ThreeDObject; face: Vector3[]}[]} */
+		let orderedFaces = [];
 
-				let pos = ApplyCameraRotation(this, localPos);
-
-				return new Vector3(pos.x, pos.y, pos.z);
-			});
-
+		for (let obj of this.objects) {
 			for (let draw of obj.drawOrder) {
 				if (draw.length > 3) {
 					console.error(
@@ -451,41 +511,91 @@ class Renderer {
 				}
 
 				let verts = draw.map((o) => {
-					return convertedVerts[o];
+					return obj.frameVerts[o];
 				});
 
-				verts = lerpVerts(verts, draw, near);
-
-				// const dot = GetDotProduct(verts);
-
-				// if (dot > 0) {
-				// 	ctx.fillStyle = "rgb(0, 255, 0)";
-				// }
-
-				ctx.beginPath();
-
-				for (let [ix, v] of verts.entries()) {
-					if (v.z == 0) continue;
-
-					if (v.z < near || v.z > far) continue;
-
-					const projectedX =
-						(v.x / v.z) * focalLength + canvas.width / 2;
-					const projectedY =
-						(v.y / v.z) * focalLength + canvas.height / 2;
-
-					if (ix === 0) {
-						ctx.moveTo(projectedX, projectedY);
-					} else {
-						ctx.lineTo(projectedX, projectedY);
-					}
-				}
-
-				ctx.closePath();
-				// ctx.stroke();
-				ctx.fill();
+				orderedFaces.push({ obj: obj, face: verts });
 			}
 		}
+
+		orderedFaces = orderedFaces.sort((a, b) => {
+			let aSum = Vector3.Zero();
+
+			a.face.forEach((face) => {
+				aSum = aSum.Add(face);
+			});
+
+			const averageA = aSum.Divide(a.face.length);
+
+			const aMag = Math.sqrt(
+				averageA.x * averageA.x +
+					averageA.y * averageA.y +
+					averageA.z * averageA.z
+			);
+
+			let bSum = Vector3.Zero();
+
+			b.face.forEach((face) => {
+				bSum = bSum.Add(face);
+			});
+
+			const averageB = bSum.Divide(b.face.length);
+
+			const bMag = Math.sqrt(
+				averageB.x * averageB.x +
+					averageB.y * averageB.y +
+					averageB.z * averageB.z
+			);
+
+			return bMag - aMag;
+		});
+
+		// this.DrawLight();
+		for (let face of orderedFaces) {
+			const dot = GetDotProduct(face.face, Vector3.Zero());
+
+			if (dot > 0) {
+				continue;
+			}
+
+			const lightDot = GetDotProduct(face.face, lightPos);
+
+			ctx.fillStyle = `hsl(${face.obj.hue} ${face.obj.saturation}% ${
+				face.obj.lightness * (0.3 + 0.7 * (lightDot > 0))
+			}%)`;
+			ctx.strokeStyle = ctx.fillStyle;
+
+			face = lerpVerts(face.face, this.near);
+
+			if (face.length === 0) {
+				return;
+			}
+
+			ctx.beginPath();
+
+			for (let [ix, v] of face.entries()) {
+				if (v.z == 0) continue;
+
+				if (v.z < this.near || v.z > this.far) continue;
+
+				const projectedX =
+					(v.x / v.z) * this.focalLength + canvas.width / 2;
+				const projectedY =
+					(v.y / v.z) * this.focalLength + canvas.height / 2;
+
+				if (ix === 0) {
+					ctx.moveTo(projectedX, projectedY);
+				} else {
+					ctx.lineTo(projectedX, projectedY);
+				}
+			}
+
+			ctx.closePath();
+			ctx.stroke();
+			ctx.fill();
+		}
+
+		ctx.fillStyle = "hsl(0 0% 0%)";
 	}
 }
 
