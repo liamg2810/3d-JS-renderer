@@ -137,7 +137,7 @@ class ThreeDObject {
 }
 
 /** @type {(r: Renderer; origin: Vector3, size: number): ThreeDObject} */
-function Cube(r, origin, size) {
+function Cube(r, origin, size, h, s, l) {
 	const hS = size / 2;
 
 	return new ThreeDObject(
@@ -173,10 +173,10 @@ function Cube(r, origin, size) {
 			[1, 2, 5],
 		],
 		origin,
-		new Vector3(0, 25, 0),
-		50,
-		80,
-		40
+		Vector3.Zero(),
+		h,
+		s,
+		l
 	);
 }
 
@@ -257,10 +257,10 @@ function ApplyLocalRotation(obj, v) {
 function ApplyCameraRotation(renderer, v) {
 	const local = v.Add(renderer.cam);
 
-	const rotatedX = rotateX(local, renderer.camRot.x * (Math.PI / 180));
-	const rotatedY = rotateY(rotatedX, renderer.camRot.y * (Math.PI / 180));
-	return rotateZ(rotatedY, renderer.camRot.z * (Math.PI / 180));
-	// return rotatedZ.Add(renderer.cam.Multiply(-1));
+	let rotated = rotateY(local, -renderer.camRot.y * (Math.PI / 180));
+	rotated = rotateX(rotated, -renderer.camRot.x * (Math.PI / 180));
+	rotated = rotateZ(rotated, -renderer.camRot.z * (Math.PI / 180));
+	return rotated;
 }
 
 /** @type {(offScreenV: Vector3, onScreenV: Vector3, planeZ?: number): Vector3} */
@@ -362,39 +362,60 @@ class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
 	cam = new Vector3(0, 0, 0);
-	camRot = new Vector3(0, 180, 0);
+	camRot = new Vector3(0, 0, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 50, 50);
 
 	focalLength = 300;
-	near = 0.1;
+	near = 1;
 	far = 1000;
 
 	constructor() {
-		this.objects.push(Cube(this, new Vector3(0, 0, -50), 25));
+		const scale = 25;
 
-		this.objects.push(SquareBasedPyramid(this, new Vector3(25, 0, 0), 25));
+		for (let x = -scale * 5; x < scale * 5; x += scale) {
+			for (let z = -scale * 5; z < scale * 5; z += scale) {
+				this.objects.push(
+					Cube(
+						this,
+						new Vector3(x, 50 - Math.random() * scale, z),
+						scale,
+						Math.round(Math.random() * 360),
+						Math.round(Math.random() * 100),
+						50
+					)
+				);
+			}
+		}
 
-		this.objects.push(
-			new ThreeDObject(
-				this,
-				[
-					new Vector3(100, 100, -100),
-					new Vector3(100, 100, 100),
-					new Vector3(-100, 100, 100),
-					new Vector3(-100, 100, -100),
-				],
-				[
-					[2, 1, 0],
-					[3, 2, 0],
-				],
-				new Vector3(0, 0, 0),
-				new Vector3(0, 0, 0),
-				90,
-				100,
-				100
-			)
-		);
+		// this.objects.push(
+		// 	Cube(this, new Vector3(0, 25, 50), scale, 90, 50, 100)
+		// );
+
+		// this.objects.push(
+		// 	SquareBasedPyramid(this, new Vector3(-25, 0, 10), 25)
+		// );
+
+		// this.objects.push(
+		// 	new ThreeDObject(
+		// 		this,
+		// 		[
+		// 			new Vector3(100, 100, -100),
+		// 			new Vector3(100, 100, 100),
+		// 			new Vector3(-100, 100, 100),
+		// 			new Vector3(-100, 100, -100),
+		// 		],
+		// 		[
+		// 			[2, 1, 0],
+		// 			[3, 2, 0],
+		// 		],
+		// 		new Vector3(0, 0, 0),
+		// 		new Vector3(0, 0, 0),
+		// 		90,
+		// 		100,
+		// 		100
+		// 	)
+		// );
 
 		this.Update();
 	}
@@ -407,8 +428,8 @@ class Renderer {
 		if (this.keyMap.has("w")) {
 			this.cam = this.cam.Add(
 				new Vector3(
-					Math.sin((this.camRot.y * Math.PI) / 180),
-					-Math.sin((this.camRot.x * Math.PI) / 180),
+					-Math.sin((this.camRot.y * Math.PI) / 180),
+					Math.sin((this.camRot.x * Math.PI) / 180),
 					-Math.cos((this.camRot.y * Math.PI) / 180)
 				)
 			);
@@ -417,8 +438,8 @@ class Renderer {
 		if (this.keyMap.has("s")) {
 			this.cam = this.cam.Add(
 				new Vector3(
-					-Math.sin((this.camRot.y * Math.PI) / 180),
-					Math.sin((this.camRot.x * Math.PI) / 180),
+					Math.sin((this.camRot.y * Math.PI) / 180),
+					-Math.sin((this.camRot.x * Math.PI) / 180),
 					Math.cos((this.camRot.y * Math.PI) / 180)
 				)
 			);
@@ -429,7 +450,7 @@ class Renderer {
 				new Vector3(
 					Math.cos((this.camRot.y * Math.PI) / 180),
 					0,
-					Math.sin((this.camRot.y * Math.PI) / 180)
+					-Math.sin((this.camRot.y * Math.PI) / 180)
 				)
 			);
 		}
@@ -439,33 +460,40 @@ class Renderer {
 				new Vector3(
 					-Math.cos((this.camRot.y * Math.PI) / 180),
 					0,
-					-Math.sin((this.camRot.y * Math.PI) / 180)
+					Math.sin((this.camRot.y * Math.PI) / 180)
 				)
 			);
 		}
 
 		if (this.keyMap.has("e")) {
-			this.cam = this.cam.Add(new Vector3(0, 1, 0));
+			this.cam.y += 1;
 		}
 
 		if (this.keyMap.has("q")) {
-			this.cam = this.cam.Add(new Vector3(0, -1, 0));
+			this.cam.y -= 1;
 		}
-
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot = this.camRot.Add(new Vector3(0, -1, 0));
+			this.camRot.y += 1;
+
+			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
 		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot = this.camRot.Add(new Vector3(0, 1, 0));
+			this.camRot.y -= 1;
+
+			if (this.camRot.y < 0) this.camRot.y = 360;
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
-			this.camRot = this.camRot.Add(new Vector3(1, 0, 0));
+			this.camRot.x += 1;
+
+			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
 
 		if (this.keyMap.has("ArrowDown")) {
-			this.camRot = this.camRot.Add(new Vector3(-1, 0, 0));
+			this.camRot.x -= 1;
+
+			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
 
 		this.Draw();
@@ -550,7 +578,6 @@ class Renderer {
 			return bMag - aMag;
 		});
 
-		// this.DrawLight();
 		for (let face of orderedFaces) {
 			const dot = GetDotProduct(face.face, Vector3.Zero());
 
@@ -561,21 +588,15 @@ class Renderer {
 			const lightDot = GetDotProduct(face.face, lightPos);
 
 			ctx.fillStyle = `hsl(${face.obj.hue} ${face.obj.saturation}% ${
-				face.obj.lightness * (0.3 + 0.7 * (lightDot > 0))
+				face.obj.lightness * (0.3 + 0.7 * -lightDot)
 			}%)`;
 			ctx.strokeStyle = ctx.fillStyle;
 
 			face = lerpVerts(face.face, this.near);
 
-			if (face.length === 0) {
-				return;
-			}
-
 			ctx.beginPath();
 
 			for (let [ix, v] of face.entries()) {
-				if (v.z == 0) continue;
-
 				if (v.z < this.near || v.z > this.far) continue;
 
 				const projectedX =
@@ -596,13 +617,14 @@ class Renderer {
 		}
 
 		ctx.fillStyle = "hsl(0 0% 0%)";
+		// this.DrawLight();
 	}
 }
 
 const r = new Renderer();
 
 document.addEventListener("keydown", (ev) => {
-	ev.preventDefault();
+	// ev.preventDefault();
 
 	r.keyMap.add(ev.key);
 });
