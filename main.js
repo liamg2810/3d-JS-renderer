@@ -340,11 +340,7 @@ function GetDotProduct(verts, comp) {
 		a.x * b.y - a.y * b.x
 	);
 
-	const mag = Math.sqrt(
-		cross.x * cross.x + cross.y * cross.y + cross.z * cross.z
-	);
-
-	const normal = new Vector3(cross.x / mag, cross.y / mag, cross.z / mag);
+	const normal = cross.Normalise();
 
 	const viewDir = new Vector3(
 		comp.x - verts[0].x,
