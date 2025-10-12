@@ -253,7 +253,11 @@ function ApplyLocalRotation(obj, v) {
 	return rotatedZ.Add(obj.origin);
 }
 
-/** @type {(renderer: Renderer, v: Vector3): Vector3} */
+/**
+ * @param {Renderer} renderer
+ * @param {Vector3} v
+ * @returns {Vector3}
+ */
 function ApplyCameraRotation(renderer, v) {
 	const local = v.Add(renderer.cam);
 
@@ -263,22 +267,20 @@ function ApplyCameraRotation(renderer, v) {
 	return rotated;
 }
 
-/** @type {(offScreenV: Vector3, onScreenV: Vector3, planeZ?: number): Vector3} */
-function lerp(offScreenV, onScreenV, planeZ = 0.1) {
-	const denom = onScreenV.z - offScreenV.z;
-
-	if (denom === 0)
-		return new Vector3(offScreenV.x, offScreenV.y, offScreenV.z);
-
-	let percent = (planeZ - offScreenV.z) / denom;
-
+/**
+ * @param {Vector3} from
+ * @param {Vector3} to
+ * @param {number} percent
+ * @returns {Vector3}
+ */
+function lerp(from, to, percent) {
 	if (percent < 0) percent = 0;
 	if (percent > 1) percent = 1;
 
 	return new Vector3(
-		offScreenV.x + (onScreenV.x - offScreenV.x) * percent,
-		offScreenV.y + (onScreenV.y - offScreenV.y) * percent,
-		planeZ
+		from.x + (to.x - from.x) * percent,
+		from.y + (to.y - from.y) * percent,
+		from.z + (to.z - from.z) * percent
 	);
 }
 
@@ -299,11 +301,15 @@ function lerpVerts(verts, near) {
 			...offScreen.map((v) => {
 				const on = onScreen[0];
 
-				const l = lerp(v, on, near);
+				const denom = on.z - v.z;
 
-				if (on.z < near) {
-					l.z = near;
-				}
+				if (denom === 0) return new Vector3(v.x, v.y, v.z);
+
+				let percent = (near - v.z) / denom;
+
+				const l = lerp(v, on, percent);
+
+				l.z = near;
 
 				return l;
 			}),
@@ -316,8 +322,28 @@ function lerpVerts(verts, near) {
 
 		const v = offScreen[0];
 
-		const l1 = lerp(v, on1, near);
-		const l2 = lerp(v, on2, near);
+		const denom1 = on1.z - v.z;
+
+		let l1;
+
+		if (denom1 === 0) {
+			l1 = new Vector3(v.x, v.y, v.z);
+		} else {
+			let percent1 = (near - v.z) / denom1;
+			l1 = lerp(v, on1, percent1);
+			l1.z = near;
+		}
+
+		const denom2 = on2.z - v.z;
+		let l2;
+
+		if (denom2 === 0) {
+			l2 = new Vector3(v.x, v.y, v.z);
+		} else {
+			let percent2 = (near - v.z) / denom2;
+			l2 = lerp(v, on2, percent2);
+			l2.z = near;
+		}
 
 		if (l1.x < l2.x) {
 			r = [...onScreen, l2, l1];
@@ -343,9 +369,9 @@ function GetDotProduct(verts, comp) {
 	const normal = cross.Normalise();
 
 	const viewDir = new Vector3(
-		comp.x - verts[0].x,
-		comp.y - verts[0].y,
-		comp.z - verts[0].z
+		verts[0].x - comp.x,
+		verts[0].y - comp.y,
+		verts[0].z - comp.z
 	).Normalise();
 
 	const dot =
@@ -354,64 +380,139 @@ function GetDotProduct(verts, comp) {
 	return dot;
 }
 
+function CubeScene(renderer) {
+	const scale = 25;
+	for (let x = -scale * 5; x < scale * 5; x += scale) {
+		for (let z = -scale * 5; z < scale * 5; z += scale) {
+			renderer.objects.push(
+				Cube(
+					renderer,
+					new Vector3(x, 50 - Math.random() * scale, z),
+					scale,
+					Math.round(Math.random() * 360),
+					Math.round(Math.random() * 100),
+					50
+				)
+			);
+		}
+	}
+}
+
+function TestScene(renderer) {
+	const scale = 25;
+	renderer.objects.push(
+		Cube(renderer, new Vector3(0, 25, 50), scale, 90, 50, 100)
+	);
+
+	renderer.objects.push(
+		SquareBasedPyramid(renderer, new Vector3(-25, 0, 10), 25)
+	);
+
+	renderer.objects.push(
+		new ThreeDObject(
+			renderer,
+			[
+				new Vector3(100, 100, -100),
+				new Vector3(100, 100, 100),
+				new Vector3(-100, 100, 100),
+				new Vector3(-100, 100, -100),
+			],
+			[
+				[2, 1, 0],
+				[3, 2, 0],
+			],
+			new Vector3(0, 0, 0),
+			new Vector3(0, 0, 0),
+			90,
+			100,
+			100
+		)
+	);
+}
+
+function TerrainScene(renderer) {
+	let verts = [];
+
+	const scale = 10;
+	const grid = 25;
+
+	for (let x = 0; x < grid + 1; x++) {
+		for (let z = 0; z < grid + 1; z++) {
+			verts.push(
+				new Vector3(
+					x * scale,
+					Math.random() * scale - scale / 2,
+					z * scale
+				)
+			);
+		}
+	}
+
+	let draw = [];
+
+	for (let i = 0; i < verts.length; i += 1) {
+		if (i + grid + 2 >= verts.length) {
+			continue;
+		}
+
+		if (i % (grid + 1) === grid) {
+			continue;
+		}
+
+		draw.push([i + grid + 2, i + grid + 1, i]);
+		draw.push([i, i + 1, i + grid + 2]);
+	}
+
+	renderer.objects.push(
+		new ThreeDObject(
+			renderer,
+			verts,
+			draw,
+			Vector3.Zero(),
+			Vector3.Zero(),
+			90,
+			100,
+			50
+		)
+	);
+
+	renderer.objects.push(
+		new ThreeDObject(
+			renderer,
+			[
+				new Vector3(0, 0, 0),
+				new Vector3(scale * grid, 0, 0),
+				new Vector3(scale * grid, 0, scale * grid),
+				new Vector3(0, 0, scale * grid),
+			],
+			[
+				[0, 2, 1],
+				[0, 3, 2],
+			],
+			new Vector3(0, 0, 0),
+			new Vector3(0, 0, 0),
+			180,
+			100,
+			100
+		)
+	);
+}
+
 class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
 	cam = new Vector3(0, 0, 0);
 	camRot = new Vector3(0, 0, 0);
 	keyMap = new Set();
-	light = new Vector3(50, 50, 50);
+	light = new Vector3(50, -50, 50);
 
 	focalLength = 300;
-	near = 1;
+	near = 0.1;
 	far = 1000;
 
 	constructor() {
-		const scale = 25;
-
-		for (let x = -scale * 5; x < scale * 5; x += scale) {
-			for (let z = -scale * 5; z < scale * 5; z += scale) {
-				this.objects.push(
-					Cube(
-						this,
-						new Vector3(x, 50 - Math.random() * scale, z),
-						scale,
-						Math.round(Math.random() * 360),
-						Math.round(Math.random() * 100),
-						50
-					)
-				);
-			}
-		}
-
-		// this.objects.push(
-		// 	Cube(this, new Vector3(0, 25, 50), scale, 90, 50, 100)
-		// );
-
-		// this.objects.push(
-		// 	SquareBasedPyramid(this, new Vector3(-25, 0, 10), 25)
-		// );
-
-		// this.objects.push(
-		// 	new ThreeDObject(
-		// 		this,
-		// 		[
-		// 			new Vector3(100, 100, -100),
-		// 			new Vector3(100, 100, 100),
-		// 			new Vector3(-100, 100, 100),
-		// 			new Vector3(-100, 100, -100),
-		// 		],
-		// 		[
-		// 			[2, 1, 0],
-		// 			[3, 2, 0],
-		// 		],
-		// 		new Vector3(0, 0, 0),
-		// 		new Vector3(0, 0, 0),
-		// 		90,
-		// 		100,
-		// 		100
-		// 	)
-		// );
+		TestScene(this);
+		// TerrainScene(this);
 
 		this.Update();
 	}
@@ -519,7 +620,7 @@ class Renderer {
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		/** @type {{obj: ThreeDObject; face: Vector3[]}[]} */
-		let orderedFaces = [];
+		let faces = [];
 
 		for (let obj of this.objects) {
 			obj.CalculateFrameVerts();
@@ -536,11 +637,11 @@ class Renderer {
 					return obj.frameVerts[o];
 				});
 
-				orderedFaces.push({ obj: obj, face: verts });
+				faces.push({ obj: obj, face: verts });
 			}
 		}
 
-		orderedFaces = orderedFaces.sort((a, b) => {
+		faces = faces.sort((a, b) => {
 			let aSum = Vector3.Zero();
 
 			a.face.forEach((face) => {
@@ -572,25 +673,26 @@ class Renderer {
 			return bMag - aMag;
 		});
 
-		for (let face of orderedFaces) {
+		for (let face of faces) {
 			const dot = GetDotProduct(face.face, Vector3.Zero());
 
-			if (dot > 0) {
+			if (dot < 0) {
 				continue;
 			}
 
 			const lightDot = GetDotProduct(face.face, lightPos);
 
 			ctx.fillStyle = `hsl(${face.obj.hue} ${face.obj.saturation}% ${
-				face.obj.lightness * (0.3 + 0.7 * -lightDot)
+				face.obj.lightness * (0.3 + 0.7 * lightDot)
 			}%)`;
+
 			ctx.strokeStyle = ctx.fillStyle;
 
-			face = lerpVerts(face.face, this.near);
+			const f = lerpVerts(face.face, this.near);
 
 			ctx.beginPath();
 
-			for (let [ix, v] of face.entries()) {
+			for (let [ix, v] of f.entries()) {
 				if (v.z < this.near || v.z > this.far) continue;
 
 				const projectedX =
