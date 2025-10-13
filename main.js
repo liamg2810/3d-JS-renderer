@@ -137,20 +137,21 @@ class ThreeDObject {
 }
 
 /** @type {(r: Renderer; origin: Vector3, size: number): ThreeDObject} */
-function Cube(r, origin, size, h, s, l) {
+function Cube(r, origin, sizeY, size, h, s, l) {
 	const hS = size / 2;
+	const hSY = sizeY / 2;
 
 	return new ThreeDObject(
 		r,
 		[
-			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS),
-			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS),
-			new Vector3(origin.x + hS, origin.y - hS, origin.z - hS),
-			new Vector3(origin.x - hS, origin.y - hS, origin.z - hS),
-			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y + hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y - hS, origin.z + hS),
-			new Vector3(origin.x - hS, origin.y - hS, origin.z + hS),
+			new Vector3(origin.x - hS, origin.y + hSY, origin.z - hS),
+			new Vector3(origin.x + hS, origin.y + hSY, origin.z - hS),
+			new Vector3(origin.x + hS, origin.y - hSY, origin.z - hS),
+			new Vector3(origin.x - hS, origin.y - hSY, origin.z - hS),
+			new Vector3(origin.x - hS, origin.y + hSY, origin.z + hS),
+			new Vector3(origin.x + hS, origin.y + hSY, origin.z + hS),
+			new Vector3(origin.x + hS, origin.y - hSY, origin.z + hS),
+			new Vector3(origin.x - hS, origin.y - hSY, origin.z + hS),
 		],
 		[
 			// BACK
@@ -430,13 +431,12 @@ function TestScene(renderer) {
 	);
 }
 
-function TerrainScene(renderer) {
+function Sphere(renderer) {
 	let verts = [];
 
 	const scale = 10;
-	const grid = 25;
 
-	for (let x = 0; x < grid + 1; x++) {
+	for (let y = 0; y < scale; y++) {
 		for (let z = 0; z < grid + 1; z++) {
 			verts.push(
 				new Vector3(
@@ -476,32 +476,194 @@ function TerrainScene(renderer) {
 		)
 	);
 
+	// renderer.objects.push(
+	// 	new ThreeDObject(
+	// 		renderer,
+	// 		[
+	// 			new Vector3(0, 0, 0),
+	// 			new Vector3(scale * grid, 0, 0),
+	// 			new Vector3(scale * grid, 0, scale * grid),
+	// 			new Vector3(0, 0, scale * grid),
+	// 		],
+	// 		[
+	// 			[0, 2, 1],
+	// 			[0, 3, 2],
+	// 		],
+	// 		new Vector3(0, 0, 0),
+	// 		new Vector3(0, 0, 0),
+	// 		180,
+	// 		100,
+	// 		100
+	// 	)
+	// );
+}
+
+const noise = {
+	permutation: (() => {
+		const p = [];
+		for (let i = 0; i < 256; i++) p[i] = i;
+		for (let i = 255; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[p[i], p[j]] = [p[j], p[i]];
+		}
+		return [...p, ...p];
+	})(),
+	grad: [
+		[1, 1],
+		[-1, 1],
+		[1, -1],
+		[-1, -1],
+		[1, 0],
+		[-1, 0],
+		[0, 1],
+		[0, -1],
+	],
+	fade: function (t) {
+		return t * t * t * (t * (t * 6 - 15) + 10);
+	},
+	lerp: function (a, b, t) {
+		return a + t * (b - a);
+	},
+	grad2: function (hash, x, y) {
+		const g = this.grad[hash & 7];
+		return g[0] * x + g[1] * y;
+	},
+	perlin2: function (x, y) {
+		const X = Math.floor(x) & 255;
+		const Y = Math.floor(y) & 255;
+		const xf = x - Math.floor(x);
+		const yf = y - Math.floor(y);
+
+		const topRight = this.permutation[X + 1 + this.permutation[Y + 1]];
+		const topLeft = this.permutation[X + this.permutation[Y + 1]];
+		const bottomRight = this.permutation[X + 1 + this.permutation[Y]];
+		const bottomLeft = this.permutation[X + this.permutation[Y]];
+
+		const u = this.fade(xf);
+		const v = this.fade(yf);
+
+		const bl = this.grad2(bottomLeft, xf, yf);
+		const br = this.grad2(bottomRight, xf - 1, yf);
+		const tl = this.grad2(topLeft, xf, yf - 1);
+		const tr = this.grad2(topRight, xf - 1, yf - 1);
+
+		const x1 = this.lerp(bl, br, u);
+		const x2 = this.lerp(tl, tr, u);
+
+		return this.lerp(x1, x2, v);
+	},
+};
+
+function TerrainScene(renderer) {
+	let verts = [];
+
+	const scale = 5;
+	const grid = 50;
+
+	for (let x = 0; x < grid + 1; x++) {
+		for (let z = 0; z < grid + 1; z++) {
+			let val = noise.perlin2(x / 10, z / 10);
+
+			verts.push(
+				new Vector3(
+					x * scale,
+					Math.abs(val) * scale * 2 - scale,
+					z * scale
+				)
+			);
+		}
+	}
+
+	let draw = [];
+
+	for (let i = 0; i < verts.length; i += 1) {
+		if (i + grid + 2 >= verts.length) {
+			continue;
+		}
+
+		if (i % (grid + 1) === grid) {
+			continue;
+		}
+
+		draw.push([i + grid + 2, i + grid + 1, i]);
+		draw.push([i, i + 1, i + grid + 2]);
+	}
+
 	renderer.objects.push(
 		new ThreeDObject(
 			renderer,
-			[
-				new Vector3(0, 0, 0),
-				new Vector3(scale * grid, 0, 0),
-				new Vector3(scale * grid, 0, scale * grid),
-				new Vector3(0, 0, scale * grid),
-			],
-			[
-				[0, 2, 1],
-				[0, 3, 2],
-			],
-			new Vector3(0, 0, 0),
-			new Vector3(0, 0, 0),
-			180,
+			verts,
+			draw,
+			Vector3.Zero(),
+			Vector3.Zero(),
+			90,
 			100,
-			100
+			50
 		)
 	);
+
+	// renderer.objects.push(
+	// 	new ThreeDObject(
+	// 		renderer,
+	// 		[
+	// 			new Vector3(0, 0, 0),
+	// 			new Vector3(scale * grid, 0, 0),
+	// 			new Vector3(scale * grid, 0, scale * grid),
+	// 			new Vector3(0, 0, scale * grid),
+	// 		],
+	// 		[
+	// 			[0, 2, 1],
+	// 			[0, 3, 2],
+	// 		],
+	// 		new Vector3(0, 0, 0),
+	// 		new Vector3(0, 0, 0),
+	// 		180,
+	// 		100,
+	// 		100
+	// 	)
+	// );
+}
+
+function VoxelTerrainScene(renderer) {
+	const scale = 10;
+	const grid = 16;
+
+	for (let x = 0; x < grid; x++) {
+		for (let z = 0; z < grid; z++) {
+			let val = noise.perlin2(x / 10, z / 10);
+
+			val = Math.round(val * 10) / 10;
+
+			let hue = 90;
+
+			if (val < 0.1) {
+				hue = 45;
+			}
+
+			if (val < 0) {
+				val = -0.02;
+				hue = 180;
+			}
+
+			renderer.objects.push(
+				Cube(
+					renderer,
+					new Vector3(x * scale, -val * scale * 10, z * scale),
+					scale,
+					scale,
+					hue,
+					50,
+					100
+				)
+			);
+		}
+	}
 }
 
 class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(0, 0, 0);
+	cam = new Vector3(-100, 50, 50);
 	camRot = new Vector3(0, 0, 0);
 	keyMap = new Set();
 	light = new Vector3(50, -50, 50);
@@ -511,16 +673,29 @@ class Renderer {
 	far = 1000;
 
 	constructor() {
-		TestScene(this);
+		// TestScene(this);
 		// TerrainScene(this);
+		VoxelTerrainScene(this);
 
 		this.Update();
 	}
 
+	lightDir = new Vector3(1, 0, 0);
+
 	Update() {
 		// this.objects[0].rotation = this.objects[0].rotation.Add(
-		// 	new Vector3(0, 1, 0)
+		// 	new Vector3(0, 0, 1)
 		// );
+
+		this.light = this.light.Add(this.lightDir);
+
+		if (this.light.x > 200) {
+			this.lightDir.x = -1;
+		}
+
+		if (this.light.x < 50) {
+			this.lightDir.x = 1;
+		}
 
 		if (this.keyMap.has("w")) {
 			this.cam = this.cam.Add(
@@ -619,7 +794,7 @@ class Renderer {
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-		/** @type {{obj: ThreeDObject; face: Vector3[]}[]} */
+		/** @type {{obj: ThreeDObject; face: Vector3[]; drawOrder: [number, number, number]}[]} */
 		let faces = [];
 
 		for (let obj of this.objects) {
@@ -637,7 +812,7 @@ class Renderer {
 					return obj.frameVerts[o];
 				});
 
-				faces.push({ obj: obj, face: verts });
+				faces.push({ obj: obj, face: verts, drawOrder: draw });
 			}
 		}
 
@@ -686,10 +861,9 @@ class Renderer {
 				face.obj.lightness * (0.3 + 0.7 * lightDot)
 			}%)`;
 
-			ctx.strokeStyle = ctx.fillStyle;
-
 			const f = lerpVerts(face.face, this.near);
 
+			ctx.strokeStyle = ctx.fillStyle;
 			ctx.beginPath();
 
 			for (let [ix, v] of f.entries()) {
@@ -713,7 +887,7 @@ class Renderer {
 		}
 
 		ctx.fillStyle = "hsl(0 0% 0%)";
-		// this.DrawLight();
+		this.DrawLight();
 	}
 }
 
