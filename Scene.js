@@ -1,4 +1,4 @@
-import { noise } from "./Math.js";
+import { perlin3D } from "./Perlin3D.js";
 import { Cube, SquareBasedPyramid, ThreeDObject } from "./Primitives.js";
 import { Vector3 } from "./Vectors.js";
 
@@ -27,30 +27,30 @@ export function TestScene(renderer) {
 		Cube(renderer, new Vector3(0, 25, 50), scale, scale, 90, 50, 50)
 	);
 
-	renderer.objects.push(
-		SquareBasedPyramid(renderer, new Vector3(-25, 0, 10), 25)
-	);
+	// renderer.objects.push(
+	// 	SquareBasedPyramid(renderer, new Vector3(-25, 0, 10), 25)
+	// );
 
-	renderer.objects.push(
-		new ThreeDObject(
-			renderer,
-			[
-				new Vector3(100, 100, -100),
-				new Vector3(100, 100, 100),
-				new Vector3(-100, 100, 100),
-				new Vector3(-100, 100, -100),
-			],
-			[
-				[2, 1, 0],
-				[3, 2, 0],
-			],
-			new Vector3(0, 0, 0),
-			new Vector3(0, 0, 0),
-			90,
-			100,
-			50
-		)
-	);
+	// renderer.objects.push(
+	// 	new ThreeDObject(
+	// 		renderer,
+	// 		[
+	// 			new Vector3(100, 100, -100),
+	// 			new Vector3(100, 100, 100),
+	// 			new Vector3(-100, 100, 100),
+	// 			new Vector3(-100, 100, -100),
+	// 		],
+	// 		[
+	// 			[2, 1, 0],
+	// 			[3, 2, 0],
+	// 		],
+	// 		new Vector3(0, 0, 0),
+	// 		new Vector3(0, 0, 0),
+	// 		90,
+	// 		100,
+	// 		50
+	// 	)
+	// );
 }
 
 export function TerrainScene(renderer) {
@@ -61,15 +61,14 @@ export function TerrainScene(renderer) {
 
 	for (let x = 0; x < grid + 1; x++) {
 		for (let z = 0; z < grid + 1; z++) {
-			let val = noise.perlin2(x / 10, z / 10);
-
-			verts.push(
-				new Vector3(
-					x * scale,
-					Math.abs(val) * scale * 2 - scale,
-					z * scale
-				)
-			);
+			// let val = perlin2D(x / 10, z / 10);
+			// verts.push(
+			// 	new Vector3(
+			// 		x * scale,
+			// 		Math.abs(val) * scale * 2 - scale,
+			// 		z * scale
+			// 	)
+			// );
 		}
 	}
 
@@ -124,63 +123,73 @@ export function TerrainScene(renderer) {
 }
 
 export function VoxelTerrainScene(renderer) {
+	renderer.objects = [];
+
 	const scale = 5;
 	const grid = 100;
+	const noiseScale = 0.05;
 
-	for (let x = 0; x < grid; x++) {
-		for (let z = 0; z < grid; z++) {
-			let val = noise.perlin2(x / 10, z / 10);
+	for (let y = 10; y > 0; y--) {
+		for (let x = 0; x < grid; x++) {
+			for (let z = 0; z < grid; z++) {
+				if (y < 3) {
+					renderer.objects.push(
+						Cube(
+							renderer,
+							new Vector3(x * scale, y * scale, z * scale),
+							scale,
+							scale,
+							50,
+							50,
+							50
+						)
+					);
 
-			val = Math.round(val * 10) / 10;
+					continue;
+				}
 
-			let r = 0;
-			let g = 150;
-			let b = 0;
+				let r = 0;
+				let g = 150;
+				let b = 0;
 
-			if (val < 0.1) {
-				r = 125;
-				g = 125;
-				b = 25;
+				let noiseVal = perlin3D(
+					x * noiseScale,
+					y * noiseScale,
+					z * noiseScale
+				);
+
+				if (noiseVal < 0.4 && y >= 6) {
+					continue;
+				}
+
+				if (noiseVal < 0.6 && y < 7) {
+					r = 125;
+					g = 125;
+					b = 25;
+				}
+
+				if (noiseVal < 0.5 && y < 6) {
+					r = 0;
+					g = 0;
+					b = 255;
+				}
+
+				renderer.objects.push(
+					Cube(
+						renderer,
+						new Vector3(x * scale, y * scale, z * scale),
+						b === 255 ? 2 : scale,
+						scale,
+						r,
+						g,
+						b
+					)
+				);
+
+				if (b === 255) {
+					continue;
+				}
 			}
-
-			if (val < 0) {
-				val = 0.01;
-				r = 0;
-				g = 0;
-				b = 255;
-			}
-
-			renderer.objects.push(
-				Cube(
-					renderer,
-					new Vector3(x * scale, -val * scale * 10, z * scale),
-					b === 255 ? 2 : scale,
-					scale,
-					r,
-					g,
-					b
-				)
-			);
-
-			if (b === 255) {
-				continue;
-			}
-
-			renderer.objects.push(
-				Cube(
-					renderer,
-					new Vector3(
-						x * scale,
-						-val * scale * 10 + scale,
-						z * scale
-					),
-					scale,
-					scale,
-					50,
-					50,
-					50
-				)
-			);
 		}
 	}
 }

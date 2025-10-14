@@ -3,43 +3,145 @@ import { ThreeDObject } from "./Primitives.js";
 import { CubeScene, TestScene, VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
-/** @type {HTMLCanvasElement} */
-const canvas = document.getElementById("canvas");
-/** @type {CanvasRenderingContext2D} */
-const ctx = canvas.getContext("2d");
-/** @type {ImageData} */
-const imageData = ctx.createImageData(canvas.width, canvas.height, {
-	pixelFormat: "rgba-unorm8",
-});
+let mat4 =
+	(typeof window !== "undefined" &&
+		(window.mat4 || (window.glMatrix && window.glMatrix.mat4))) ||
+	null;
+if (!mat4) {
+	const gm = await import(
+		"https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js"
+	);
+	mat4 = gm.mat4;
+}
 
-function interpolate(vStart, vEnd, y) {
-	const t = (y - vStart.y) / (vEnd.y - vStart.y);
-	return {
-		x: vStart.x + (vEnd.x - vStart.x) * t,
-		z: vStart.z + (vEnd.z - vStart.z) * t,
-	};
+const vsSource = `
+    attribute vec4 aVertexPosition;
+attribute vec4 aVertexColor;      // add color attribute
+uniform mat4 uModelViewMatrix;
+uniform mat4 uProjectionMatrix;
+varying vec4 vColor;              // pass to fragment shader
+
+void main() {
+    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+    vColor = aVertexColor;        // forward color
+}
+  `;
+
+const fsSource = `
+    precision mediump float;           // needed in WebGL
+varying vec4 vColor;               // receive from vertex shader
+
+void main() {
+    gl_FragColor = vColor;        // use per-vertex color
+}
+
+  `;
+
+//
+// Initialize a shader program, so WebGL knows how to draw our data
+//
+function initShaderProgram(gl, vsSource, fsSource) {
+	const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+	const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+	// Create the shader program
+
+	const shaderProgram = gl.createProgram();
+	gl.attachShader(shaderProgram, vertexShader);
+	gl.attachShader(shaderProgram, fragmentShader);
+	gl.linkProgram(shaderProgram);
+
+	// If creating the shader program failed, alert
+
+	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+		alert(
+			`Unable to initialize the shader program: ${gl.getProgramInfoLog(
+				shaderProgram
+			)}`
+		);
+		return null;
+	}
+
+	return shaderProgram;
+}
+
+//
+// creates a shader of the given type, uploads the source and
+// compiles it.
+//
+function loadShader(gl, type, source) {
+	const shader = gl.createShader(type);
+
+	// Send the source to the shader object
+
+	gl.shaderSource(shader, source);
+
+	// Compile the shader program
+
+	gl.compileShader(shader);
+
+	// See if it compiled successfully
+
+	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+		alert(
+			`An error occurred compiling the shaders: ${gl.getShaderInfoLog(
+				shader
+			)}`
+		);
+		gl.deleteShader(shader);
+		return null;
+	}
+
+	return shader;
 }
 
 export class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(-100, 50, 50);
-	camRot = new Vector3(0, 0, 0);
+	cam = new Vector3(-10, 200, -10);
+	camRot = new Vector3(-20, 225, 0);
 	keyMap = new Set();
 	light = new Vector3(50, -50, 50);
 
 	focalLength = 300;
 	near = 0.1;
-	far = 1000;
+	far = 10000;
 
-	zBuffer = new Array(canvas.width * canvas.height);
 	deltaTime = 0;
 
+	shaderProgram;
+
+	canvas;
+	gl;
+
+	vertexBuffer;
+	indexBuffer;
+	colorBuffer;
+
 	constructor() {
+		/** @type {HTMLCanvasElement} */
+		this.canvas = document.getElementById("canvas");
+
+		if (this.canvas === null) {
+			alert("Canvas not found.");
+			return;
+		}
+
+		/** @type {WebGLRenderingContext} */
+		this.gl = this.canvas.getContext("webgl2");
+
+		if (this.gl === null) {
+			alert("Unable to initialize WebGL.");
+			return;
+		}
+
 		// TestScene(this);
 		// TerrainScene(this);
 		VoxelTerrainScene(this);
 		// CubeScene(this);
+		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
+
+		this.LoadBuffers();
 
 		this.Update();
 	}
@@ -59,7 +161,7 @@ export class Renderer {
 			this.lightDir.x = 1;
 		}
 
-		const speed = this.deltaTime / 10;
+		const speed = 1;
 
 		if (this.keyMap.has("w")) {
 			this.cam = this.cam.Add(
@@ -84,9 +186,9 @@ export class Renderer {
 		if (this.keyMap.has("a")) {
 			this.cam = this.cam.Add(
 				new Vector3(
-					speed * Math.cos((this.camRot.y * Math.PI) / 180),
+					speed * -Math.cos((this.camRot.y * Math.PI) / 180),
 					0,
-					speed * -Math.sin((this.camRot.y * Math.PI) / 180)
+					speed * Math.sin((this.camRot.y * Math.PI) / 180)
 				)
 			);
 		}
@@ -94,9 +196,9 @@ export class Renderer {
 		if (this.keyMap.has("d")) {
 			this.cam = this.cam.Add(
 				new Vector3(
-					speed * -Math.cos((this.camRot.y * Math.PI) / 180),
+					speed * Math.cos((this.camRot.y * Math.PI) / 180),
 					0,
-					speed * Math.sin((this.camRot.y * Math.PI) / 180)
+					speed * -Math.sin((this.camRot.y * Math.PI) / 180)
 				)
 			);
 		}
@@ -109,15 +211,15 @@ export class Renderer {
 			this.cam.y -= speed;
 		}
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot.y += speed / 2;
-
-			if (this.camRot.y > 360) this.camRot.y = 0;
-		}
-
-		if (this.keyMap.has("ArrowLeft")) {
 			this.camRot.y -= speed / 2;
 
 			if (this.camRot.y < 0) this.camRot.y = 360;
+		}
+
+		if (this.keyMap.has("ArrowLeft")) {
+			this.camRot.y += speed / 2;
+
+			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
@@ -143,124 +245,120 @@ export class Renderer {
 		}, 1000 / 60);
 	}
 
-	DrawLight() {
-		const lightPos = ApplyCameraRotation(this, this.light);
+	LoadBuffers() {
+		let verts = [];
+		let vertsOff = 0;
+		let indices = [];
+		let colors = [];
 
-		if (lightPos.z < this.near || lightPos.z > this.far) return;
+		for (let obj of this.objects) {
+			for (let v of obj.vertices) {
+				verts.push(v.x, v.y, v.z);
 
-		const projectedX =
-			(lightPos.x / lightPos.z) * this.focalLength + canvas.width / 2;
-		const projectedY =
-			(lightPos.y / lightPos.z) * this.focalLength + canvas.height / 2;
+				colors.push(obj.r / 255, obj.g / 255, obj.b / 255, 1.0);
+			}
 
-		ctx.fillStyle = "rgb(0, 0, 255)";
-		ctx.fillRect(projectedX, projectedY, 10, 10);
+			for (let o of obj.drawOrder) {
+				indices.push(o + vertsOff);
+			}
+
+			vertsOff += obj.vertices.length;
+		}
+
+		// Vertex buffer
+		this.vertexBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Float32Array(verts),
+			this.gl.STATIC_DRAW
+		);
+
+		// Color buffer
+		this.colorBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Float32Array(colors),
+			this.gl.STATIC_DRAW
+		);
+
+		// Index buffer
+		this.indexBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+		this.gl.bufferData(
+			this.gl.ELEMENT_ARRAY_BUFFER,
+			new Uint32Array(indices),
+			this.gl.STATIC_DRAW
+		);
+
+		this.indicesLength = indices.length;
 	}
 
 	Draw() {
-		const lightPos = ApplyCameraRotation(this, this.light);
+		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+		this.gl.clearColor(0, 0, 0, 1);
+		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+		this.gl.enable(this.gl.DEPTH_TEST);
 
-		this.zBuffer.fill(Infinity);
+		// Projection matrix
+		const projectionMatrix = mat4.create();
+		mat4.perspective(
+			projectionMatrix,
+			(45 * Math.PI) / 180,
+			this.canvas.width / this.canvas.height,
+			this.near,
+			this.far
+		);
 
-		imageData.data.fill(255);
+		// View matrix (camera)
+		const viewMatrix = mat4.create();
+		mat4.rotateX(viewMatrix, viewMatrix, (-this.camRot.x * Math.PI) / 180);
+		mat4.rotateY(viewMatrix, viewMatrix, (-this.camRot.y * Math.PI) / 180);
+		mat4.translate(viewMatrix, viewMatrix, [
+			-this.cam.x,
+			-this.cam.y,
+			-this.cam.z,
+		]);
 
-		/** @type {{obj: ThreeDObject; face: Vector3[]; drawOrder: [number, number, number]}[]} */
-		let faces = [];
+		// --- Use program & uniforms ---
+		this.gl.useProgram(this.shaderProgram);
 
-		for (let obj of this.objects) {
-			obj.CalculateFrameVerts();
+		const uProj = this.gl.getUniformLocation(
+			this.shaderProgram,
+			"uProjectionMatrix"
+		);
+		const uView = this.gl.getUniformLocation(
+			this.shaderProgram,
+			"uModelViewMatrix"
+		);
+		this.gl.uniformMatrix4fv(uProj, false, projectionMatrix);
+		this.gl.uniformMatrix4fv(uView, false, viewMatrix);
 
-			for (let draw of obj.drawOrder) {
-				if (draw.length > 3) {
-					console.error(
-						"Cannot have a drawOrder length greater than 3."
-					);
-					continue;
-				}
+		// --- Bind attributes ---
+		const posLoc = this.gl.getAttribLocation(
+			this.shaderProgram,
+			"aVertexPosition"
+		);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+		this.gl.vertexAttribPointer(posLoc, 3, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(posLoc);
 
-				let verts = draw.map((o) => {
-					return obj.frameVerts[o];
-				});
+		const colorLoc = this.gl.getAttribLocation(
+			this.shaderProgram,
+			"aVertexColor"
+		);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
+		this.gl.vertexAttribPointer(colorLoc, 4, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(colorLoc);
 
-				faces.push({ obj: obj, face: verts, drawOrder: draw });
-			}
-		}
+		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
-		for (let face of faces) {
-			const dot = GetDotProduct(face.face, Vector3.Zero());
-
-			if (dot < 0) {
-				continue;
-			}
-
-			const lightDot = GetDotProduct(face.face, lightPos);
-
-			const projected = face.face.map((v) => {
-				if (v.z <= this.near) return null;
-				const sx = (v.x / v.z) * this.focalLength + canvas.width / 2;
-				const sy = (v.y / v.z) * this.focalLength + canvas.height / 2;
-				return { x: sx, y: sy, z: v.z };
-			});
-
-			if (projected.includes(null)) continue;
-
-			const [p0, p1, p2] = projected.sort((a, b) => a.y - b.y);
-
-			if (p0.y === p2.y) continue;
-
-			const minY = Math.max(0, Math.ceil(p0.y));
-			const maxY = Math.min(canvas.height - 1, Math.floor(p2.y));
-
-			for (let py = minY; py <= maxY; py++) {
-				let xA, zA, xB, zB;
-
-				if (py < p1.y) {
-					const tA = (py - p0.y) / (p1.y - p0.y);
-					const tB = (py - p0.y) / (p2.y - p0.y);
-					xA = p0.x + (p1.x - p0.x) * tA;
-					zA = p0.z + (p1.z - p0.z) * tA;
-					xB = p0.x + (p2.x - p0.x) * tB;
-					zB = p0.z + (p2.z - p0.z) * tB;
-				} else {
-					const tA = (py - p1.y) / (p2.y - p1.y);
-					const tB = (py - p0.y) / (p2.y - p0.y);
-					xA = p1.x + (p2.x - p1.x) * tA;
-					zA = p1.z + (p2.z - p1.z) * tA;
-					xB = p0.x + (p2.x - p0.x) * tB;
-					zB = p0.z + (p2.z - p0.z) * tB;
-				}
-
-				if (xA > xB) {
-					[xA, xB] = [xB, xA];
-					[zA, zB] = [zB, zA];
-				}
-
-				const minX = Math.max(0, Math.ceil(xA));
-				const maxX = Math.min(canvas.width - 1, Math.floor(xB));
-
-				for (let px = minX; px <= maxX; px++) {
-					const t = xB - xA === 0 ? 0 : (px - xA) / (xB - xA);
-					const z = zA + (zB - zA) * t;
-
-					if (z < this.near || z > this.far) continue;
-
-					const index = (py * canvas.width + px) * 4;
-
-					if (this.zBuffer[index / 4] < z) {
-						continue;
-					}
-
-					this.zBuffer[index / 4] = z;
-
-					imageData.data[index] = face.obj.r + lightDot * 20;
-					imageData.data[index + 1] = face.obj.g + lightDot * 20;
-					imageData.data[index + 2] = face.obj.b + lightDot * 20;
-					// imageData.data[index + 3] = face.obj.opcaity;
-				}
-			}
-		}
-
-		ctx.putImageData(imageData, 0, 0);
-		// this.DrawLight();
+		this.gl.drawElements(
+			this.gl.TRIANGLES,
+			this.indicesLength,
+			this.gl.UNSIGNED_INT,
+			0
+		);
 	}
 }

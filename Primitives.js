@@ -4,7 +4,7 @@ import { Vector3 } from "./Vectors.js";
 export class ThreeDObject {
 	/** @type {Vector3[]} */
 	vertices = [];
-	/** @type {number[][]} */
+	/** @type {number[]} */
 	drawOrder = [];
 	/** @type {Vector3[]} */
 	frameVerts = [];
@@ -75,25 +75,26 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 			new Vector3(origin.x + hS, origin.y - hSY, origin.z + hS),
 			new Vector3(origin.x - hS, origin.y - hSY, origin.z + hS),
 		],
+		// prettier-ignore
 		[
 			// BACK
-			[2, 1, 0],
-			[3, 2, 0],
+			2, 1, 0,
+			3, 2, 0,
 			// FRONT
-			[4, 5, 6],
-			[4, 6, 7],
+			4, 5, 6,
+			4, 6, 7,
 			// BOTTOM
-			[1, 4, 0],
-			[1, 5, 4],
+			1, 4, 0,
+			1, 5, 4,
 			// TOP
-			[3, 6, 2],
-			[3, 7, 6],
+			3, 6, 2,
+			3, 7, 6,
 			// RIGHT
-			[7, 3, 0],
-			[0, 4, 7],
+			7, 3, 0,
+			0, 4, 7,
 			// LEFT
-			[6, 5, 2],
-			[1, 2, 5],
+			6, 5, 2,
+			1, 2, 5,
 		],
 		origin,
 		Vector3.Zero(),
