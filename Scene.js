@@ -11,6 +11,7 @@ export function CubeScene(renderer) {
 					renderer,
 					new Vector3(x, 50 - Math.random() * scale, z),
 					scale,
+					scale,
 					Math.round(Math.random() * 360),
 					Math.round(Math.random() * 100),
 					50
@@ -124,7 +125,7 @@ export function TerrainScene(renderer) {
 
 export function VoxelTerrainScene(renderer) {
 	const scale = 5;
-	const grid = 10;
+	const grid = 100;
 
 	for (let x = 0; x < grid; x++) {
 		for (let z = 0; z < grid; z++) {
@@ -132,52 +133,54 @@ export function VoxelTerrainScene(renderer) {
 
 			val = Math.round(val * 10) / 10;
 
-			let hue = 90;
+			let r = 0;
+			let g = 150;
+			let b = 0;
 
 			if (val < 0.1) {
-				hue = 45;
+				r = 125;
+				g = 125;
+				b = 25;
 			}
 
 			if (val < 0) {
 				val = 0.01;
-				hue = 180;
+				r = 0;
+				g = 0;
+				b = 255;
 			}
 
 			renderer.objects.push(
 				Cube(
 					renderer,
 					new Vector3(x * scale, -val * scale * 10, z * scale),
-					hue === 180 ? 2 : scale,
+					b === 255 ? 2 : scale,
 					scale,
-					hue,
-					50,
-					100,
-
-					hue === 180 ? 0.4 : 1
+					r,
+					g,
+					b
 				)
 			);
 
-			if (hue === 180) {
+			if (b === 255) {
 				continue;
 			}
 
-			for (
-				let y = -val * scale * 10 + scale;
-				y < 10 * scale;
-				y += scale
-			) {
-				renderer.objects.push(
-					Cube(
-						renderer,
-						new Vector3(x * scale, y, z * scale),
-						scale,
-						scale,
-						0,
-						0,
-						90
-					)
-				);
-			}
+			renderer.objects.push(
+				Cube(
+					renderer,
+					new Vector3(
+						x * scale,
+						-val * scale * 10 + scale,
+						z * scale
+					),
+					scale,
+					scale,
+					50,
+					50,
+					50
+				)
+			);
 		}
 	}
 }

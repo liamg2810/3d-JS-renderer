@@ -12,10 +12,10 @@ export class ThreeDObject {
 	origin = new Vector3(0, 0, 0);
 	rotation = new Vector3(0, 20, 30);
 
-	hue = 0;
-	saturation = 0;
-	lightness = 0;
-	opcaity = 1;
+	r = 0;
+	g = 0;
+	b = 0;
+	opcaity = 0;
 
 	constructor(
 		renderer,
@@ -23,9 +23,9 @@ export class ThreeDObject {
 		drawOrder,
 		origin,
 		rotation,
-		hue,
-		saturation,
-		lightness,
+		r,
+		g,
+		b,
 		opcaity = 1
 	) {
 		this.renderer = renderer;
@@ -33,9 +33,9 @@ export class ThreeDObject {
 		this.drawOrder = drawOrder;
 		this.origin = origin;
 		this.rotation = rotation;
-		this.hue = hue;
-		this.saturation = saturation;
-		this.lightness = lightness;
+		this.r = r;
+		this.g = g;
+		this.b = b;
 		this.opcaity = opcaity;
 	}
 
