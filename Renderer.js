@@ -1,12 +1,20 @@
-import { ApplyCameraRotation, GetDotProduct, lerpVerts } from "./Math.js";
+import { ApplyCameraRotation, GetDotProduct, lerp, lerpVerts } from "./Math.js";
 import { ThreeDObject } from "./Primitives.js";
-import { VoxelTerrainScene } from "./Scene.js";
+import { TestScene, VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
 /** @type {CanvasRenderingContext2D} */
 const ctx = canvas.getContext("2d");
+
+function interpolate(vStart, vEnd, y) {
+	const t = (y - vStart.y) / (vEnd.y - vStart.y);
+	return {
+		x: vStart.x + (vEnd.x - vStart.x) * t,
+		z: vStart.z + (vEnd.z - vStart.z) * t,
+	};
+}
 
 export class Renderer {
 	/** @type {ThreeDObject[]} */
@@ -205,38 +213,72 @@ export class Renderer {
 
 			const lightDot = GetDotProduct(face.face, lightPos);
 
-			ctx.fillStyle = `hsla(${face.obj.hue}, ${face.obj.saturation}%, ${
-				face.obj.lightness * (0.3 + 0.7 * lightDot)
-			}%, ${face.obj.opcaity})`;
+			const [v0, v1, v2] = [...face.face].sort((a, b) => a.y - b.y);
 
-			const f = lerpVerts(face.face, this.near);
+			if (v0.y === v2.y) continue;
 
-			ctx.strokeStyle = ctx.fillStyle;
-			ctx.beginPath();
+			let lastX = 0;
+			let lastY = 0;
+			let setScreen = false;
 
-			for (let [ix, v] of f.entries()) {
-				if (v.z < this.near || v.z > this.far) continue;
+			for (let y = Math.ceil(v0.y); y <= Math.floor(v2.y); y++) {
+				let xA, zA, xB, zB;
 
-				const projectedX =
-					(v.x / v.z) * this.focalLength + canvas.width / 2;
-				const projectedY =
-					(v.y / v.z) * this.focalLength + canvas.height / 2;
-
-				if (ix === 0) {
-					ctx.moveTo(projectedX, projectedY);
+				if (y < v1.y) {
+					const a = interpolate(v0, v1, y);
+					const b = interpolate(v0, v2, y);
+					xA = a.x;
+					zA = a.z;
+					xB = b.x;
+					zB = b.z;
 				} else {
-					ctx.lineTo(projectedX, projectedY);
+					const a = interpolate(v1, v2, y);
+					const b = interpolate(v0, v2, y);
+					xA = a.x;
+					zA = a.z;
+					xB = b.x;
+					zB = b.z;
+				}
+
+				if (xA > xB) {
+					[xA, xB] = [xB, xA];
+					[zA, zB] = [zB, zA];
+				}
+
+				for (let x = Math.ceil(xA); x <= Math.floor(xB); x++) {
+					const t = xB - xA === 0 ? 0 : (x - xA) / (xB - xA);
+					const z = zA + (zB - zA) * t;
+
+					if (z < this.near || z > this.far) continue;
+
+					const sX = (x / z) * this.focalLength + canvas.width / 2;
+					const sY = (y / z) * this.focalLength + canvas.height / 2;
+					if (!setScreen) {
+						lastX = sX;
+						lastY = sY;
+						setScreen = true;
+					}
+
+					ctx.fillStyle = `hsla(${face.obj.hue}, ${
+						face.obj.saturation
+					}%, ${face.obj.lightness * (0.3 + 0.7 * lightDot)}%, ${
+						face.obj.opcaity
+					})`;
+					const rectWidth = Math.max(1, Math.abs(sX - lastX));
+					const rectHeight = Math.max(1, Math.abs(sY - lastY));
+					ctx.fillRect(
+						Math.min(sX, lastX),
+						Math.min(sY, lastY),
+						rectWidth,
+						rectHeight
+					);
+					lastX = sX;
+					lastY = sY;
 				}
 			}
-
-			ctx.closePath();
-			if (face.obj.opcaity === 1) {
-				ctx.stroke();
-			}
-			ctx.fill();
 		}
 
 		ctx.fillStyle = "hsl(0 0% 0%)";
-		this.DrawLight();
+		// this.DrawLight();
 	}
 }

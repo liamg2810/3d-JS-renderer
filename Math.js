@@ -62,7 +62,7 @@ export function ApplyCameraRotation(renderer, v) {
  * @param {number} percent
  * @returns {Vector3}
  */
-function lerp(from, to, percent) {
+export function lerp(from, to, percent) {
 	if (percent < 0) percent = 0;
 	if (percent > 1) percent = 1;
 

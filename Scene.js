@@ -23,7 +23,7 @@ export function CubeScene(renderer) {
 export function TestScene(renderer) {
 	const scale = 25;
 	renderer.objects.push(
-		Cube(renderer, new Vector3(0, 25, 50), scale, 90, 50, 100)
+		Cube(renderer, new Vector3(0, 25, 50), scale, scale, 90, 50, 50)
 	);
 
 	renderer.objects.push(
@@ -47,7 +47,7 @@ export function TestScene(renderer) {
 			new Vector3(0, 0, 0),
 			90,
 			100,
-			100
+			50
 		)
 	);
 }
@@ -139,7 +139,7 @@ export function VoxelTerrainScene(renderer) {
 			}
 
 			if (val < 0) {
-				val = -0.02 - Math.random() * 0.02;
+				val = 0.01;
 				hue = 180;
 			}
 
@@ -161,16 +161,20 @@ export function VoxelTerrainScene(renderer) {
 				continue;
 			}
 
-			for (let y = -val * scale * 10; y < 10 * scale; y += scale) {
+			for (
+				let y = -val * scale * 10 + scale;
+				y < 10 * scale;
+				y += scale
+			) {
 				renderer.objects.push(
 					Cube(
 						renderer,
 						new Vector3(x * scale, y, z * scale),
 						scale,
 						scale,
-						hue,
-						50,
-						100
+						0,
+						0,
+						90
 					)
 				);
 			}
