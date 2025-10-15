@@ -125,7 +125,7 @@ export function TerrainScene(renderer) {
 export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 
-	const scale = 5;
+	const scale = 1;
 	const grid = 250;
 	const noiseScale = 0.05;
 

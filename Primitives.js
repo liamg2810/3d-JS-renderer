@@ -37,34 +37,6 @@ export class ThreeDObject {
 		this.g = g;
 		this.b = b;
 		this.opcaity = opcaity;
-
-		this.vertexNormals = [
-			// Front
-			0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-
-			// Back
-			0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
-
-			// Top
-			0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-
-			// Bottom
-			0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
-
-			// Right
-			1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-
-			// Left
-			-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-		];
-	}
-
-	CalculateFrameVerts() {
-		this.frameVerts = this.vertices.map((v) => {
-			const localPos = ApplyLocalRotation(this, v);
-
-			return ApplyCameraRotation(this.renderer, localPos);
-		});
 	}
 }
 
@@ -129,7 +101,7 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 	cube.vertexNormals = [];
 	for (let v of cube.vertices) {
 		const n = v.Sub(cube.origin).Normalise();
-		cube.vertexNormals.push(n.x, n.y, n.z);
+		cube.vertexNormals.push(-n.x, -n.y, -n.z);
 	}
 
 	return cube;
