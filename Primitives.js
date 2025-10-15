@@ -98,23 +98,23 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 		// prettier-ignore
 		[
 			// FRONT
-			4, 5, 6,
-			4, 6, 7,
+			6, 5, 4,
+			7, 6, 4,
 			// BACK
-			2, 1, 0,
-			3, 2, 0,
+			2, 0, 1,
+			3, 0, 2,
 			// TOP
-			3, 6, 2,
-			3, 7, 6,
+			1, 0, 4,
+			1, 4, 5,
 			// BOTTOM
-			1, 4, 0,
-			1, 5, 4,
+			3, 2, 6,
+			3, 6, 7,
 			// RIGHT
-			7, 3, 0,
-			0, 4, 7,
+			6, 2, 5,
+			1, 5, 2,
 			// LEFT
-			6, 5, 2,
-			1, 2, 5,
+			7, 0, 3,
+			0, 7, 4,
 		],
 		origin,
 		Vector3.Zero(),
@@ -125,24 +125,12 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 	);
 
 	// Set proper vertex normals for each of the 8 vertices
-	cube.vertexNormals = [
-		// Vertex 0: back-top-left
-		-0.577, 0.577, -0.577,
-		// Vertex 1: front-top-left
-		0.577, 0.577, -0.577,
-		// Vertex 2: front-bottom-left
-		0.577, -0.577, -0.577,
-		// Vertex 3: back-bottom-left
-		-0.577, -0.577, -0.577,
-		// Vertex 4: back-top-right
-		-0.577, 0.577, 0.577,
-		// Vertex 5: front-top-right
-		0.577, 0.577, 0.577,
-		// Vertex 6: front-bottom-right
-		0.577, -0.577, 0.577,
-		// Vertex 7: back-bottom-right
-		-0.577, -0.577, 0.577,
-	];
+
+	cube.vertexNormals = [];
+	for (let v of cube.vertices) {
+		const n = v.Sub(cube.origin).Normalise();
+		cube.vertexNormals.push(n.x, n.y, n.z);
+	}
 
 	return cube;
 }

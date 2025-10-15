@@ -7,11 +7,16 @@ let mat4 =
 	(typeof window !== "undefined" &&
 		(window.mat4 || (window.glMatrix && window.glMatrix.mat4))) ||
 	null;
-if (!mat4) {
+let mat3 =
+	(typeof window !== "undefined" &&
+		(window.mat3 || (window.glMatrix && window.glMatrix.mat3))) ||
+	null;
+if (!mat4 || !mat3) {
 	const gm = await import(
 		"https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js"
 	);
-	mat4 = gm.mat4;
+	mat4 = mat4 || gm.mat4;
+	mat3 = mat3 || gm.mat3;
 }
 
 const vsSource = `
@@ -20,43 +25,37 @@ const vsSource = `
     attribute vec3 aVertexNormal;
     
     uniform vec3 uLightPos;
-    uniform mat4 uNormalMatrix;
+    uniform mat3 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 
     varying vec4 vColor;
+    varying vec3 vLighting;
 
     void main() {
-        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        vec4 mvPosition = uModelViewMatrix * aVertexPosition;
+        gl_Position = uProjectionMatrix * mvPosition;
 
-        // Transform normal to world space
-        vec3 normal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
-        
-        // Get world position
-        vec3 worldPos = aVertexPosition.xyz;
-        
-        // Calculate light direction (from surface to light)
-        vec3 lightDirection = normalize(uLightPos - worldPos);
-        
-        // Calculate diffuse lighting
-        float diffuse = max(dot(normal, lightDirection), 0.0);
-        
-        // Lighting calculation
-        vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-        vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
-        
+        vec3 transformedNormal = normalize(uNormalMatrix * aVertexNormal);
+        vec3 lightDir = normalize(uLightPos - mvPosition.xyz);
+
+        highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+        highp vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
+
+        highp float directional = max(dot(transformedNormal, lightDir), 0.0);
+
         vColor = aVertexColor;
-        vColor.rgb *= (ambientLight + directionalLightColor * diffuse);
+        vLighting = ambientLight + (directionalLightColor * directional);
     }
 `;
 const fsSource = `
     precision mediump float;           // needed in WebGL
-	varying vec4 vColor;               // receive from vertex shader
+    varying vec4 vColor;               // receive from vertex shader
+    varying highp vec3 vLighting;
 
-	void main() {
-		gl_FragColor = vColor;        // use per-vertex color
-	}
-
+    void main() {
+      gl_FragColor = vec4(vColor.rgb * vLighting, vColor.a);
+    }
   `;
 
 //
@@ -120,8 +119,8 @@ function loadShader(gl, type, source) {
 export class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(-10, 200, -10);
-	camRot = new Vector3(-20, 225, 0);
+	cam = new Vector3(0, 0, 60);
+	camRot = new Vector3(0, 0, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
 
@@ -158,6 +157,9 @@ export class Renderer {
 			return;
 		}
 
+		this.gl.enable(this.gl.CULL_FACE);
+		this.gl.cullFace(this.gl.BACK);
+
 		console.log("Starting engine");
 
 		let start = Date.now();
@@ -187,6 +189,42 @@ export class Renderer {
 		console.log(
 			`Took ${Math.round((end - start) / 10) / 100}s to load buffers`
 		);
+
+		this.programInfo = {
+			program: this.shaderProgram,
+			attribLocations: {
+				vertexPosition: this.gl.getAttribLocation(
+					this.shaderProgram,
+					"aVertexPosition"
+				),
+				vertexNormal: this.gl.getAttribLocation(
+					this.shaderProgram,
+					"aVertexNormal"
+				),
+				vertexColor: this.gl.getAttribLocation(
+					this.shaderProgram,
+					"aVertexColor"
+				),
+			},
+			uniformLocations: {
+				projectionMatrix: this.gl.getUniformLocation(
+					this.shaderProgram,
+					"uProjectionMatrix"
+				),
+				modelViewMatrix: this.gl.getUniformLocation(
+					this.shaderProgram,
+					"uModelViewMatrix"
+				),
+				normalMatrix: this.gl.getUniformLocation(
+					this.shaderProgram,
+					"uNormalMatrix"
+				),
+				lightPosition: this.gl.getUniformLocation(
+					this.shaderProgram,
+					"uLightPos"
+				),
+			},
+		};
 
 		this.Update();
 	}
@@ -393,70 +431,82 @@ export class Renderer {
 		mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
 
 		const normalMatrix = mat4.create();
-		mat4.invert(normalMatrix, modelMatrix);
+		mat4.invert(normalMatrix, modelViewMatrix);
 		mat4.transpose(normalMatrix, normalMatrix);
+
+		// convert to mat3 normal matrix (inverse-transpose of modelView)
+		const normalMatrix3 = mat3.create();
+		mat3.fromMat4(normalMatrix3, normalMatrix);
 
 		// --- Use program & uniforms ---
 		this.gl.useProgram(this.shaderProgram);
 
-		const uProj = this.gl.getUniformLocation(
-			this.shaderProgram,
-			"uProjectionMatrix"
+		this.gl.uniformMatrix4fv(
+			this.programInfo.uniformLocations.projectionMatrix,
+			false,
+			projectionMatrix
 		);
-		const uView = this.gl.getUniformLocation(
-			this.shaderProgram,
-			"uModelViewMatrix"
-		);
-		this.gl.uniformMatrix4fv(uProj, false, projectionMatrix);
-		this.gl.uniformMatrix4fv(uView, false, modelViewMatrix);
-
-		const normalMatrixLoc = this.gl.getUniformLocation(
-			this.shaderProgram,
-			"uNormalMatrix"
+		this.gl.uniformMatrix4fv(
+			this.programInfo.uniformLocations.modelViewMatrix,
+			false,
+			modelViewMatrix
 		);
 
-		this.gl.uniformMatrix4fv(normalMatrixLoc, false, normalMatrix);
-
-		const lightPosLoc = this.gl.getUniformLocation(
-			this.shaderProgram,
-			"uLightPos"
+		this.gl.uniformMatrix3fv(
+			this.programInfo.uniformLocations.normalMatrix,
+			false,
+			normalMatrix3
 		);
 
 		// Pass light position, not normalized direction
 		this.gl.uniform3f(
-			lightPosLoc,
+			this.programInfo.uniformLocations.lightPosition,
 			this.light.x,
 			this.light.y,
 			this.light.z
 		);
 
 		// --- Bind attributes ---
-		const posLoc = this.gl.getAttribLocation(
-			this.shaderProgram,
-			"aVertexPosition"
-		);
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-		this.gl.vertexAttribPointer(posLoc, 3, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(posLoc);
-
-		const colorLoc = this.gl.getAttribLocation(
-			this.shaderProgram,
-			"aVertexColor"
+		this.gl.vertexAttribPointer(
+			this.programInfo.attribLocations.vertexPosition,
+			3,
+			this.gl.FLOAT,
+			false,
+			0,
+			0
 		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.attribLocations.vertexPosition
+		);
+
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-		this.gl.vertexAttribPointer(colorLoc, 4, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(colorLoc);
+		this.gl.vertexAttribPointer(
+			this.programInfo.attribLocations.vertexColor,
+			4,
+			this.gl.FLOAT,
+			false,
+			0,
+			0
+		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.attribLocations.vertexColor
+		);
 
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
-		const normalLoc = this.gl.getAttribLocation(
-			this.shaderProgram,
-			"aVertexNormal"
-		);
-
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
-		this.gl.vertexAttribPointer(normalLoc, 3, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(normalLoc);
+		this.gl.vertexAttribPointer(
+			this.programInfo.attribLocations.vertexNormal,
+			3,
+			this.gl.FLOAT,
+			false,
+			0,
+			0
+		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.attribLocations.vertexNormal
+		);
 
 		this.gl.drawElements(
 			this.gl.TRIANGLES,

@@ -24,7 +24,7 @@ export function CubeScene(renderer) {
 export function TestScene(renderer) {
 	const scale = 25;
 	renderer.objects.push(
-		Cube(renderer, new Vector3(0, 25, 50), scale, scale, 90, 50, 50)
+		Cube(renderer, new Vector3(0, 0, 0), scale, scale, 90, 50, 50)
 	);
 
 	// renderer.objects.push(
@@ -126,7 +126,7 @@ export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 
 	const scale = 5;
-	const grid = 50;
+	const grid = 250;
 	const noiseScale = 0.05;
 
 	for (let y = 10; y > 0; y--) {
@@ -255,7 +255,7 @@ export function VoxelTerrainScene(renderer) {
 						b = 0;
 					}
 
-					if (y < 8) {
+					if (y < 8 && noiseValAbove < 0.5) {
 						r = 50;
 						g = 50;
 						b = 50;
