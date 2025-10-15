@@ -37,6 +37,26 @@ export class ThreeDObject {
 		this.g = g;
 		this.b = b;
 		this.opcaity = opcaity;
+
+		this.vertexNormals = [
+			// Front
+			0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+
+			// Back
+			0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+
+			// Top
+			0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+
+			// Bottom
+			0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
+
+			// Right
+			1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+
+			// Left
+			-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+		];
 	}
 
 	CalculateFrameVerts() {
@@ -63,7 +83,7 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 	const hS = size / 2;
 	const hSY = sizeY / 2;
 
-	return new ThreeDObject(
+	const cube = new ThreeDObject(
 		r,
 		[
 			new Vector3(origin.x - hS, origin.y + hSY, origin.z - hS),
@@ -77,18 +97,18 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 		],
 		// prettier-ignore
 		[
-			// BACK
-			2, 1, 0,
-			3, 2, 0,
 			// FRONT
 			4, 5, 6,
 			4, 6, 7,
-			// BOTTOM
-			1, 4, 0,
-			1, 5, 4,
+			// BACK
+			2, 1, 0,
+			3, 2, 0,
 			// TOP
 			3, 6, 2,
 			3, 7, 6,
+			// BOTTOM
+			1, 4, 0,
+			1, 5, 4,
 			// RIGHT
 			7, 3, 0,
 			0, 4, 7,
@@ -103,6 +123,28 @@ export function Cube(r, origin, sizeY, size, h, s, l, a = 1) {
 		l,
 		a
 	);
+
+	// Set proper vertex normals for each of the 8 vertices
+	cube.vertexNormals = [
+		// Vertex 0: back-top-left
+		-0.577, 0.577, -0.577,
+		// Vertex 1: front-top-left
+		0.577, 0.577, -0.577,
+		// Vertex 2: front-bottom-left
+		0.577, -0.577, -0.577,
+		// Vertex 3: back-bottom-left
+		-0.577, -0.577, -0.577,
+		// Vertex 4: back-top-right
+		-0.577, 0.577, 0.577,
+		// Vertex 5: front-top-right
+		0.577, 0.577, 0.577,
+		// Vertex 6: front-bottom-right
+		0.577, -0.577, 0.577,
+		// Vertex 7: back-bottom-right
+		-0.577, -0.577, 0.577,
+	];
+
+	return cube;
 }
 
 export function SquareBasedPyramid(r, origin, size) {

@@ -16,24 +16,46 @@ if (!mat4) {
 
 const vsSource = `
     attribute vec4 aVertexPosition;
-attribute vec4 aVertexColor;      // add color attribute
-uniform mat4 uModelViewMatrix;
-uniform mat4 uProjectionMatrix;
-varying vec4 vColor;              // pass to fragment shader
+    attribute vec4 aVertexColor;
+    attribute vec3 aVertexNormal;
+    
+    uniform vec3 uLightPos;
+    uniform mat4 uNormalMatrix;
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
 
-void main() {
-    gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    vColor = aVertexColor;        // forward color
-}
-  `;
+    varying vec4 vColor;
 
+    void main() {
+        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+
+        // Transform normal to world space
+        vec3 normal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
+        
+        // Get world position
+        vec3 worldPos = aVertexPosition.xyz;
+        
+        // Calculate light direction (from surface to light)
+        vec3 lightDirection = normalize(uLightPos - worldPos);
+        
+        // Calculate diffuse lighting
+        float diffuse = max(dot(normal, lightDirection), 0.0);
+        
+        // Lighting calculation
+        vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+        vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
+        
+        vColor = aVertexColor;
+        vColor.rgb *= (ambientLight + directionalLightColor * diffuse);
+    }
+`;
 const fsSource = `
     precision mediump float;           // needed in WebGL
-varying vec4 vColor;               // receive from vertex shader
+	varying vec4 vColor;               // receive from vertex shader
 
-void main() {
-    gl_FragColor = vColor;        // use per-vertex color
-}
+	void main() {
+		gl_FragColor = vColor;        // use per-vertex color
+	}
 
   `;
 
@@ -101,7 +123,7 @@ export class Renderer {
 	cam = new Vector3(-10, 200, -10);
 	camRot = new Vector3(-20, 225, 0);
 	keyMap = new Set();
-	light = new Vector3(50, -50, 50);
+	light = new Vector3(50, 100, 50);
 
 	focalLength = 300;
 	near = 0.1;
@@ -117,6 +139,7 @@ export class Renderer {
 	vertexBuffer;
 	indexBuffer;
 	colorBuffer;
+	normalBuffer;
 
 	constructor() {
 		/** @type {HTMLCanvasElement} */
@@ -135,13 +158,35 @@ export class Renderer {
 			return;
 		}
 
+		console.log("Starting engine");
+
+		let start = Date.now();
+
 		// TestScene(this);
 		// TerrainScene(this);
 		VoxelTerrainScene(this);
+		let end = Date.now();
+
+		console.log(
+			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
+		);
+
+		start = Date.now();
 		// CubeScene(this);
 		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
+		end = Date.now();
 
+		console.log(
+			`Took ${Math.round((end - start) / 10) / 100}s to init shaders`
+		);
+
+		start = Date.now();
 		this.LoadBuffers();
+		end = Date.now();
+
+		console.log(
+			`Took ${Math.round((end - start) / 10) / 100}s to load buffers`
+		);
 
 		this.Update();
 	}
@@ -250,6 +295,9 @@ export class Renderer {
 		let vertsOff = 0;
 		let indices = [];
 		let colors = [];
+		let normals = [];
+
+		let s = Date.now();
 
 		for (let obj of this.objects) {
 			for (let v of obj.vertices) {
@@ -258,12 +306,20 @@ export class Renderer {
 				colors.push(obj.r / 255, obj.g / 255, obj.b / 255, 1.0);
 			}
 
+			normals.push(...obj.vertexNormals);
+
 			for (let o of obj.drawOrder) {
 				indices.push(o + vertsOff);
 			}
 
 			vertsOff += obj.vertices.length;
 		}
+
+		let e = Date.now();
+
+		console.log(
+			`Took ${Math.round((e - s) / 10) / 100}s to build buffer arrays`
+		);
 
 		// Vertex buffer
 		this.vertexBuffer = this.gl.createBuffer();
@@ -289,6 +345,15 @@ export class Renderer {
 		this.gl.bufferData(
 			this.gl.ELEMENT_ARRAY_BUFFER,
 			new Uint32Array(indices),
+			this.gl.STATIC_DRAW
+		);
+
+		// Normal buffer
+		this.normalBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Float32Array(normals),
 			this.gl.STATIC_DRAW
 		);
 
@@ -321,6 +386,16 @@ export class Renderer {
 			-this.cam.z,
 		]);
 
+		const modelMatrix = mat4.create();
+
+		// Model-view matrix
+		const modelViewMatrix = mat4.create();
+		mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+
+		const normalMatrix = mat4.create();
+		mat4.invert(normalMatrix, modelMatrix);
+		mat4.transpose(normalMatrix, normalMatrix);
+
 		// --- Use program & uniforms ---
 		this.gl.useProgram(this.shaderProgram);
 
@@ -333,7 +408,27 @@ export class Renderer {
 			"uModelViewMatrix"
 		);
 		this.gl.uniformMatrix4fv(uProj, false, projectionMatrix);
-		this.gl.uniformMatrix4fv(uView, false, viewMatrix);
+		this.gl.uniformMatrix4fv(uView, false, modelViewMatrix);
+
+		const normalMatrixLoc = this.gl.getUniformLocation(
+			this.shaderProgram,
+			"uNormalMatrix"
+		);
+
+		this.gl.uniformMatrix4fv(normalMatrixLoc, false, normalMatrix);
+
+		const lightPosLoc = this.gl.getUniformLocation(
+			this.shaderProgram,
+			"uLightPos"
+		);
+
+		// Pass light position, not normalized direction
+		this.gl.uniform3f(
+			lightPosLoc,
+			this.light.x,
+			this.light.y,
+			this.light.z
+		);
 
 		// --- Bind attributes ---
 		const posLoc = this.gl.getAttribLocation(
@@ -353,6 +448,15 @@ export class Renderer {
 		this.gl.enableVertexAttribArray(colorLoc);
 
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
+		const normalLoc = this.gl.getAttribLocation(
+			this.shaderProgram,
+			"aVertexNormal"
+		);
+
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+		this.gl.vertexAttribPointer(normalLoc, 3, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(normalLoc);
 
 		this.gl.drawElements(
 			this.gl.TRIANGLES,

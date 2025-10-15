@@ -126,30 +126,30 @@ export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 
 	const scale = 5;
-	const grid = 100;
+	const grid = 50;
 	const noiseScale = 0.05;
 
 	for (let y = 10; y > 0; y--) {
 		for (let x = 0; x < grid; x++) {
 			for (let z = 0; z < grid; z++) {
-				if (y < 3) {
-					renderer.objects.push(
-						Cube(
-							renderer,
-							new Vector3(x * scale, y * scale, z * scale),
-							scale,
-							scale,
-							50,
-							50,
-							50
-						)
-					);
+				// if (y < 3) {
+				// 	renderer.objects.push(
+				// 		Cube(
+				// 			renderer,
+				// 			new Vector3(x * scale, y * scale, z * scale),
+				// 			scale,
+				// 			scale,
+				// 			50,
+				// 			50,
+				// 			50
+				// 		)
+				// 	);
 
-					continue;
-				}
+				// 	continue;
+				// }
 
 				let r = 0;
-				let g = 150;
+				let g = 255;
 				let b = 0;
 
 				let noiseVal = perlin3D(
@@ -158,37 +158,121 @@ export function VoxelTerrainScene(renderer) {
 					z * noiseScale
 				);
 
-				if (noiseVal < 0.4 && y >= 6) {
+				if (y < 5) {
+					if (
+						y !== 4 &&
+						y !== 0 &&
+						x !== 0 &&
+						z !== 0 &&
+						x !== grid - 1 &&
+						z !== grid - 1
+					)
+						continue;
+
+					renderer.objects.push(
+						Cube(
+							renderer,
+							new Vector3(x * scale, y * scale, z * scale),
+							scale,
+							scale,
+							0,
+							0,
+							255
+						)
+					);
+
 					continue;
 				}
 
-				if (noiseVal < 0.6 && y < 7) {
+				if (noiseVal > 0.5 && y < 6) {
 					r = 125;
 					g = 125;
 					b = 25;
+
+					if (noiseVal > 0.55) {
+						continue;
+					}
 				}
 
-				if (noiseVal < 0.5 && y < 6) {
-					r = 0;
-					g = 0;
-					b = 255;
+				if (noiseVal > 0.5 && y >= 6) {
+					continue;
+				}
+
+				if (y === 10 && Math.random() < 0.025 && noiseVal < 0.4) {
+					const yTop = Math.round(Math.random() * 6) + 12;
+
+					for (let yy = 10; yy < yTop; yy++) {
+						renderer.objects.push(
+							Cube(
+								renderer,
+								new Vector3(
+									x * scale,
+									yy * scale + scale,
+									z * scale
+								),
+								scale,
+								scale,
+								100,
+								50,
+								0
+							)
+						);
+					}
+
+					for (let yy = yTop; yy < yTop + 2; yy++) {
+						for (let xx = x - 1; xx <= x + 1; xx++) {
+							for (let zz = z - 1; zz <= z + 1; zz++) {
+								renderer.objects.push(
+									Cube(
+										renderer,
+										new Vector3(
+											xx * scale,
+											yy * scale + scale,
+											zz * scale
+										),
+										scale,
+										scale,
+										0,
+										150,
+										0
+									)
+								);
+							}
+						}
+					}
+				}
+
+				if (y !== 10 && y >= 6) {
+					let noiseValAbove = perlin3D(
+						x * noiseScale,
+						(y + 1) * noiseScale,
+						z * noiseScale
+					);
+
+					if (noiseValAbove < 0.5) {
+						r = 100;
+						g = 50;
+						b = 0;
+					}
+
+					if (y < 8) {
+						r = 50;
+						g = 50;
+						b = 50;
+					}
 				}
 
 				renderer.objects.push(
 					Cube(
 						renderer,
 						new Vector3(x * scale, y * scale, z * scale),
-						b === 255 ? 2 : scale,
+						scale,
 						scale,
 						r,
 						g,
 						b
 					)
 				);
-
-				if (b === 255) {
-					continue;
-				}
 			}
 		}
 	}
