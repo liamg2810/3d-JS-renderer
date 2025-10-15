@@ -37,9 +37,9 @@ const vsSource = `
         gl_Position = uProjectionMatrix * mvPosition;
 
         vec3 transformedNormal = normalize(uNormalMatrix * aVertexNormal);
-        vec3 lightDir = normalize(uLightPos - mvPosition.xyz);
+        vec3 lightDir = normalize(uLightPos);
 
-        highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+        highp vec3 ambientLight = vec3(0.7, 0.7, 0.7);
         highp vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
 
         highp float directional = max(dot(transformedNormal, lightDir), 0.0);
@@ -458,12 +458,16 @@ export class Renderer {
 			normalMatrix3
 		);
 
+		const lightPos4 = [this.light.x, this.light.y, this.light.z, 1];
+		const lightInView = mat4.create();
+		mat4.multiply(lightInView, viewMatrix, lightPos4);
+
 		// Pass light position, not normalized direction
 		this.gl.uniform3f(
 			this.programInfo.uniformLocations.lightPosition,
-			this.light.x,
-			this.light.y,
-			this.light.z
+			lightInView[0],
+			lightInView[1],
+			lightInView[2]
 		);
 
 		// --- Bind attributes ---
