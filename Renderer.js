@@ -196,8 +196,8 @@ function isPowerOf2(value) {
 export class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(-50, 150, 300);
-	camRot = new Vector3(-25, 325, 0);
+	cam = new Vector3(-50, 200, 300);
+	camRot = new Vector3(-25, 225, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
 
@@ -214,7 +214,6 @@ export class Renderer {
 
 	vertexBuffer;
 	indexBuffer;
-	colorBuffer;
 	normalBuffer;
 
 	constructor() {
@@ -402,7 +401,6 @@ export class Renderer {
 		let verts = [];
 		let vertsOff = 0;
 		let indices = [];
-		let colors = [];
 		let normals = [];
 		let textureCoords = [];
 
@@ -411,8 +409,6 @@ export class Renderer {
 		for (let obj of this.objects) {
 			for (let v of obj.vertices) {
 				verts.push(v.x, v.y, v.z);
-
-				colors.push(obj.r / 255, obj.g / 255, obj.b / 255, 1.0);
 			}
 
 			for (let o of obj.drawOrder) {
@@ -446,20 +442,10 @@ export class Renderer {
 			this.gl.STATIC_DRAW
 		);
 
-		// Color buffer
-		this.colorBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Float32Array(colors),
-			this.gl.STATIC_DRAW
-		);
-
 		this.indicesLength = indices.length;
 
 		verts = null;
 		indices = null;
-		colors = null;
 
 		for (let obj of this.objects) {
 			normals.push(...obj.vertexNormals);
