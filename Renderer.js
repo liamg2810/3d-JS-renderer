@@ -309,20 +309,8 @@ export class Renderer {
 		this.Update();
 	}
 
-	lightDir = new Vector3(1, 0, 0);
-
 	Update() {
 		const frameStart = Date.now();
-
-		this.light = this.light.Add(this.lightDir);
-
-		if (this.light.x > 200) {
-			this.lightDir.x = -1;
-		}
-
-		if (this.light.x < 50) {
-			this.lightDir.x = 1;
-		}
 
 		const speed = 1;
 
