@@ -2,6 +2,53 @@ import { perlin3D } from "./Perlin3D.js";
 import { Cube, SquareBasedPyramid, ThreeDObject } from "./Primitives.js";
 import { Vector3 } from "./Vectors.js";
 
+const textures = {
+	GRASS: {
+		top: {
+			x: 1,
+			y: 0,
+		},
+		base: {
+			x: 0,
+			y: 0,
+		},
+	},
+	LOG: {
+		top: {
+			x: 4,
+			y: 0,
+		},
+		base: {
+			x: 3,
+			y: 0,
+		},
+	},
+	SAND: {
+		base: {
+			x: 5,
+			y: 0,
+		},
+	},
+	WATER: {
+		base: {
+			x: 6,
+			y: 0,
+		},
+	},
+	LEAVES: {
+		base: {
+			x: 2,
+			y: 0,
+		},
+	},
+	STONE: {
+		base: {
+			x: 0,
+			y: 1,
+		},
+	},
+};
+
 export function CubeScene(renderer) {
 	const scale = 25;
 	for (let x = -scale * 5; x < scale * 5; x += scale) {
@@ -125,32 +172,16 @@ export function TerrainScene(renderer) {
 export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 
-	const scale = 1;
-	const grid = 250;
+	const scale = 5;
+	const grid = 32;
 	const noiseScale = 0.05;
+
+	// For now lets just render grass
 
 	for (let y = 10; y > 0; y--) {
 		for (let x = 0; x < grid; x++) {
 			for (let z = 0; z < grid; z++) {
-				// if (y < 3) {
-				// 	renderer.objects.push(
-				// 		Cube(
-				// 			renderer,
-				// 			new Vector3(x * scale, y * scale, z * scale),
-				// 			scale,
-				// 			scale,
-				// 			50,
-				// 			50,
-				// 			50
-				// 		)
-				// 	);
-
-				// 	continue;
-				// }
-
-				let r = 0;
-				let g = 255;
-				let b = 0;
+				let tex = textures.GRASS;
 
 				let noiseVal = perlin3D(
 					x * noiseScale,
@@ -158,7 +189,7 @@ export function VoxelTerrainScene(renderer) {
 					z * noiseScale
 				);
 
-				if (y < 5) {
+				if (y < 5 && noiseVal > 0.55) {
 					if (
 						y !== 4 &&
 						y !== 0 &&
@@ -172,12 +203,14 @@ export function VoxelTerrainScene(renderer) {
 					renderer.objects.push(
 						Cube(
 							renderer,
-							new Vector3(x * scale, y * scale, z * scale),
+							new Vector3(
+								x * scale,
+								y * scale - (y === 4 ? 0.5 : 0),
+								z * scale
+							),
+							scale - (y === 4 ? 1 : 0),
 							scale,
-							scale,
-							0,
-							0,
-							255
+							textures.WATER
 						)
 					);
 
@@ -185,9 +218,7 @@ export function VoxelTerrainScene(renderer) {
 				}
 
 				if (noiseVal > 0.5 && y < 6) {
-					r = 125;
-					g = 125;
-					b = 25;
+					tex = textures.SAND;
 
 					if (noiseVal > 0.55) {
 						continue;
@@ -212,9 +243,7 @@ export function VoxelTerrainScene(renderer) {
 								),
 								scale,
 								scale,
-								100,
-								50,
-								0
+								textures.LOG
 							)
 						);
 					}
@@ -232,9 +261,7 @@ export function VoxelTerrainScene(renderer) {
 										),
 										scale,
 										scale,
-										0,
-										150,
-										0
+										textures.LEAVES
 									)
 								);
 							}
@@ -250,15 +277,11 @@ export function VoxelTerrainScene(renderer) {
 					);
 
 					if (noiseValAbove < 0.5) {
-						r = 100;
-						g = 50;
-						b = 0;
+						tex = textures.GRASS;
 					}
 
 					if (y < 8 && noiseValAbove < 0.5) {
-						r = 50;
-						g = 50;
-						b = 50;
+						tex = textures.STONE;
 					}
 				}
 
@@ -268,9 +291,7 @@ export function VoxelTerrainScene(renderer) {
 						new Vector3(x * scale, y * scale, z * scale),
 						scale,
 						scale,
-						r,
-						g,
-						b
+						tex
 					)
 				);
 			}

@@ -7,54 +7,58 @@ let mat4 =
 	(typeof window !== "undefined" &&
 		(window.mat4 || (window.glMatrix && window.glMatrix.mat4))) ||
 	null;
-let mat3 =
-	(typeof window !== "undefined" &&
-		(window.mat3 || (window.glMatrix && window.glMatrix.mat3))) ||
-	null;
-if (!mat4 || !mat3) {
+if (!mat4) {
 	const gm = await import(
 		"https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/esm/index.js"
 	);
-	mat4 = mat4 || gm.mat4;
-	mat3 = mat3 || gm.mat3;
+	mat4 = gm.mat4;
 }
 
 const vsSource = `
     attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
-    attribute vec3 aVertexNormal;
+	attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
     
-    uniform vec3 uLightPos;
-    uniform mat3 uNormalMatrix;
+	uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
-
-    varying vec4 vColor;
-    varying vec3 vLighting;
+	
+    varying highp vec2 vTextureCoord;
+	varying highp vec3 vLighting;
 
     void main() {
         vec4 mvPosition = uModelViewMatrix * aVertexPosition;
         gl_Position = uProjectionMatrix * mvPosition;
 
-        vec3 transformedNormal = normalize(uNormalMatrix * aVertexNormal);
-        vec3 lightDir = normalize(uLightPos);
+		vTextureCoord = aTextureCoord;
 
-        highp vec3 ambientLight = vec3(0.7, 0.7, 0.7);
-        highp vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
+		// Apply lighting effect
 
-        highp float directional = max(dot(transformedNormal, lightDir), 0.0);
+		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+		highp vec3 directionalLightColor = vec3(1, 1, 1);
+		highp vec3 directionalVector = normalize(vec3(100, 100, 100));
 
-        vColor = aVertexColor;
-        vLighting = ambientLight + (directionalLightColor * directional);
+		highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+
+		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+		vLighting = ambientLight + (directionalLightColor * directional);
     }
 `;
 const fsSource = `
-    precision mediump float;           // needed in WebGL
-    varying vec4 vColor;               // receive from vertex shader
+    precision mediump float;
+    varying highp vec2 vTextureCoord;
     varying highp vec3 vLighting;
 
-    void main() {
-      gl_FragColor = vec4(vColor.rgb * vLighting, vColor.a);
+    uniform sampler2D uSampler;
+
+    void main(void) {
+      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+
+	  if (texelColor.a <= 0.0) {
+	 	discard; 
+	  }
+
+      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
     }
   `;
 
@@ -116,11 +120,84 @@ function loadShader(gl, type, source) {
 	return shader;
 }
 
+function loadTexture(gl, url) {
+	const texture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+
+	// Because images have to be downloaded over the internet
+	// they might take a moment until they are ready.
+	// Until then put a single pixel in the texture so we can
+	// use it immediately. When the image has finished downloading
+	// we'll update the texture with the contents of the image.
+	const level = 0;
+	const internalFormat = gl.RGBA;
+	const width = 1;
+	const height = 1;
+	const border = 0;
+	const srcFormat = gl.RGBA;
+	const srcType = gl.UNSIGNED_BYTE;
+	const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+	gl.texImage2D(
+		gl.TEXTURE_2D,
+		level,
+		internalFormat,
+		width,
+		height,
+		border,
+		srcFormat,
+		srcType,
+		pixel
+	);
+
+	const image = new Image();
+	image.onload = () => {
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texImage2D(
+			gl.TEXTURE_2D,
+			level,
+			internalFormat,
+			srcFormat,
+			srcType,
+			image
+		);
+
+		// WebGL1 has different requirements for power of 2 images
+		// vs. non power of 2 images so check if the image is a
+		// power of 2 in both dimensions.
+		if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+			// Yes, it's a power of 2. Generate mips.
+			gl.generateMipmap(gl.TEXTURE_2D);
+		} else {
+			// No, it's not a power of 2. Turn off mips and set
+			// wrapping to clamp to edge
+			gl.texParameteri(
+				gl.TEXTURE_2D,
+				gl.TEXTURE_WRAP_S,
+				gl.CLAMP_TO_EDGE
+			);
+			gl.texParameteri(
+				gl.TEXTURE_2D,
+				gl.TEXTURE_WRAP_T,
+				gl.CLAMP_TO_EDGE
+			);
+		}
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	};
+	image.src = url;
+
+	return texture;
+}
+
+function isPowerOf2(value) {
+	return (value & (value - 1)) === 0;
+}
+
 export class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
-	cam = new Vector3(0, 0, 60);
-	camRot = new Vector3(0, 0, 0);
+	cam = new Vector3(-50, 150, 300);
+	camRot = new Vector3(-25, 325, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
 
@@ -201,9 +278,9 @@ export class Renderer {
 					this.shaderProgram,
 					"aVertexNormal"
 				),
-				vertexColor: this.gl.getAttribLocation(
+				textureCoord: this.gl.getAttribLocation(
 					this.shaderProgram,
-					"aVertexColor"
+					"aTextureCoord"
 				),
 			},
 			uniformLocations: {
@@ -215,16 +292,19 @@ export class Renderer {
 					this.shaderProgram,
 					"uModelViewMatrix"
 				),
+
 				normalMatrix: this.gl.getUniformLocation(
 					this.shaderProgram,
 					"uNormalMatrix"
 				),
-				lightPosition: this.gl.getUniformLocation(
+				uSampler: this.gl.getUniformLocation(
 					this.shaderProgram,
-					"uLightPos"
+					"uSampler"
 				),
 			},
 		};
+
+		this.texture = loadTexture(this.gl, "textures.png");
 
 		this.Update();
 	}
@@ -334,6 +414,7 @@ export class Renderer {
 		let indices = [];
 		let colors = [];
 		let normals = [];
+		let textureCoords = [];
 
 		let s = Date.now();
 
@@ -345,6 +426,7 @@ export class Renderer {
 			}
 
 			normals.push(...obj.vertexNormals);
+			textureCoords.push(...obj.textureCoordinates);
 
 			for (let o of obj.drawOrder) {
 				indices.push(o + vertsOff);
@@ -365,6 +447,15 @@ export class Renderer {
 		this.gl.bufferData(
 			this.gl.ARRAY_BUFFER,
 			new Float32Array(verts),
+			this.gl.STATIC_DRAW
+		);
+
+		// Tex-coord buffer
+		this.textureCoordBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Float32Array(textureCoords),
 			this.gl.STATIC_DRAW
 		);
 
@@ -434,10 +525,6 @@ export class Renderer {
 		mat4.invert(normalMatrix, modelViewMatrix);
 		mat4.transpose(normalMatrix, normalMatrix);
 
-		// convert to mat3 normal matrix (inverse-transpose of modelView)
-		const normalMatrix3 = mat3.create();
-		mat3.fromMat4(normalMatrix3, normalMatrix);
-
 		// --- Use program & uniforms ---
 		this.gl.useProgram(this.shaderProgram);
 
@@ -452,23 +539,9 @@ export class Renderer {
 			modelViewMatrix
 		);
 
-		this.gl.uniformMatrix3fv(
-			this.programInfo.uniformLocations.normalMatrix,
-			false,
-			normalMatrix3
-		);
-
-		const lightPos4 = [this.light.x, this.light.y, this.light.z, 1];
-		const lightInView = mat4.create();
-		mat4.multiply(lightInView, viewMatrix, lightPos4);
-
-		// Pass light position, not normalized direction
-		this.gl.uniform3f(
-			this.programInfo.uniformLocations.lightPosition,
-			lightInView[0],
-			lightInView[1],
-			lightInView[2]
-		);
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+		this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
 
 		// --- Bind attributes ---
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -484,21 +557,6 @@ export class Renderer {
 			this.programInfo.attribLocations.vertexPosition
 		);
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colorBuffer);
-		this.gl.vertexAttribPointer(
-			this.programInfo.attribLocations.vertexColor,
-			4,
-			this.gl.FLOAT,
-			false,
-			0,
-			0
-		);
-		this.gl.enableVertexAttribArray(
-			this.programInfo.attribLocations.vertexColor
-		);
-
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
 		this.gl.vertexAttribPointer(
 			this.programInfo.attribLocations.vertexNormal,
@@ -511,6 +569,27 @@ export class Renderer {
 		this.gl.enableVertexAttribArray(
 			this.programInfo.attribLocations.vertexNormal
 		);
+
+		this.gl.uniformMatrix4fv(
+			this.programInfo.uniformLocations.normalMatrix,
+			false,
+			normalMatrix
+		);
+
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
+		this.gl.vertexAttribPointer(
+			this.programInfo.attribLocations.textureCoord,
+			2,
+			this.gl.FLOAT,
+			false,
+			0,
+			0
+		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.attribLocations.textureCoord
+		);
+
+		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 
 		this.gl.drawElements(
 			this.gl.TRIANGLES,
