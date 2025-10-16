@@ -1,6 +1,6 @@
 import { ApplyCameraRotation, GetDotProduct, lerp, lerpVerts } from "./Math.js";
 import { ThreeDObject } from "./Primitives.js";
-import { CubeScene, TestScene, VoxelTerrainScene } from "./Scene.js";
+import { VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
 let mat4 =
@@ -306,7 +306,9 @@ export class Renderer {
 
 		this.texture = loadTexture(this.gl, "textures.png");
 
-		this.Update();
+		requestAnimationFrame(() => {
+			this.Update();
+		});
 	}
 
 	Update() {
@@ -413,9 +415,6 @@ export class Renderer {
 				colors.push(obj.r / 255, obj.g / 255, obj.b / 255, 1.0);
 			}
 
-			normals.push(...obj.vertexNormals);
-			textureCoords.push(...obj.textureCoordinates);
-
 			for (let o of obj.drawOrder) {
 				indices.push(o + vertsOff);
 			}
@@ -438,12 +437,12 @@ export class Renderer {
 			this.gl.STATIC_DRAW
 		);
 
-		// Tex-coord buffer
-		this.textureCoordBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
+		// Index buffer
+		this.indexBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
 		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Float32Array(textureCoords),
+			this.gl.ELEMENT_ARRAY_BUFFER,
+			new Uint32Array(indices),
 			this.gl.STATIC_DRAW
 		);
 
@@ -456,12 +455,23 @@ export class Renderer {
 			this.gl.STATIC_DRAW
 		);
 
-		// Index buffer
-		this.indexBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+		this.indicesLength = indices.length;
+
+		verts = null;
+		indices = null;
+		colors = null;
+
+		for (let obj of this.objects) {
+			normals.push(...obj.vertexNormals);
+			textureCoords.push(...obj.textureCoordinates);
+		}
+
+		// Tex-coord buffer
+		this.textureCoordBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
 		this.gl.bufferData(
-			this.gl.ELEMENT_ARRAY_BUFFER,
-			new Uint32Array(indices),
+			this.gl.ARRAY_BUFFER,
+			new Float32Array(textureCoords),
 			this.gl.STATIC_DRAW
 		);
 
@@ -473,8 +483,6 @@ export class Renderer {
 			new Float32Array(normals),
 			this.gl.STATIC_DRAW
 		);
-
-		this.indicesLength = indices.length;
 	}
 
 	Draw() {

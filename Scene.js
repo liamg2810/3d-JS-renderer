@@ -47,254 +47,101 @@ const textures = {
 			y: 1,
 		},
 	},
+	DIRT: {
+		base: {
+			x: 1,
+			y: 1,
+		},
+	},
 };
 
-export function CubeScene(renderer) {
-	const scale = 25;
-	for (let x = -scale * 5; x < scale * 5; x += scale) {
-		for (let z = -scale * 5; z < scale * 5; z += scale) {
-			renderer.objects.push(
-				Cube(
-					renderer,
-					new Vector3(x, 50 - Math.random() * scale, z),
-					scale,
-					scale,
-					Math.round(Math.random() * 360),
-					Math.round(Math.random() * 100),
-					50
-				)
-			);
+function IsSurrounded(x, y, z, noiseScale, chunkSize, chunkHeight) {
+	let surrounded = true;
+	const neighbors = [
+		[x + 1, y, z],
+		[x - 1, y, z],
+		[x, y + 1, z],
+		[x, y - 1, z],
+		[x, y, z + 1],
+		[x, y, z - 1],
+	];
+	for (const [nx, ny, nz] of neighbors) {
+		if (
+			nx < 0 ||
+			nx >= chunkSize ||
+			ny < 1 ||
+			ny > chunkHeight ||
+			nz < 0 ||
+			nz >= chunkSize ||
+			perlin3D(nx * noiseScale, ny * noiseScale, nz * noiseScale) >= 0.5
+		) {
+			surrounded = false;
+			break;
 		}
 	}
+	return surrounded;
 }
 
-export function TestScene(renderer) {
-	const scale = 25;
-	renderer.objects.push(
-		Cube(renderer, new Vector3(0, 0, 0), scale, scale, 90, 50, 50)
-	);
+function GenerateChunk(renderer, startX, startZ) {
+	const chunkSize = 16;
+	const chunkHeight = 20;
+	const noiseScale = 0.05;
+	const blockSize = 5;
 
-	// renderer.objects.push(
-	// 	SquareBasedPyramid(renderer, new Vector3(-25, 0, 10), 25)
-	// );
+	for (let y = chunkHeight; y > 0; y--) {
+		for (
+			let x = startX * chunkSize;
+			x < chunkSize + startX * chunkSize;
+			x++
+		) {
+			for (
+				let z = startZ * chunkSize;
+				z < chunkSize + startZ * chunkSize;
+				z++
+			) {
+				if (IsSurrounded(x, y, z, noiseScale)) {
+					// continue;
+				}
 
-	// renderer.objects.push(
-	// 	new ThreeDObject(
-	// 		renderer,
-	// 		[
-	// 			new Vector3(100, 100, -100),
-	// 			new Vector3(100, 100, 100),
-	// 			new Vector3(-100, 100, 100),
-	// 			new Vector3(-100, 100, -100),
-	// 		],
-	// 		[
-	// 			[2, 1, 0],
-	// 			[3, 2, 0],
-	// 		],
-	// 		new Vector3(0, 0, 0),
-	// 		new Vector3(0, 0, 0),
-	// 		90,
-	// 		100,
-	// 		50
-	// 	)
-	// );
-}
+				const noiseVal = perlin3D(
+					x * noiseScale,
+					y * noiseScale,
+					z * noiseScale
+				);
+				let tex = textures.GRASS;
 
-export function TerrainScene(renderer) {
-	let verts = [];
+				if (noiseVal < 0.4) {
+					continue;
+				}
 
-	const scale = 5;
-	const grid = 50;
-
-	for (let x = 0; x < grid + 1; x++) {
-		for (let z = 0; z < grid + 1; z++) {
-			// let val = perlin2D(x / 10, z / 10);
-			// verts.push(
-			// 	new Vector3(
-			// 		x * scale,
-			// 		Math.abs(val) * scale * 2 - scale,
-			// 		z * scale
-			// 	)
-			// );
+				renderer.objects.push(
+					Cube(
+						renderer,
+						new Vector3(
+							x * blockSize,
+							y * blockSize,
+							z * blockSize
+						),
+						blockSize,
+						blockSize,
+						tex
+					)
+				);
+			}
 		}
 	}
-
-	let draw = [];
-
-	for (let i = 0; i < verts.length; i += 1) {
-		if (i + grid + 2 >= verts.length) {
-			continue;
-		}
-
-		if (i % (grid + 1) === grid) {
-			continue;
-		}
-
-		draw.push([i + grid + 2, i + grid + 1, i]);
-		draw.push([i, i + 1, i + grid + 2]);
-	}
-
-	renderer.objects.push(
-		new ThreeDObject(
-			renderer,
-			verts,
-			draw,
-			Vector3.Zero(),
-			Vector3.Zero(),
-			90,
-			100,
-			50
-		)
-	);
-
-	// renderer.objects.push(
-	// 	new ThreeDObject(
-	// 		renderer,
-	// 		[
-	// 			new Vector3(0, 0, 0),
-	// 			new Vector3(scale * grid, 0, 0),
-	// 			new Vector3(scale * grid, 0, scale * grid),
-	// 			new Vector3(0, 0, scale * grid),
-	// 		],
-	// 		[
-	// 			[0, 2, 1],
-	// 			[0, 3, 2],
-	// 		],
-	// 		new Vector3(0, 0, 0),
-	// 		new Vector3(0, 0, 0),
-	// 		180,
-	// 		100,
-	// 		100
-	// 	)
-	// );
 }
 
 export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 
 	const scale = 5;
-	const grid = 32;
+	const yScale = 10;
+	const grid = 50;
 	const noiseScale = 0.05;
+	const chunks = 5;
 
-	// For now lets just render grass
-
-	for (let y = 10; y > 0; y--) {
-		for (let x = 0; x < grid; x++) {
-			for (let z = 0; z < grid; z++) {
-				let tex = textures.GRASS;
-
-				let noiseVal = perlin3D(
-					x * noiseScale,
-					y * noiseScale,
-					z * noiseScale
-				);
-
-				if (y < 5 && noiseVal > 0.55) {
-					if (
-						y !== 4 &&
-						y !== 0 &&
-						x !== 0 &&
-						z !== 0 &&
-						x !== grid - 1 &&
-						z !== grid - 1
-					)
-						continue;
-
-					renderer.objects.push(
-						Cube(
-							renderer,
-							new Vector3(
-								x * scale,
-								y * scale - (y === 4 ? 0.5 : 0),
-								z * scale
-							),
-							scale - (y === 4 ? 1 : 0),
-							scale,
-							textures.WATER
-						)
-					);
-
-					continue;
-				}
-
-				if (noiseVal > 0.5 && y < 6) {
-					tex = textures.SAND;
-
-					if (noiseVal > 0.55) {
-						continue;
-					}
-				}
-
-				if (noiseVal > 0.5 && y >= 6) {
-					continue;
-				}
-
-				if (y === 10 && Math.random() < 0.025 && noiseVal < 0.4) {
-					const yTop = Math.round(Math.random() * 6) + 12;
-
-					for (let yy = 10; yy < yTop; yy++) {
-						renderer.objects.push(
-							Cube(
-								renderer,
-								new Vector3(
-									x * scale,
-									yy * scale + scale,
-									z * scale
-								),
-								scale,
-								scale,
-								textures.LOG
-							)
-						);
-					}
-
-					for (let yy = yTop; yy < yTop + 2; yy++) {
-						for (let xx = x - 1; xx <= x + 1; xx++) {
-							for (let zz = z - 1; zz <= z + 1; zz++) {
-								renderer.objects.push(
-									Cube(
-										renderer,
-										new Vector3(
-											xx * scale,
-											yy * scale + scale,
-											zz * scale
-										),
-										scale,
-										scale,
-										textures.LEAVES
-									)
-								);
-							}
-						}
-					}
-				}
-
-				if (y !== 10 && y >= 6) {
-					let noiseValAbove = perlin3D(
-						x * noiseScale,
-						(y + 1) * noiseScale,
-						z * noiseScale
-					);
-
-					if (noiseValAbove < 0.5) {
-						tex = textures.GRASS;
-					}
-
-					if (y < 8 && noiseValAbove < 0.5) {
-						tex = textures.STONE;
-					}
-				}
-
-				renderer.objects.push(
-					Cube(
-						renderer,
-						new Vector3(x * scale, y * scale, z * scale),
-						scale,
-						scale,
-						tex
-					)
-				);
-			}
-		}
+	for (let i = 0; i < chunks; i++) {
+		GenerateChunk(renderer, i, 0);
 	}
 }
