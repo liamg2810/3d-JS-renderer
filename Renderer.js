@@ -210,6 +210,7 @@ export class Renderer {
 	shaderProgram;
 
 	canvas;
+	/** @type {WebGL2RenderingContext} */
 	gl;
 
 	vertexBuffer;
@@ -225,7 +226,6 @@ export class Renderer {
 			return;
 		}
 
-		/** @type {WebGLRenderingContext} */
 		this.gl = this.canvas.getContext("webgl2");
 
 		if (this.gl === null) {
