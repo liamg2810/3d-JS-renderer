@@ -26,6 +26,8 @@ const fpsCounter = document.getElementById("fps-count");
 // CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
 // 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
 
+// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
+
 const vsSource = `#version 300 es
 
     in uint aVertex;
@@ -49,8 +51,18 @@ const vsSource = `#version 300 es
 		vec2(1.0, 0.0)  // BOTTOM RIGHT FRONT
 	);
 
+	// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
+	const vec3 normals[6] = vec3[](
+		vec3(0.0, 1.0, 0.0),  // UP
+		vec3(0.0, -1.0, 0.0), // DOWN
+		vec3(-1.0, 0.0, 0.0), // LEFT
+		vec3(1.0, 0.0, 0.0),  // RIGHT
+		vec3(0.0, 0.0, 1.0),  // FRONT
+		vec3(0.0, 0.0, -1.0)  // BACK
+	);
+
     out highp vec2 vTextureCoord;
-	// out highp vec3 vLighting;
+	out highp vec3 vLighting;
 
     void main() {
 		uint vertX = aVertex & uint(0xF);
@@ -58,6 +70,8 @@ const vsSource = `#version 300 es
 		uint vertZ = (aVertex >> 12) & uint(0xF);
 
 		uint cID = (aVertex >> 16) & uint(0x7);
+
+		uint dir = (aVertex >> 19) & uint(0x7);
 
 		vec3 pos = vec3(float(vertX) + uChunkPos.y, float(vertY), float(vertZ) + uChunkPos.x) + offsets[cID];
 		vec4 vertexPos = vec4(pos, 1.0);
@@ -70,14 +84,16 @@ const vsSource = `#version 300 es
 
 		// Apply lighting effect
 
-		// highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-		// highp vec3 directionalLightColor = vec3(1, 1, 1);
-		// highp vec3 directionalVector = normalize(vec3(100, 100, 100));
+		vec3 normal = normals[dir];
 
-		// highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+		highp vec3 directionalLightColor = vec3(1, 1, 1);
+		highp vec3 directionalVector = normalize(vec3(100, 100, 100));
 
-		// highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-		// vLighting = ambientLight + (directionalLightColor * directional);
+		highp vec4 transformedNormal = uNormalMatrix * vec4(normal, 1.0);
+
+		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+		vLighting = ambientLight + (directionalLightColor * directional);
     }
 `;
 const fsSource = `#version 300 es
@@ -85,20 +101,17 @@ const fsSource = `#version 300 es
     precision mediump float;
 	in highp vec4 vColor;
     in highp vec2 vTextureCoord;
-    // in highp vec3 vLighting;
+    in highp vec3 vLighting;
 
     uniform sampler2D uSampler;
 
 	out vec4 fragColor;
 
     void main(void) {
+      	highp vec4 texelColor = texture(uSampler, vTextureCoord);
 
-      highp vec4 texelColor = texture(uSampler, vTextureCoord);
-
-	// 	if (texelColor.a <= 0.0) { discard; }
-      fragColor = vec4(texelColor.rgb, texelColor.a);
-    
-	// fragColor = vColor;
+		// 	if (texelColor.a <= 0.0) { discard; }
+     	fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
 	}
   `;
 
