@@ -146,6 +146,8 @@ export function Cube(r, origin, sizeY, size, tex, red, g, b) {
 
 	const topX = tex.top ? tex.top.x : tex.base.x;
 	const topY = tex.top ? tex.top.y : tex.base.y;
+	const bottomX = tex.bottom ? tex.bottom.x : tex.base.x;
+	const bottomY = tex.bottom ? tex.bottom.y : tex.base.y;
 
 	// Set proper texture coordinates - each face gets full 0,0 to 1,1 mapping
 	cube.textureCoordinates = [
@@ -177,14 +179,14 @@ export function Cube(r, origin, sizeY, size, tex, red, g, b) {
 		topX / tileMapWidth,
 		topY / tileMapHeight,
 		// BOTTOM face UVs
-		tex.base.x / tileMapWidth,
-		(tex.base.y + 1) / tileMapHeight,
-		(tex.base.x + 1) / tileMapWidth,
-		(tex.base.y + 1) / tileMapHeight,
-		(tex.base.x + 1) / tileMapWidth,
-		tex.base.y / tileMapHeight,
-		tex.base.x / tileMapWidth,
-		tex.base.y / tileMapHeight,
+		bottomX / tileMapWidth,
+		(bottomY + 1) / tileMapHeight,
+		(bottomX + 1) / tileMapWidth,
+		(bottomY + 1) / tileMapHeight,
+		(bottomX + 1) / tileMapWidth,
+		bottomY / tileMapHeight,
+		bottomX / tileMapWidth,
+		bottomY / tileMapHeight,
 		// RIGHT face UVs
 		tex.base.x / tileMapWidth,
 		tex.base.y / tileMapHeight,

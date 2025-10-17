@@ -13,9 +13,17 @@ const textures = {
 			x: 0,
 			y: 0,
 		},
+		bottom: {
+			x: 1,
+			y: 1,
+		},
 	},
 	LOG: {
 		top: {
+			x: 4,
+			y: 0,
+		},
+		bottom: {
 			x: 4,
 			y: 0,
 		},
@@ -54,7 +62,67 @@ const textures = {
 			y: 1,
 		},
 	},
+	COAL: {
+		base: { x: 2, y: 1 },
+	},
+	BEDROCK: {
+		base: { x: 3, y: 1 },
+	},
 };
+
+function DrawTree(renderer, grassX, grassY, grassZ, blockSize) {
+	if (Math.random() > 0.005) {
+		return;
+	}
+
+	const treeTop = Math.round(Math.random() * 1 + 2);
+
+	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
+		renderer.objects.push(
+			Cube(
+				renderer,
+				new Vector3(
+					grassX * blockSize,
+					y * blockSize,
+					grassZ * blockSize
+				),
+				blockSize,
+				blockSize,
+				textures.LOG
+			)
+		);
+	}
+
+	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
+		for (let x = grassX - 1; x <= grassX + 1; x++) {
+			for (let z = grassZ - 1; z <= grassZ + 1; z++) {
+				if (y === treeTop + grassY + 2) {
+					if (x === grassX - 1 && z === grassZ - 1) continue;
+					if (x === grassX - 1 && z === grassZ + 1) continue;
+					if (x === grassX + 1 && z === grassZ - 1) continue;
+					if (x === grassX + 1 && z === grassZ + 1) continue;
+				}
+
+				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
+					continue;
+
+				renderer.objects.push(
+					Cube(
+						renderer,
+						new Vector3(
+							x * blockSize,
+							y * blockSize,
+							z * blockSize
+						),
+						blockSize,
+						blockSize,
+						textures.LEAVES
+					)
+				);
+			}
+		}
+	}
+}
 
 function biome(e, temp, humidity) {
 	if (e < 0.45 && e > 0.4) return textures.SAND;
@@ -62,6 +130,44 @@ function biome(e, temp, humidity) {
 	if (temp > 0.6 && humidity < 0.4) return textures.SAND;
 	// if (temp < 0.3 && e > 1.0) return textures.STONE;
 	return textures.GRASS;
+}
+
+function IsSurrounded(
+	x,
+	y,
+	z,
+	noiseScale,
+	chunkSize,
+	chunkHeight,
+	chunkX,
+	chunkZ,
+	caveVal
+) {
+	let surrounded = true;
+	const neighbors = [
+		[x + 1, y, z],
+		[x - 1, y, z],
+		[x, y + 1, z],
+		[x, y - 1, z],
+		[x, y, z + 1],
+		[x, y, z - 1],
+	];
+	for (const [nx, ny, nz] of neighbors) {
+		if (
+			nx < chunkX * chunkSize ||
+			nx >= chunkSize + chunkX * chunkSize ||
+			ny < 1 ||
+			ny > chunkHeight ||
+			nz < chunkZ * chunkSize ||
+			nz >= chunkSize + chunkZ * chunkSize ||
+			perlin3D(nx * noiseScale, ny * noiseScale, nz * noiseScale) <
+				caveVal
+		) {
+			surrounded = false;
+			break;
+		}
+	}
+	return surrounded;
 }
 
 function GenerateChunk(renderer, startX, startZ) {
@@ -101,7 +207,7 @@ function GenerateChunk(renderer, startX, startZ) {
 						renderer,
 						new Vector3(
 							x * blockSize,
-							Math.round(0.4 * 10) * blockSize - 0.2,
+							(Math.round(0.4 * 10) + 64) * blockSize - 0.2,
 							z * blockSize
 						),
 						blockSize,
@@ -111,13 +217,106 @@ function GenerateChunk(renderer, startX, startZ) {
 
 				elevation -= 0.1;
 			}
+			const height = Math.round(elevation * 10) + 64;
+
+			if (tex === textures.GRASS && elevation > 0.4) {
+				DrawTree(renderer, x, height, z, blockSize);
+			}
+
+			const caveNoiseScale = baseNoiseScale * 5;
+
+			const oreNoiseVal = baseNoiseScale * 3;
+
+			for (let y = height - 1; y > 2; y--) {
+				let caveVal = 0.35;
+
+				if (y < height / 1.5) {
+					caveVal = 0.425;
+				}
+
+				if (y < height / 2) {
+					caveVal = 0.5;
+				}
+
+				if (
+					IsSurrounded(
+						x,
+						y,
+						z,
+						caveNoiseScale,
+						chunkSize,
+						height,
+						startX,
+						startZ,
+						caveVal
+					)
+				)
+					continue;
+
+				let belowT = textures.STONE;
+				const oreNoise = perlin3D(
+					x * oreNoiseVal,
+					y * oreNoiseVal,
+					z * oreNoiseVal
+				);
+
+				if (oreNoise < 0.2) {
+					belowT = textures.COAL;
+				}
+
+				if (y >= height - 3) {
+					belowT = textures.DIRT;
+				}
+
+				if (y < height - 3) {
+					const nVal = perlin3D(
+						x * caveNoiseScale,
+						y * caveNoiseScale,
+						z * caveNoiseScale
+					);
+
+					if (nVal < caveVal) {
+						continue;
+					}
+				}
+
+				renderer.objects.push(
+					Cube(
+						renderer,
+						new Vector3(
+							x * blockSize,
+							y * blockSize,
+							z * blockSize
+						),
+						blockSize,
+						blockSize,
+						belowT
+					)
+				);
+			}
+
+			for (let y = 2; y > 0; y--) {
+				renderer.objects.push(
+					Cube(
+						renderer,
+						new Vector3(
+							x * blockSize,
+							y * blockSize,
+							z * blockSize
+						),
+						blockSize,
+						blockSize,
+						textures.BEDROCK
+					)
+				);
+			}
 
 			renderer.objects.push(
 				Cube(
 					renderer,
 					new Vector3(
 						x * blockSize,
-						Math.round(elevation * 10) * blockSize,
+						height * blockSize,
 						z * blockSize
 					),
 					blockSize,
@@ -133,11 +332,7 @@ export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
 	renderer.water = [];
 
-	const scale = 5;
-	const yScale = 10;
-	const grid = 50;
-	const noiseScale = 0.05;
-	const chunks = 15;
+	const chunks = 4;
 
 	for (let x = 0; x < chunks; x++) {
 		for (let z = 0; z < chunks; z++) {

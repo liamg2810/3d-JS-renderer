@@ -1,4 +1,3 @@
-import { ApplyCameraRotation, GetDotProduct, lerp, lerpVerts } from "./Math.js";
 import { ThreeDObject } from "./Primitives.js";
 import { VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
@@ -52,8 +51,10 @@ const fsSource = `
     uniform sampler2D uSampler;
 
     void main(void) {
+
       highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
 
+		if (texelColor.a <= 0.0) { discard; }
       gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
     }
   `;
@@ -194,7 +195,7 @@ export class Renderer {
 	objects = [];
 	/** @type {ThreeDObject[]} */
 	water = [];
-	cam = new Vector3(-50, 200, 300);
+	cam = new Vector3(-50, 100 * 5, -50);
 	camRot = new Vector3(-25, 225, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
@@ -364,25 +365,25 @@ export class Renderer {
 			this.cam.y -= speed;
 		}
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot.y -= speed / 2;
+			this.camRot.y -= speed;
 
 			if (this.camRot.y < 0) this.camRot.y = 360;
 		}
 
 		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot.y += speed / 2;
+			this.camRot.y += speed;
 
 			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
-			this.camRot.x += speed / 2;
+			this.camRot.x += speed;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
 
 		if (this.keyMap.has("ArrowDown")) {
-			this.camRot.x -= speed / 2;
+			this.camRot.x -= speed;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
