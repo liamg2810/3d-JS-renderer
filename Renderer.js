@@ -1,4 +1,5 @@
-import { ThreeDObject } from "./Primitives.js";
+import { Chunk } from "./Game.js";
+import { Cube, ThreeDObject } from "./Primitives.js";
 import { VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
@@ -13,50 +14,92 @@ if (!mat4) {
 	mat4 = gm.mat4;
 }
 
-const vsSource = `
-    attribute vec4 aVertexPosition;
-	attribute vec3 aVertexNormal;
-    attribute vec2 aTextureCoord;
+const fpsCounter = document.getElementById("fps-count");
+
+// [TEXTURE][DIRECTION][CID][POSITION]
+// [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
+// CID = 0-7 = 3 bits
+// DIRECTION = 0-5 = 3 bits
+// TEXTURE = 0-63 = 8 bits
+// TOTAL BITS = 30
+
+// CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
+// 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
+
+const vsSource = `#version 300 es
+
+    in uint aVertex;
     
+	uniform vec2 uChunkPos;
 	uniform mat4 uNormalMatrix;
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
 	
-    varying highp vec2 vTextureCoord;
-	varying highp vec3 vLighting;
+	const vec3 offsets[8] = vec3[](vec3(-0.5,0.5,-0.5), vec3(0.5,0.5,-0.5), vec3(-0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5),
+		vec3(-0.5,-0.5,-0.5), vec3(0.5,-0.5,-0.5), vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5));
+
+	vec2 uvOffsets[8] = vec2[](
+		vec2(0.0, 1.0), // TOP LEFT BACK
+		vec2(1.0, 1.0), // TOP RIGHT BACK
+		vec2(0.0, 0.0), // TOP LEFT FRONT
+		vec2(1.0, 0.0), // TOP RIGHT FRONT
+		vec2(0.0, 1.0), // BOTTOM LEFT BACK
+		vec2(1.0, 1.0), // BOTTOM RIGHT BACK
+		vec2(0.0, 0.0), // BOTTOM LEFT FRONT
+		vec2(1.0, 0.0)  // BOTTOM RIGHT FRONT
+	);
+
+    out highp vec2 vTextureCoord;
+	// out highp vec3 vLighting;
 
     void main() {
-        vec4 mvPosition = uModelViewMatrix * aVertexPosition;
+		uint vertX = aVertex & uint(0xF);
+		uint vertY = (aVertex >> 4) & uint(0xFF);
+		uint vertZ = (aVertex >> 12) & uint(0xF);
+
+		uint cID = (aVertex >> 16) & uint(0x7);
+
+		vec3 pos = vec3(float(vertX) + uChunkPos.y, float(vertY), float(vertZ) + uChunkPos.x) + offsets[cID];
+		vec4 vertexPos = vec4(pos, 1.0);
+
+        vec4 mvPosition = uModelViewMatrix * vertexPos;
         gl_Position = uProjectionMatrix * mvPosition;
 
-		vTextureCoord = aTextureCoord;
+		float atlasSize = 32.0;
+		vTextureCoord = uvOffsets[cID] / atlasSize;
 
 		// Apply lighting effect
 
-		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-		highp vec3 directionalLightColor = vec3(1, 1, 1);
-		highp vec3 directionalVector = normalize(vec3(100, 100, 100));
+		// highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+		// highp vec3 directionalLightColor = vec3(1, 1, 1);
+		// highp vec3 directionalVector = normalize(vec3(100, 100, 100));
 
-		highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+		// highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
 
-		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-		vLighting = ambientLight + (directionalLightColor * directional);
+		// highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+		// vLighting = ambientLight + (directionalLightColor * directional);
     }
 `;
-const fsSource = `
+const fsSource = `#version 300 es
+
     precision mediump float;
-    varying highp vec2 vTextureCoord;
-    varying highp vec3 vLighting;
+	in highp vec4 vColor;
+    in highp vec2 vTextureCoord;
+    // in highp vec3 vLighting;
 
     uniform sampler2D uSampler;
 
+	out vec4 fragColor;
+
     void main(void) {
 
-      highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
+      highp vec4 texelColor = texture(uSampler, vTextureCoord);
 
-		if (texelColor.a <= 0.0) { discard; }
-      gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-    }
+	// 	if (texelColor.a <= 0.0) { discard; }
+      fragColor = vec4(texelColor.rgb, texelColor.a);
+    
+	// fragColor = vColor;
+	}
   `;
 
 //
@@ -191,12 +234,10 @@ function isPowerOf2(value) {
 }
 
 export class Renderer {
-	/** @type {ThreeDObject[]} */
-	objects = [];
-	/** @type {ThreeDObject[]} */
-	water = [];
-	cam = new Vector3(-50, 100 * 5, -50);
-	camRot = new Vector3(-25, 225, 0);
+	/** @type {Chunk[]} */
+	chunks = [];
+	cam = new Vector3(0, 100, 0);
+	camRot = new Vector3(0, 0, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
 
@@ -232,40 +273,32 @@ export class Renderer {
 			return;
 		}
 
-		this.gl.enable(this.gl.CULL_FACE);
-		this.gl.cullFace(this.gl.BACK);
+		// this.gl.enable(this.gl.CULL_FACE);
+		// this.gl.cullFace(this.gl.BACK);
 
-		this.gl.enable(this.gl.BLEND);
-		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+		// this.gl.enable(this.gl.BLEND);
+		// this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		console.log("Starting engine");
 
 		let start = Date.now();
 
-		// TestScene(this);
-		// TerrainScene(this);
-		VoxelTerrainScene(this);
-		let end = Date.now();
-
-		console.log(
-			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
-		);
-
-		start = Date.now();
-		// CubeScene(this);
 		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
-		end = Date.now();
+
+		let end = Date.now();
 
 		console.log(
 			`Took ${Math.round((end - start) / 10) / 100}s to init shaders`
 		);
 
 		start = Date.now();
-		this.LoadBuffers();
+
+		VoxelTerrainScene(this);
+
 		end = Date.now();
 
 		console.log(
-			`Took ${Math.round((end - start) / 10) / 100}s to load buffers`
+			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
 		);
 
 		this.programInfo = {
@@ -273,15 +306,7 @@ export class Renderer {
 			attribLocations: {
 				vertexPosition: this.gl.getAttribLocation(
 					this.shaderProgram,
-					"aVertexPosition"
-				),
-				vertexNormal: this.gl.getAttribLocation(
-					this.shaderProgram,
-					"aVertexNormal"
-				),
-				textureCoord: this.gl.getAttribLocation(
-					this.shaderProgram,
-					"aTextureCoord"
+					"aVertex"
 				),
 			},
 			uniformLocations: {
@@ -301,6 +326,10 @@ export class Renderer {
 				uSampler: this.gl.getUniformLocation(
 					this.shaderProgram,
 					"uSampler"
+				),
+				uChunkPos: this.gl.getUniformLocation(
+					this.shaderProgram,
+					"uChunkPos"
 				),
 			},
 		};
@@ -365,25 +394,25 @@ export class Renderer {
 			this.cam.y -= speed;
 		}
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot.y -= speed;
+			this.camRot.y -= speed / 2;
 
 			if (this.camRot.y < 0) this.camRot.y = 360;
 		}
 
 		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot.y += speed;
+			this.camRot.y += speed / 2;
 
 			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
-			this.camRot.x += speed;
+			this.camRot.x += speed / 2;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
 
 		if (this.keyMap.has("ArrowDown")) {
-			this.camRot.x -= speed;
+			this.camRot.x -= speed / 2;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
@@ -394,100 +423,13 @@ export class Renderer {
 
 		this.deltaTime = frameEnd - frameStart;
 
+		const fps = 1000 / this.deltaTime;
+
+		fpsCounter.innerText = `FPS: ${fps}`;
+
 		setTimeout(() => {
 			this.Update();
 		}, 1000 / 60);
-	}
-
-	LoadBuffers() {
-		let verts = [];
-		let vertsOff = 0;
-		let indices = [];
-		let normals = [];
-		let textureCoords = [];
-
-		let s = Date.now();
-
-		for (let obj of this.objects) {
-			for (let v of obj.vertices) {
-				verts.push(v.x, v.y, v.z);
-			}
-
-			for (let o of obj.drawOrder) {
-				indices.push(o + vertsOff);
-			}
-
-			vertsOff += obj.vertices.length;
-		}
-
-		for (let water of this.water) {
-			for (let v of water.vertices) {
-				verts.push(v.x, v.y, v.z);
-			}
-
-			for (let o of water.drawOrder) {
-				indices.push(o + vertsOff);
-			}
-
-			vertsOff += water.vertices.length;
-		}
-
-		let e = Date.now();
-
-		console.log(
-			`Took ${Math.round((e - s) / 10) / 100}s to build buffer arrays`
-		);
-
-		// Vertex buffer
-		this.vertexBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Float32Array(verts),
-			this.gl.STATIC_DRAW
-		);
-
-		// Index buffer
-		this.indexBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-		this.gl.bufferData(
-			this.gl.ELEMENT_ARRAY_BUFFER,
-			new Uint32Array(indices),
-			this.gl.STATIC_DRAW
-		);
-
-		this.indicesLength = indices.length;
-
-		verts = null;
-		indices = null;
-
-		for (let obj of this.objects) {
-			normals.push(...obj.vertexNormals);
-			textureCoords.push(...obj.textureCoordinates);
-		}
-
-		for (let water of this.water) {
-			normals.push(...water.vertexNormals);
-			textureCoords.push(...water.textureCoordinates);
-		}
-
-		// Tex-coord buffer
-		this.textureCoordBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Float32Array(textureCoords),
-			this.gl.STATIC_DRAW
-		);
-
-		// Normal buffer
-		this.normalBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Float32Array(normals),
-			this.gl.STATIC_DRAW
-		);
 	}
 
 	Draw() {
@@ -540,63 +482,36 @@ export class Renderer {
 			modelViewMatrix
 		);
 
-		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
-
-		// --- Bind attributes ---
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-		this.gl.vertexAttribPointer(
-			this.programInfo.attribLocations.vertexPosition,
-			3,
-			this.gl.FLOAT,
-			false,
-			0,
-			0
-		);
-		this.gl.enableVertexAttribArray(
-			this.programInfo.attribLocations.vertexPosition
-		);
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
-		this.gl.vertexAttribPointer(
-			this.programInfo.attribLocations.vertexNormal,
-			3,
-			this.gl.FLOAT,
-			false,
-			0,
-			0
-		);
-		this.gl.enableVertexAttribArray(
-			this.programInfo.attribLocations.vertexNormal
-		);
-
 		this.gl.uniformMatrix4fv(
 			this.programInfo.uniformLocations.normalMatrix,
 			false,
 			normalMatrix
 		);
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoordBuffer);
-		this.gl.vertexAttribPointer(
-			this.programInfo.attribLocations.textureCoord,
-			2,
-			this.gl.FLOAT,
-			false,
-			0,
-			0
-		);
-		this.gl.enableVertexAttribArray(
-			this.programInfo.attribLocations.textureCoord
-		);
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+		this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
 
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+		for (let chunk of this.chunks) {
+			this.gl.uniform2f(
+				this.programInfo.uniformLocations.uChunkPos,
+				chunk.x * chunk.SIZE,
+				chunk.z * chunk.SIZE
+			);
 
-		this.gl.drawElements(
-			this.gl.TRIANGLES,
-			this.indicesLength,
-			this.gl.UNSIGNED_INT,
-			0
-		);
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.blockBuffer);
+			this.gl.vertexAttribIPointer(
+				this.programInfo.attribLocations.vertexPosition,
+				1,
+				this.gl.UNSIGNED_INT,
+				0,
+				0
+			);
+			this.gl.enableVertexAttribArray(
+				this.programInfo.attribLocations.vertexPosition
+			);
+
+			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount);
+		}
 	}
 }
