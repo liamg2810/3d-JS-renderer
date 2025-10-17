@@ -1,6 +1,6 @@
 import { perlin2D } from "./Perlin2D.js";
 import { perlin3D } from "./Perlin3D.js";
-import { Cube } from "./Primitives.js";
+import { Cube, Water } from "./Primitives.js";
 import { Vector3 } from "./Vectors.js";
 
 const textures = {
@@ -56,54 +56,6 @@ const textures = {
 	},
 };
 
-function IsSurrounded(x, y, z, noiseScale, chunkSize, chunkHeight) {
-	let surrounded = true;
-	const neighbors = [
-		[x + 1, y, z],
-		[x - 1, y, z],
-		[x, y + 1, z],
-		[x, y - 1, z],
-		[x, y, z + 1],
-		[x, y, z - 1],
-	];
-	for (const [nx, ny, nz] of neighbors) {
-		if (
-			nx < 0 ||
-			nx >= chunkSize ||
-			ny < 1 ||
-			ny > chunkHeight ||
-			nz < 0 ||
-			nz >= chunkSize ||
-			perlin3D(nx * noiseScale, ny * noiseScale, nz * noiseScale) >= 0.5
-		) {
-			surrounded = false;
-			break;
-		}
-	}
-	return surrounded;
-}
-
-function GenerateDesert(renderer, x, z, blockSize) {
-	const noiseScale = 0.1;
-
-	const noiseVal =
-		Math.round(perlin2D(x * noiseScale, z * noiseScale) * 4) / 10;
-
-	renderer.objects.push(
-		Cube(
-			renderer,
-			new Vector3(
-				x * blockSize,
-				blockSize * noiseVal * 10,
-				z * blockSize
-			),
-			blockSize,
-			blockSize,
-			textures.SAND
-		)
-	);
-}
-
 function biome(e, temp, humidity) {
 	if (e < 0.45 && e > 0.4) return textures.SAND;
 	if (e > 1.2 && temp < 0.6 && humidity > 0.4) return textures.STONE;
@@ -144,15 +96,14 @@ function GenerateChunk(renderer, startX, startZ) {
 			const tex = biome(elevation, temp, humidity);
 
 			if (elevation < 0.4) {
-				renderer.objects.push(
-					Cube(
+				renderer.water.push(
+					Water(
 						renderer,
 						new Vector3(
 							x * blockSize,
 							Math.round(0.4 * 10) * blockSize - 0.2,
 							z * blockSize
 						),
-						blockSize - 0.3,
 						blockSize,
 						textures.WATER
 					)
@@ -180,6 +131,7 @@ function GenerateChunk(renderer, startX, startZ) {
 
 export function VoxelTerrainScene(renderer) {
 	renderer.objects = [];
+	renderer.water = [];
 
 	const scale = 5;
 	const yScale = 10;

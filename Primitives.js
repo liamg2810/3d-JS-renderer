@@ -42,26 +42,6 @@ export class ThreeDObject {
 
 		// Default texture coordinates - should be overridden by specific shapes
 		this.textureCoordinates = [];
-
-		this.vertexNormals = [
-			// Front
-			0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-
-			// Back
-			0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
-
-			// Top
-			0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-
-			// Bottom
-			0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
-
-			// Right
-			1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-
-			// Left
-			-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-		];
 	}
 }
 
@@ -226,6 +206,64 @@ export function Cube(r, origin, sizeY, size, tex, red, g, b) {
 	];
 
 	return cube;
+}
+
+/**
+ *
+ * @param {import("./Renderer.js").Renderer} r
+ * @param {Vector3} origin
+ * @param {number} size
+ * @param {number} h
+ * @param {number} s
+ * @param {number} l
+ * @returns {ThreeDObject}
+ */
+export function Water(r, origin, size, tex, red, g, b) {
+	const hS = size / 2;
+
+	const water = new ThreeDObject(
+		r,
+		[
+			// TOP face (4 vertices)
+			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS), // 0
+			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS), // 1
+			new Vector3(origin.x + hS, origin.y + hS, origin.z + hS), // 2
+			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS), // 3
+		],
+		// prettier-ignore
+		[
+			// TOP
+			2, 1, 0,
+			3, 2, 0,
+		],
+		origin,
+		Vector3.Zero(),
+		red,
+		g,
+		b,
+		0
+	);
+
+	// Set proper vertex normals for each face
+	water.vertexNormals = [
+		// TOP face normals (4 vertices)
+		0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+	];
+
+	// Set proper texture coordinates - each face gets full 0,0 to 1,1 mapping
+	water.textureCoordinates = [
+		// TOP face UVs
+		tex.base.x / tileMapWidth,
+		(tex.base.y + 1) / tileMapHeight,
+		(tex.base.x + 1) / tileMapWidth,
+		(tex.base.y + 1) / tileMapHeight,
+		(tex.base.x + 1) / tileMapWidth,
+		tex.base.y / tileMapHeight,
+		tex.base.x / tileMapWidth,
+		tex.base.y / tileMapHeight,
+	];
+
+	return water;
 }
 
 export function SquareBasedPyramid(r, origin, size) {

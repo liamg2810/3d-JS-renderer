@@ -54,10 +54,6 @@ const fsSource = `
     void main(void) {
       highp vec4 texelColor = texture2D(uSampler, vTextureCoord);
 
-	  if (texelColor.a <= 0.0) {
-	 	discard; 
-	  }
-
       gl_FragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
     }
   `;
@@ -196,6 +192,8 @@ function isPowerOf2(value) {
 export class Renderer {
 	/** @type {ThreeDObject[]} */
 	objects = [];
+	/** @type {ThreeDObject[]} */
+	water = [];
 	cam = new Vector3(-50, 200, 300);
 	camRot = new Vector3(-25, 225, 0);
 	keyMap = new Set();
@@ -235,6 +233,9 @@ export class Renderer {
 
 		this.gl.enable(this.gl.CULL_FACE);
 		this.gl.cullFace(this.gl.BACK);
+
+		this.gl.enable(this.gl.BLEND);
+		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		console.log("Starting engine");
 
@@ -418,6 +419,18 @@ export class Renderer {
 			vertsOff += obj.vertices.length;
 		}
 
+		for (let water of this.water) {
+			for (let v of water.vertices) {
+				verts.push(v.x, v.y, v.z);
+			}
+
+			for (let o of water.drawOrder) {
+				indices.push(o + vertsOff);
+			}
+
+			vertsOff += water.vertices.length;
+		}
+
 		let e = Date.now();
 
 		console.log(
@@ -450,6 +463,11 @@ export class Renderer {
 		for (let obj of this.objects) {
 			normals.push(...obj.vertexNormals);
 			textureCoords.push(...obj.textureCoordinates);
+		}
+
+		for (let water of this.water) {
+			normals.push(...water.vertexNormals);
+			textureCoords.push(...water.textureCoordinates);
 		}
 
 		// Tex-coord buffer
