@@ -40,17 +40,6 @@ const vsSource = `#version 300 es
 	const vec3 offsets[8] = vec3[](vec3(-0.5,0.5,-0.5), vec3(0.5,0.5,-0.5), vec3(-0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5),
 		vec3(-0.5,-0.5,-0.5), vec3(0.5,-0.5,-0.5), vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5));
 
-	vec2 uvOffsets[8] = vec2[](
-		vec2(0.0, 1.0), // TOP LEFT BACK
-		vec2(1.0, 1.0), // TOP RIGHT BACK
-		vec2(0.0, 0.0), // TOP LEFT FRONT
-		vec2(1.0, 0.0), // TOP RIGHT FRONT
-		vec2(0.0, 1.0), // BOTTOM LEFT BACK
-		vec2(1.0, 1.0), // BOTTOM RIGHT BACK
-		vec2(0.0, 0.0), // BOTTOM LEFT FRONT
-		vec2(1.0, 0.0)  // BOTTOM RIGHT FRONT
-	);
-
 	// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 	const vec3 normals[6] = vec3[](
 		vec3(0.0, 1.0, 0.0),  // UP
@@ -64,23 +53,92 @@ const vsSource = `#version 300 es
     out highp vec2 vTextureCoord;
 	out highp vec3 vLighting;
 
+	vec2 getFaceUV(uint cID, uint dir) {
+		// Base UVs for the corners of a face
+		vec2 baseUVs[4];
+		baseUVs[0] = vec2(0.0, 0.0); // bottom-left
+		baseUVs[1] = vec2(1.0, 0.0); // bottom-right
+		baseUVs[2] = vec2(0.0, 1.0); // top-left
+		baseUVs[3] = vec2(1.0, 1.0); // top-right
+
+		// Map corner ID to the face's UV index
+		// Corner IDs: [0..7] = [TLB, TRB, TLF, TRF, BLB, BRB, BLF, BRF]
+		// Each face uses 4 corners:
+		// UP(0): 0,1,2,3
+		// DOWN(1): 4,5,6,7
+		// LEFT(2): 0,2,4,6
+		// RIGHT(3): 1,3,5,7
+		// FRONT(4): 2,3,6,7
+		// BACK(5): 0,1,4,5
+
+		uint idx = 0u;
+
+		if (dir == 0u) { // UP
+			if (cID == 0u) idx = 2u;
+			else if (cID == 1u) idx = 3u;
+			else if (cID == 2u) idx = 0u;
+			else if (cID == 3u) idx = 1u;
+		} else if (dir == 1u) { // DOWN
+			if (cID == 4u) idx = 2u;
+			else if (cID == 5u) idx = 3u;
+			else if (cID == 6u) idx = 0u;
+			else if (cID == 7u) idx = 1u;
+		} else if (dir == 2u) { // LEFT
+			if (cID == 0u) idx = 1u;
+			else if (cID == 2u) idx = 0u;
+			else if (cID == 4u) idx = 3u;
+			else if (cID == 6u) idx = 2u;
+		} else if (dir == 3u) { // RIGHT
+			if (cID == 1u) idx = 1u;
+			else if (cID == 3u) idx = 0u;
+			else if (cID == 5u) idx = 3u;
+			else if (cID == 7u) idx = 2u;
+		} else if (dir == 4u) { // FRONT
+			if (cID == 2u) idx = 1u;
+			else if (cID == 3u) idx = 0u;
+			else if (cID == 6u) idx = 3u;
+			else if (cID == 7u) idx = 2u;
+		} else if (dir == 5u) { // BACK
+			if (cID == 0u) idx = 1u;
+			else if (cID == 1u) idx = 0u;
+			else if (cID == 4u) idx = 3u;
+			else if (cID == 5u) idx = 2u;
+		}
+
+		return baseUVs[idx];
+	}
+
     void main() {
 		uint vertX = aVertex & uint(0xF);
 		uint vertY = (aVertex >> 4) & uint(0xFF);
 		uint vertZ = (aVertex >> 12) & uint(0xF);
 
 		uint cID = (aVertex >> 16) & uint(0x7);
-
 		uint dir = (aVertex >> 19) & uint(0x7);
+		uint texture = (aVertex >> 22) & uint(0xFF);
 
 		vec3 pos = vec3(float(vertX) + uChunkPos.y, float(vertY), float(vertZ) + uChunkPos.x) + offsets[cID];
+		
+		// Water
+		if (texture == 6u) {
+			pos = vec3(pos.x, pos.y - 0.2, pos.z);
+		}
+
 		vec4 vertexPos = vec4(pos, 1.0);
 
         vec4 mvPosition = uModelViewMatrix * vertexPos;
         gl_Position = uProjectionMatrix * mvPosition;
 
-		float atlasSize = 32.0;
-		vTextureCoord = uvOffsets[cID] / atlasSize;
+		uint atlasCols = 7u;
+		uint atlasRows = 32u;
+
+		uint col = texture % uint(atlasCols);
+		uint row = texture / uint(atlasCols);
+
+		vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
+		vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
+
+		vTextureCoord = tileOffset + getFaceUV(cID, dir) * tileScale;
 
 		// Apply lighting effect
 
@@ -110,7 +168,7 @@ const fsSource = `#version 300 es
     void main(void) {
       	highp vec4 texelColor = texture(uSampler, vTextureCoord);
 
-		// 	if (texelColor.a <= 0.0) { discard; }
+			if (texelColor.a <= 0.0) { discard; }
      	fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
 	}
   `;
@@ -250,7 +308,7 @@ export class Renderer {
 	/** @type {Chunk[]} */
 	chunks = [];
 	cam = new Vector3(0, 100, 0);
-	camRot = new Vector3(0, 0, 0);
+	camRot = new Vector3(-25, 225, 0);
 	keyMap = new Set();
 	light = new Vector3(50, 100, 50);
 
@@ -286,11 +344,11 @@ export class Renderer {
 			return;
 		}
 
-		// this.gl.enable(this.gl.CULL_FACE);
-		// this.gl.cullFace(this.gl.BACK);
+		this.gl.enable(this.gl.CULL_FACE);
+		this.gl.cullFace(this.gl.BACK);
 
-		// this.gl.enable(this.gl.BLEND);
-		// this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+		this.gl.enable(this.gl.BLEND);
+		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		console.log("Starting engine");
 

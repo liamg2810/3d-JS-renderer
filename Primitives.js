@@ -49,10 +49,10 @@ export class ThreeDObject {
 /**
  *
  * @param {Vector3} origin bottom left corner
- * @param {number} texId
+ * @param {{top?: number; base: number; bottom?: number}} tex
  * @returns {Uint32Array}
  */
-export function Cube(origin, texId) {
+export function Cube(origin, tex) {
 	if (origin.x < 0 || origin.x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -63,55 +63,73 @@ export function Cube(origin, texId) {
 		throw new Error("Out of bounds Y position on new cube.");
 	}
 
-	if (texId < 0 || texId > 63) {
-		throw new Error("Out of bounds texture id on new cube.");
-	}
-
 	const position = (origin.x << 12) | (origin.y << 4) | origin.z;
-	const tId = texId << 22;
 
 	// prettier-ignore
 	const corners =[
-			// FRONT
-			6, 2, 3,
-			3, 7, 6,
-			// BACK
-			4, 0, 1,
-			1, 5, 4,
-			// LEFT
-			4, 6, 2,
-			2, 0, 4,
-			// RIGHT
-			1, 3, 7,
-			7, 5, 1,
 			// TOP
 			0, 2, 3,
 			3, 1, 0,
 			// BOTTOM
 			4, 5, 7,
 			7, 6, 4,
+			// LEFT
+			4, 6, 2,
+			2, 0, 4,
+			// RIGHT
+			1, 3, 7,
+			7, 5, 1,
+			// FRONT
+			3, 2, 6,
+			6, 7, 3,
+			// BACK
+			4, 0, 1,
+			1, 5, 4,
 		]
 
 	const directions = [
-		// FRONT face normal
-		4,
-		// BACK face normal
-		5,
-		// RIGHT face normal
-		3,
-		// LEFT face normal
-		2,
 		// TOP face normal
 		0,
 		// BOTTOM face normal
 		1,
+		// LEFT face normal
+		2,
+		// RIGHT face normal
+		3,
+		// FRONT face normal
+		4,
+		// BACK face normal
+		5,
 	];
 	const verts = new Uint32Array(corners.length);
 
 	for (let [ix, cID] of corners.entries()) {
 		const dir = directions[Math.floor(ix / 6)];
 
-		let vert = tId | (dir << 19) | (cID << 16) | position;
+		let tId;
+
+		switch (dir) {
+			case 0:
+				tId = tex.top ? tex.top : tex.base;
+				break;
+			case 1:
+				tId = tex.bottom ? tex.bottom : tex.base;
+				break;
+			case 2:
+				tId = tex.left ? tex.left : tex.base;
+				break;
+			case 3:
+				tId = tex.right ? tex.right : tex.base;
+				break;
+			case 4:
+				tId = tex.front ? tex.front : tex.base;
+				break;
+			case 5:
+				tId = tex.back ? tex.back : tex.base;
+				break;
+		}
+
+		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
 
 		verts[ix] = vert;
 	}
@@ -128,51 +146,49 @@ export function Cube(origin, texId) {
  * @param {number} l
  * @returns {ThreeDObject}
  */
-export function Water(origin, size, tex, red, g, b) {
-	const hS = size / 2;
+export function Water(origin, tex) {
+	if (origin.x < 0 || origin.x > 15) {
+		throw new Error("Out of bounds X position on new cube.");
+	}
+	if (origin.z < 0 || origin.z > 15) {
+		throw new Error("Out of bounds Z position on new cube.");
+	}
+	if (origin.y < 0 || origin.y > 255) {
+		throw new Error("Out of bounds Y position on new cube.");
+	}
 
-	const water = new ThreeDObject(
-		[
-			// TOP face (4 vertices)
-			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS), // 0
-			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS), // 1
-			new Vector3(origin.x + hS, origin.y + hS, origin.z + hS), // 2
-			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS), // 3
-		],
-		// prettier-ignore
-		[
+	const position = (origin.x << 12) | (origin.y << 4) | origin.z;
+
+	// prettier-ignore
+	const corners =[
 			// TOP
-			2, 1, 0,
-			3, 2, 0,
-		],
-		origin,
-		Vector3.Zero(),
-		red,
-		g,
-		b,
-		0
-	);
+			0, 2, 3,
+			3, 1, 0,
+		]
 
-	// Set proper vertex normals for each face
-	water.vertexNormals = [
-		// TOP face normals (4 vertices)
-		0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+	const directions = [
+		// TOP face normal
+		0,
 	];
+	const verts = new Uint32Array(corners.length);
 
-	// Set proper texture coordinates - each face gets full 0,0 to 1,1 mapping
-	water.textureCoordinates = [
-		// TOP face UVs
-		tex.base.x / tileMapWidth,
-		(tex.base.y + 1) / tileMapHeight,
-		(tex.base.x + 1) / tileMapWidth,
-		(tex.base.y + 1) / tileMapHeight,
-		(tex.base.x + 1) / tileMapWidth,
-		tex.base.y / tileMapHeight,
-		tex.base.x / tileMapWidth,
-		tex.base.y / tileMapHeight,
-	];
+	for (let [ix, cID] of corners.entries()) {
+		const dir = directions[Math.floor(ix / 6)];
 
-	return water;
+		let tId;
+
+		switch (dir) {
+			case 0:
+				tId = tex.top ? tex.top : tex.base;
+				break;
+		}
+
+		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
+
+		verts[ix] = vert;
+	}
+
+	return verts;
 }
 
 export function SquareBasedPyramid(r, origin, size) {

@@ -5,68 +5,35 @@ import { Vector3 } from "./Vectors.js";
 
 const textures = {
 	GRASS: {
-		top: {
-			x: 1,
-			y: 0,
-		},
-		base: {
-			x: 0,
-			y: 0,
-		},
-		bottom: {
-			x: 1,
-			y: 1,
-		},
+		top: 1,
+		base: 0,
+		bottom: 1,
 	},
 	LOG: {
-		top: {
-			x: 4,
-			y: 0,
-		},
-		bottom: {
-			x: 4,
-			y: 0,
-		},
-		base: {
-			x: 3,
-			y: 0,
-		},
+		top: 4,
+		bottom: 4,
+		base: 3,
 	},
 	SAND: {
-		base: {
-			x: 5,
-			y: 0,
-		},
+		base: 5,
 	},
 	WATER: {
-		base: {
-			x: 6,
-			y: 0,
-		},
+		base: 6,
 	},
 	LEAVES: {
-		base: {
-			x: 2,
-			y: 0,
-		},
+		base: 2,
 	},
 	STONE: {
-		base: {
-			x: 0,
-			y: 1,
-		},
+		base: 7,
 	},
 	DIRT: {
-		base: {
-			x: 1,
-			y: 1,
-		},
+		base: 8,
 	},
 	COAL: {
-		base: { x: 2, y: 1 },
+		base: 9,
 	},
 	BEDROCK: {
-		base: { x: 3, y: 1 },
+		base: 10,
 	},
 };
 
@@ -131,39 +98,33 @@ export class Chunk {
 
 				elevation = elevation / (1 + 0.25);
 
-				// const temp =
-				// 	perlin2D(
-				// 		x * this.SIZE * this.TEMPERATURE_NOISE_SCALE,
-				// 		z * this.SIZE * this.TEMPERATURE_NOISE_SCALE
-				// 	) + 0.5;
-				// const humidity =
-				// 	perlin2D(
-				// 		x * this.SIZE * this.HUMIDITY_NOISE_SCALE,
-				// 		z * this.SIZE * this.HUMIDITY_NOISE_SCALE
-				// 	) + 0.5;
+				const temp =
+					perlin2D(
+						worldX * this.TEMPERATURE_NOISE_SCALE,
+						worldZ * this.TEMPERATURE_NOISE_SCALE
+					) + 0.5;
+				const humidity =
+					perlin2D(
+						worldX * this.HUMIDITY_NOISE_SCALE,
+						worldZ * this.HUMIDITY_NOISE_SCALE
+					) + 0.5;
 
-				// const tex = this.Biome(elevation, temp, humidity);
+				const tex = this.Biome(elevation, temp, humidity);
 
-				// if (elevation < 0.4) {
-				// 	water.push(
-				// 		Water(
-				// 			new Vector3(
-				// 				x * this.BLOCK_SIZE,
-				// 				(Math.round(0.4 * 10) + 64) * this.BLOCK_SIZE -
-				// 					0.2,
-				// 				z * this.BLOCK_SIZE
-				// 			),
-				// 			this.BLOCK_SIZE,
-				// 			textures.WATER
-				// 		)
-				// 	);
+				if (elevation < 0.4) {
+					blocks.push(
+						...Water(
+							new Vector3(x, Math.round(0.4 * 10) + 64, z),
+							textures.WATER
+						)
+					);
 
-				// 	elevation -= 0.1;
-				// }
+					elevation -= 0.1;
+				}
 
 				const height = Math.round(elevation * 10) + 64;
 
-				blocks.push(...Cube(new Vector3(x, height, z), 0));
+				blocks.push(...Cube(new Vector3(x, height, z), tex));
 
 				if (elevation > 0.4) {
 					const tree = this.DrawTree(x, height, z);
@@ -184,7 +145,7 @@ export class Chunk {
 						caveVal = 0.5;
 					}
 
-					if (this.IsSurrounded(x, y, z, caveVal)) continue;
+					if (this.IsSurrounded(worldX, y, worldZ, caveVal)) continue;
 
 					// let belowT = textures.STONE;
 					// const oreNoise = perlin3D(
@@ -213,12 +174,14 @@ export class Chunk {
 						}
 					}
 
-					blocks.push(...Cube(new Vector3(x, y, z), 0));
+					blocks.push(...Cube(new Vector3(x, y, z), textures.STONE));
 				}
 
 				for (let y = 2; y > 0; y--) {
 					// Bedrock
-					blocks.push(...Cube(new Vector3(x, y, z), 0));
+					blocks.push(
+						...Cube(new Vector3(x, y, z), textures.BEDROCK)
+					);
 				}
 			}
 		}
@@ -251,7 +214,7 @@ export class Chunk {
 		const treeTop = Math.round(Math.random() * 1 + 2);
 
 		for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-			blocks.push(...Cube(new Vector3(grassX, y, grassZ), 0));
+			blocks.push(...Cube(new Vector3(grassX, y, grassZ), textures.LOG));
 		}
 
 		for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -274,7 +237,7 @@ export class Chunk {
 					)
 						continue;
 
-					blocks.push(...Cube(new Vector3(x, y, z), 0));
+					blocks.push(...Cube(new Vector3(x, y, z), textures.LEAVES));
 				}
 			}
 		}
