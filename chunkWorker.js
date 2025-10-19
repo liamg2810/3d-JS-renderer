@@ -193,7 +193,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
  * @param {number} grassX
  * @param {number} grassY
  * @param {number} grassZ
- * @returns {ThreeDObject[]}
+ * @returns {number[]}
  */
 function DrawTree(grassX, grassY, grassZ) {
 	let blocks = [];

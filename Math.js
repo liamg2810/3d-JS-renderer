@@ -28,21 +28,6 @@ export function rotateZ(pos, theta) {
 }
 
 /**
- * @param {import("./Primitives.js").ThreeDObject} obj
- * @param {Vector3} v
- * @returns {Vector3}
- */
-export function ApplyLocalRotation(obj, v) {
-	const local = v.Add(obj.origin.Multiply(-1));
-
-	const rotatedX = rotateX(local, obj.rotation.x * (Math.PI / 180));
-	const rotatedY = rotateY(rotatedX, obj.rotation.y * (Math.PI / 180));
-	const rotatedZ = rotateZ(rotatedY, obj.rotation.z * (Math.PI / 180));
-
-	return rotatedZ.Add(obj.origin);
-}
-
-/**
  * @param {import("./Renderer.js").Renderer} renderer
  * @param {Vector3} v
  * @returns {Vector3}

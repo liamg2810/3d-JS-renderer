@@ -1,40 +1,10 @@
-export class ThreeDObject {
-	/** @type {Vector3[]} */
-	vertices = [];
-	/** @type {number[]} */
-	drawOrder = [];
-	/** @type {Vector3[]} */
-	frameVerts = [];
-
-	origin = new Vector3(0, 0, 0);
-	rotation = new Vector3(0, 20, 30);
-
-	r = 0;
-	g = 0;
-	b = 0;
-	opcaity = 0;
-
-	constructor(vertices, drawOrder, origin, rotation, r, g, b, opcaity = 1) {
-		this.vertices = vertices;
-		this.drawOrder = drawOrder;
-		this.origin = origin;
-		this.rotation = rotation;
-		this.r = r;
-		this.g = g;
-		this.b = b;
-		this.opcaity = opcaity;
-
-		// Default texture coordinates - should be overridden by specific shapes
-		this.textureCoordinates = [];
-	}
-}
-
-// [TEXTURE][DIRECTION][CID][POSITION]
+// [GREEDY][TEXTURE][DIRECTION][CID][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // CID = 0-7 = 3 bits
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 8 bits
-// TOTAL BITS = 30
+// GREEDY = 0-3 = 2 bits
+// TOTAL BITS = 32 !!!
 
 // CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
 // 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]

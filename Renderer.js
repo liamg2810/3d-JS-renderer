@@ -1,6 +1,5 @@
 import { Chunk } from "./Game.js";
-import { Cube, ThreeDObject } from "./Primitives.js";
-import { enqueueChunk, VoxelTerrainScene } from "./Scene.js";
+import { enqueueChunk } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
 let mat4 =
@@ -138,7 +137,7 @@ const vsSource = `#version 300 es
 		vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
 		vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
 
-		vTextureCoord = tileOffset + getFaceUV(cID, dir) * tileScale;
+		vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
 
 		// Apply lighting effect
 
@@ -320,7 +319,7 @@ export class Renderer {
 
 	shaderProgram;
 
-	renderDistance = 8;
+	renderDistance = 4;
 
 	/** @type {number[]} */
 	frameTimes = [];
@@ -515,6 +514,7 @@ export class Renderer {
 				const chunk = this.GetChunkAtPos(x, z);
 
 				if (chunk === undefined) {
+					console.log("Chunk at");
 					enqueueChunk(x, z, this);
 				}
 			}
