@@ -15,163 +15,6 @@ if (!mat4) {
 
 const fpsCounter = document.getElementById("fps-count");
 
-// [TEXTURE][DIRECTION][CID][POSITION]
-// [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
-// CID = 0-7 = 3 bits
-// DIRECTION = 0-5 = 3 bits
-// TEXTURE = 0-63 = 8 bits
-// TOTAL BITS = 30
-
-// CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
-// 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
-
-// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
-
-const vsSource = `#version 300 es
-
-    in uint aVertex;
-    
-	uniform vec2 uChunkPos;
-	uniform mat4 uNormalMatrix;
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-	
-	const vec3 offsets[8] = vec3[](vec3(-0.5,0.5,-0.5), vec3(0.5,0.5,-0.5), vec3(-0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5),
-		vec3(-0.5,-0.5,-0.5), vec3(0.5,-0.5,-0.5), vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5));
-
-	// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
-	const vec3 normals[6] = vec3[](
-		vec3(0.0, 1.0, 0.0),  // UP
-		vec3(0.0, -1.0, 0.0), // DOWN
-		vec3(-1.0, 0.0, 0.0), // LEFT
-		vec3(1.0, 0.0, 0.0),  // RIGHT
-		vec3(0.0, 0.0, 1.0),  // FRONT
-		vec3(0.0, 0.0, -1.0)  // BACK
-	);
-
-    out highp vec2 vTextureCoord;
-	out highp vec3 vLighting;
-
-	vec2 getFaceUV(uint cID, uint dir) {
-		// Base UVs for the corners of a face
-		vec2 baseUVs[4];
-		baseUVs[0] = vec2(0.0, 0.0); // bottom-left
-		baseUVs[1] = vec2(1.0, 0.0); // bottom-right
-		baseUVs[2] = vec2(0.0, 1.0); // top-left
-		baseUVs[3] = vec2(1.0, 1.0); // top-right
-
-		// Map corner ID to the face's UV index
-		// Corner IDs: [0..7] = [TLB, TRB, TLF, TRF, BLB, BRB, BLF, BRF]
-		// Each face uses 4 corners:
-		// UP(0): 0,1,2,3
-		// DOWN(1): 4,5,6,7
-		// LEFT(2): 0,2,4,6
-		// RIGHT(3): 1,3,5,7
-		// FRONT(4): 2,3,6,7
-		// BACK(5): 0,1,4,5
-
-		uint idx = 0u;
-
-		if (dir == 0u) { // UP
-			if (cID == 0u) idx = 2u;
-			else if (cID == 1u) idx = 3u;
-			else if (cID == 2u) idx = 0u;
-			else if (cID == 3u) idx = 1u;
-		} else if (dir == 1u) { // DOWN
-			if (cID == 4u) idx = 2u;
-			else if (cID == 5u) idx = 3u;
-			else if (cID == 6u) idx = 0u;
-			else if (cID == 7u) idx = 1u;
-		} else if (dir == 2u) { // LEFT
-			if (cID == 0u) idx = 1u;
-			else if (cID == 2u) idx = 0u;
-			else if (cID == 4u) idx = 3u;
-			else if (cID == 6u) idx = 2u;
-		} else if (dir == 3u) { // RIGHT
-			if (cID == 1u) idx = 1u;
-			else if (cID == 3u) idx = 0u;
-			else if (cID == 5u) idx = 3u;
-			else if (cID == 7u) idx = 2u;
-		} else if (dir == 4u) { // FRONT
-			if (cID == 2u) idx = 1u;
-			else if (cID == 3u) idx = 0u;
-			else if (cID == 6u) idx = 3u;
-			else if (cID == 7u) idx = 2u;
-		} else if (dir == 5u) { // BACK
-			if (cID == 0u) idx = 1u;
-			else if (cID == 1u) idx = 0u;
-			else if (cID == 4u) idx = 3u;
-			else if (cID == 5u) idx = 2u;
-		}
-
-		return baseUVs[idx];
-	}
-
-    void main() {
-		uint vertZ = aVertex & uint(0xF);
-		uint vertY = (aVertex >> 4) & uint(0xFF);
-		uint vertX = (aVertex >> 12) & uint(0xF);
-
-		uint cID = (aVertex >> 16) & uint(0x7);
-		uint dir = (aVertex >> 19) & uint(0x7);
-		uint texture = (aVertex >> 22) & uint(0xFF);
-
-		vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
-		
-		// Water
-		if (texture == 6u) {
-			pos = vec3(pos.x, pos.y - 0.2, pos.z);
-		}
-
-		vec4 vertexPos = vec4(pos, 1.0);
-
-        vec4 mvPosition = uModelViewMatrix * vertexPos;
-        gl_Position = uProjectionMatrix * mvPosition;
-
-		uint atlasCols = 7u;
-		uint atlasRows = 32u;
-
-		uint col = texture % uint(atlasCols);
-		uint row = texture / uint(atlasCols);
-
-		vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
-		vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
-
-		vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
-
-		// Apply lighting effect
-
-		vec3 normal = normals[dir];
-
-		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-		highp vec3 directionalLightColor = vec3(1, 1, 1);
-		highp vec3 directionalVector = normalize(vec3(100, 100, 100));
-
-		highp vec4 transformedNormal = uNormalMatrix * vec4(normal, 1.0);
-
-		highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-		vLighting = ambientLight + (directionalLightColor * directional);
-    }
-`;
-const fsSource = `#version 300 es
-
-    precision mediump float;
-	in highp vec4 vColor;
-    in highp vec2 vTextureCoord;
-    in highp vec3 vLighting;
-
-    uniform sampler2D uSampler;
-
-	out vec4 fragColor;
-
-    void main(void) {
-      	highp vec4 texelColor = texture(uSampler, vTextureCoord);
-
-			if (texelColor.a <= 0.0) { discard; }
-     	fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-	}
-  `;
-
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
@@ -326,6 +169,8 @@ export class Renderer {
 
 	seed = Math.random() * 25564235;
 
+	shadersInit = false;
+
 	canvas;
 	/** @type {WebGL2RenderingContext} */
 	gl;
@@ -360,7 +205,7 @@ export class Renderer {
 
 		let start = Date.now();
 
-		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
+		this.InitShaders();
 
 		let end = Date.now();
 
@@ -378,44 +223,94 @@ export class Renderer {
 			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
 		);
 
-		this.programInfo = {
-			program: this.shaderProgram,
-			attribLocations: {
-				vertexPosition: this.gl.getAttribLocation(
-					this.shaderProgram,
-					"aVertex"
-				),
-			},
-			uniformLocations: {
-				projectionMatrix: this.gl.getUniformLocation(
-					this.shaderProgram,
-					"uProjectionMatrix"
-				),
-				modelViewMatrix: this.gl.getUniformLocation(
-					this.shaderProgram,
-					"uModelViewMatrix"
-				),
-
-				normalMatrix: this.gl.getUniformLocation(
-					this.shaderProgram,
-					"uNormalMatrix"
-				),
-				uSampler: this.gl.getUniformLocation(
-					this.shaderProgram,
-					"uSampler"
-				),
-				uChunkPos: this.gl.getUniformLocation(
-					this.shaderProgram,
-					"uChunkPos"
-				),
-			},
-		};
-
 		this.texture = loadTexture(this.gl, "textures.png");
 
 		requestAnimationFrame(() => {
 			this.Update();
 		});
+	}
+
+	async InitShaders() {
+		const vsSource = await (await fetch("./shaders/vs.vert")).text();
+		const fsSource = await (await fetch("./shaders/fs.frag")).text();
+		const colVSource = await (await fetch("./shaders/colored.vert")).text();
+		const colFSource = await (await fetch("./shaders/colored.frag")).text();
+
+		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
+		this.colorShaderProgram = initShaderProgram(
+			this.gl,
+			colVSource,
+			colFSource
+		);
+
+		this.programInfo = {
+			default: {
+				program: this.shaderProgram,
+				attribLocations: {
+					vertexPosition: this.gl.getAttribLocation(
+						this.shaderProgram,
+						"aVertex"
+					),
+				},
+				uniformLocations: {
+					projectionMatrix: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uProjectionMatrix"
+					),
+					modelViewMatrix: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uModelViewMatrix"
+					),
+
+					normalMatrix: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uNormalMatrix"
+					),
+					uSampler: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uSampler"
+					),
+					uChunkPos: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uChunkPos"
+					),
+				},
+			},
+			color: {
+				program: this.colorShaderProgram,
+				attribLocations: {
+					vertexPosition: this.gl.getAttribLocation(
+						this.colorShaderProgram,
+						"aVertex"
+					),
+				},
+				uniformLocations: {
+					projectionMatrix: this.gl.getUniformLocation(
+						this.colorShaderProgram,
+						"uProjectionMatrix"
+					),
+					modelViewMatrix: this.gl.getUniformLocation(
+						this.colorShaderProgram,
+						"uModelViewMatrix"
+					),
+
+					normalMatrix: this.gl.getUniformLocation(
+						this.colorShaderProgram,
+						"uNormalMatrix"
+					),
+					uSampler: this.gl.getUniformLocation(
+						this.colorShaderProgram,
+						"uSampler"
+					),
+					uChunkPos: this.gl.getUniformLocation(
+						this.colorShaderProgram,
+						"uChunkPos"
+					),
+				},
+			},
+		};
+
+		this.shadersInit = true;
 	}
 
 	GetChunkAtPos(x, z) {
@@ -514,7 +409,6 @@ export class Renderer {
 				const chunk = this.GetChunkAtPos(x, z);
 
 				if (chunk === undefined) {
-					console.log("Chunk at");
 					enqueueChunk(x, z, this);
 				}
 			}
@@ -550,6 +444,8 @@ export class Renderer {
 	}
 
 	Draw() {
+		if (!this.shadersInit) return;
+
 		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 		this.gl.clearColor(0, 0, 0, 1);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -589,46 +485,127 @@ export class Renderer {
 		this.gl.useProgram(this.shaderProgram);
 
 		this.gl.uniformMatrix4fv(
-			this.programInfo.uniformLocations.projectionMatrix,
+			this.programInfo.default.uniformLocations.projectionMatrix,
 			false,
 			projectionMatrix
 		);
 		this.gl.uniformMatrix4fv(
-			this.programInfo.uniformLocations.modelViewMatrix,
+			this.programInfo.default.uniformLocations.modelViewMatrix,
 			false,
 			modelViewMatrix
 		);
 
 		this.gl.uniformMatrix4fv(
-			this.programInfo.uniformLocations.normalMatrix,
+			this.programInfo.default.uniformLocations.normalMatrix,
 			false,
 			normalMatrix
 		);
 
 		this.gl.activeTexture(this.gl.TEXTURE0);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		this.gl.uniform1i(this.programInfo.uniformLocations.uSampler, 0);
+		this.gl.uniform1i(
+			this.programInfo.default.uniformLocations.uSampler,
+			0
+		);
 
 		for (let chunk of this.chunks) {
 			this.gl.uniform2f(
-				this.programInfo.uniformLocations.uChunkPos,
+				this.programInfo.default.uniformLocations.uChunkPos,
 				chunk.x * 16,
 				chunk.z * 16
 			);
 
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.blockBuffer);
 			this.gl.vertexAttribIPointer(
-				this.programInfo.attribLocations.vertexPosition,
+				this.programInfo.default.attribLocations.vertexPosition,
 				1,
 				this.gl.UNSIGNED_INT,
 				0,
 				0
 			);
 			this.gl.enableVertexAttribArray(
-				this.programInfo.attribLocations.vertexPosition
+				this.programInfo.default.attribLocations.vertexPosition
 			);
 
 			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount);
+		}
+
+		this.gl.useProgram(this.colorShaderProgram);
+
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.projectionMatrix,
+			false,
+			projectionMatrix
+		);
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.modelViewMatrix,
+			false,
+			modelViewMatrix
+		);
+
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.normalMatrix,
+			false,
+			normalMatrix
+		);
+
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+		this.gl.uniform1i(this.programInfo.color.uniformLocations.uSampler, 0);
+
+		for (let chunk of this.chunks) {
+			this.gl.uniform2f(
+				this.programInfo.color.uniformLocations.uChunkPos,
+				chunk.x * 16,
+				chunk.z * 16
+			);
+
+			const borderBuffer = this.gl.createBuffer();
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, borderBuffer);
+
+			// encode border on ground plane y=0; set color=1 (red)
+			const C_RED = 0 << 22;
+
+			let verts = [];
+
+			for (let i = 0; i < Math.floor(255 / 4); i += 4) {
+				const Y = i << 4;
+				const v = [
+					// (0,0) -> (15,0)
+					C_RED + (0 << 12) + Y + 0,
+					C_RED + (15 << 12) + Y + 0,
+					// (15,0) -> (15,15)
+					C_RED + (15 << 12) + Y + 0,
+					C_RED + (15 << 12) + Y + 15,
+					// (15,15) -> (0,15)
+					C_RED + (15 << 12) + Y + 15,
+					C_RED + (0 << 12) + Y + 15,
+					// (0,15) -> (0,0)
+					C_RED + (0 << 12) + Y + 15,
+					C_RED + (0 << 12) + Y + 0,
+				];
+
+				verts.push(...v);
+			}
+
+			this.gl.bufferData(
+				this.gl.ARRAY_BUFFER,
+				new Uint32Array(verts),
+				this.gl.STATIC_DRAW
+			);
+
+			this.gl.vertexAttribIPointer(
+				this.programInfo.color.attribLocations.vertexPosition,
+				1,
+				this.gl.UNSIGNED_INT,
+				0,
+				0
+			);
+			this.gl.enableVertexAttribArray(
+				this.programInfo.color.attribLocations.vertexPosition
+			);
+
+			this.gl.drawArrays(this.gl.LINES, 0, verts.length);
 		}
 	}
 }
