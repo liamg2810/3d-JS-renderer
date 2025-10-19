@@ -1,6 +1,6 @@
 import { Chunk } from "./Game.js";
 import { Cube, ThreeDObject } from "./Primitives.js";
-import { VoxelTerrainScene } from "./Scene.js";
+import { enqueueChunk, VoxelTerrainScene } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
 let mat4 =
@@ -109,15 +109,15 @@ const vsSource = `#version 300 es
 	}
 
     void main() {
-		uint vertX = aVertex & uint(0xF);
+		uint vertZ = aVertex & uint(0xF);
 		uint vertY = (aVertex >> 4) & uint(0xFF);
-		uint vertZ = (aVertex >> 12) & uint(0xF);
+		uint vertX = (aVertex >> 12) & uint(0xF);
 
 		uint cID = (aVertex >> 16) & uint(0x7);
 		uint dir = (aVertex >> 19) & uint(0x7);
 		uint texture = (aVertex >> 22) & uint(0xFF);
 
-		vec3 pos = vec3(float(vertX) + uChunkPos.y, float(vertY), float(vertZ) + uChunkPos.x) + offsets[cID];
+		vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 		
 		// Water
 		if (texture == 6u) {
@@ -320,6 +320,10 @@ export class Renderer {
 
 	shaderProgram;
 
+	renderDistance = 16;
+
+	seed = Math.random() * 25564235;
+
 	canvas;
 	/** @type {WebGL2RenderingContext} */
 	gl;
@@ -412,6 +416,10 @@ export class Renderer {
 		});
 	}
 
+	GetChunkAtPos(x, z) {
+		return this.chunks.find((c) => c.x === x && c.z === z);
+	}
+
 	Update() {
 		const frameStart = Date.now();
 
@@ -486,6 +494,27 @@ export class Renderer {
 			this.camRot.x -= speed / 2;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
+		}
+
+		const camX = Math.floor(this.cam.x / 16);
+		const camZ = Math.floor(this.cam.z / 16);
+
+		for (
+			let x = camX - this.renderDistance;
+			x < camX + this.renderDistance;
+			x++
+		) {
+			for (
+				let z = camZ - this.renderDistance;
+				z < camZ + this.renderDistance;
+				z++
+			) {
+				const chunk = this.GetChunkAtPos(x, z);
+
+				if (chunk === undefined) {
+					enqueueChunk(x, z, this);
+				}
+			}
 		}
 
 		this.Draw();
@@ -566,8 +595,8 @@ export class Renderer {
 		for (let chunk of this.chunks) {
 			this.gl.uniform2f(
 				this.programInfo.uniformLocations.uChunkPos,
-				chunk.x * chunk.SIZE,
-				chunk.z * chunk.SIZE
+				chunk.x * 16,
+				chunk.z * 16
 			);
 
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.blockBuffer);

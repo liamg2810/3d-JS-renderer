@@ -1,3 +1,5 @@
+const perm = new Uint8Array(512);
+
 function fade(t) {
 	return t * t * t * (t * (t * 6 - 15) + 10);
 }
@@ -17,17 +19,6 @@ function grad(hash, x, y) {
 		case 3:
 			return -x - y;
 	}
-}
-
-const perm = new Uint8Array(512);
-
-for (let i = 0; i < 256; i++) perm[i] = i;
-for (let i = 0; i < 256; i++) {
-	const j = Math.floor(Math.random() * 256);
-	[perm[i], perm[j]] = [perm[j], perm[i]];
-}
-for (let i = 0; i < 256; i++) {
-	perm[i + 256] = perm[i];
 }
 
 export function perlin3D(x, y, z) {
@@ -112,4 +103,20 @@ export function perlin3D(x, y, z) {
 	const y2 = lerp(x3, x4, v);
 
 	return (lerp(y1, y2, w) + 1) / 2; // Normalize to [0,1]
+}
+
+export function SetSeed(seed) {
+	let rng = (function (s) {
+		return function () {
+			s = (s * 1664525 + 1013904223) % 4294967296;
+			return s / 4294967296;
+		};
+	})(seed * 4294967296);
+
+	for (let i = 0; i < 256; i++) perm[i] = i;
+	for (let i = 0; i < 256; i++) {
+		const j = Math.floor(rng() * 256);
+		[perm[i], perm[j]] = [perm[j], perm[i]];
+	}
+	for (let i = 0; i < 256; i++) perm[i + 256] = perm[i];
 }

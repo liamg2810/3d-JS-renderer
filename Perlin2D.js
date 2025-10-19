@@ -1,14 +1,5 @@
 const perm = new Uint8Array(512);
 
-for (let i = 0; i < 256; i++) perm[i] = i;
-for (let i = 0; i < 256; i++) {
-	const j = Math.floor(Math.random() * 256);
-	[perm[i], perm[j]] = [perm[j], perm[i]];
-}
-for (let i = 0; i < 256; i++) {
-	perm[i + 256] = perm[i];
-}
-
 const grad = [
 	[1, 1],
 	[-1, 1],
@@ -56,4 +47,20 @@ export function perlin2D(x, y) {
 	const x2 = lerp(tl, tr, u);
 
 	return lerp(x1, x2, v);
+}
+
+export function SetSeed(seed) {
+	let rng = (function (s) {
+		return function () {
+			s = (s * 1664525 + 1013904223) % 4294967296;
+			return s / 4294967296;
+		};
+	})(seed * 4294967296);
+
+	for (let i = 0; i < 256; i++) perm[i] = i;
+	for (let i = 0; i < 256; i++) {
+		const j = Math.floor(rng() * 256);
+		[perm[i], perm[j]] = [perm[j], perm[i]];
+	}
+	for (let i = 0; i < 256; i++) perm[i + 256] = perm[i];
 }

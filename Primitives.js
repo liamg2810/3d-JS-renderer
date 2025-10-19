@@ -1,8 +1,3 @@
-import { Vector3 } from "./Vectors.js";
-
-const tileMapWidth = 7;
-const tileMapHeight = 32;
-
 export class ThreeDObject {
 	/** @type {Vector3[]} */
 	vertices = [];
@@ -48,22 +43,25 @@ export class ThreeDObject {
 
 /**
  *
- * @param {Vector3} origin bottom left corner
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
  * @param {{top?: number; base: number; bottom?: number}} tex
+ * @param {number[]} culledFaces
  * @returns {Uint32Array}
  */
-export function Cube(origin, tex) {
-	if (origin.x < 0 || origin.x > 15) {
+export function Cube(x, y, z, tex, culledFaces = []) {
+	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
-	if (origin.z < 0 || origin.z > 15) {
+	if (z < 0 || z > 15) {
 		throw new Error("Out of bounds Z position on new cube.");
 	}
-	if (origin.y < 0 || origin.y > 255) {
+	if (y < 0 || y > 255) {
 		throw new Error("Out of bounds Y position on new cube.");
 	}
 
-	const position = (origin.x << 12) | (origin.y << 4) | origin.z;
+	const position = (x << 12) | (y << 4) | z;
 
 	// prettier-ignore
 	const corners =[
@@ -106,6 +104,9 @@ export function Cube(origin, tex) {
 	for (let [ix, cID] of corners.entries()) {
 		const dir = directions[Math.floor(ix / 6)];
 
+		if (culledFaces.includes(dir)) {
+			continue;
+		}
 		let tId;
 
 		switch (dir) {
@@ -139,25 +140,24 @@ export function Cube(origin, tex) {
 
 /**
  *
- * @param {Vector3} origin
- * @param {number} size
- * @param {number} h
- * @param {number} s
- * @param {number} l
- * @returns {ThreeDObject}
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @param {number} tex
+ * @returns {Uint32Array}
  */
-export function Water(origin, tex) {
-	if (origin.x < 0 || origin.x > 15) {
+export function Water(x, y, z, tex) {
+	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
-	if (origin.z < 0 || origin.z > 15) {
+	if (z < 0 || z > 15) {
 		throw new Error("Out of bounds Z position on new cube.");
 	}
-	if (origin.y < 0 || origin.y > 255) {
+	if (y < 0 || y > 255) {
 		throw new Error("Out of bounds Y position on new cube.");
 	}
 
-	const position = (origin.x << 12) | (origin.y << 4) | origin.z;
+	const position = (x << 12) | (y << 4) | z;
 
 	// prettier-ignore
 	const corners =[
@@ -189,39 +189,4 @@ export function Water(origin, tex) {
 	}
 
 	return verts;
-}
-
-export function SquareBasedPyramid(r, origin, size) {
-	const hS = size / 2;
-
-	return new ThreeDObject(
-		r,
-		[
-			new Vector3(origin.x - hS, origin.y + hS, origin.z - hS),
-			new Vector3(origin.x - hS, origin.y + hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y + hS, origin.z + hS),
-			new Vector3(origin.x + hS, origin.y + hS, origin.z - hS),
-
-			new Vector3(origin.x, origin.y - hS, origin.z),
-		],
-
-		[
-			// Bottom
-			[2, 1, 0],
-			[3, 2, 0],
-			// Left
-			[2, 3, 4],
-			// Right
-			[1, 4, 0],
-			//Front
-			[2, 4, 1],
-			//Back
-			[0, 4, 3],
-		],
-		origin,
-		Vector3.Zero(),
-		180,
-		100,
-		30
-	);
 }
