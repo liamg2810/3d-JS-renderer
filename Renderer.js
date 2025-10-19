@@ -320,7 +320,10 @@ export class Renderer {
 
 	shaderProgram;
 
-	renderDistance = 16;
+	renderDistance = 8;
+
+	/** @type {number[]} */
+	frameTimes = [];
 
 	seed = Math.random() * 25564235;
 
@@ -368,7 +371,7 @@ export class Renderer {
 
 		start = Date.now();
 
-		VoxelTerrainScene(this);
+		// VoxelTerrainScene(this);
 
 		end = Date.now();
 
@@ -421,7 +424,7 @@ export class Renderer {
 	}
 
 	Update() {
-		const frameStart = Date.now();
+		const frameStart = performance.now();
 
 		const speed = 1;
 
@@ -519,17 +522,31 @@ export class Renderer {
 
 		this.Draw();
 
-		const frameEnd = Date.now();
+		const frameEnd = performance.now();
 
 		this.deltaTime = frameEnd - frameStart;
 
-		const fps = 1000 / this.deltaTime;
+		this.frameTimes.push(this.deltaTime);
+
+		if (this.frameTimes.length > 60) {
+			this.frameTimes.shift();
+		}
+
+		let totalFrameTimes = 0;
+
+		for (let f of this.frameTimes) {
+			totalFrameTimes += f;
+		}
+
+		const fps = Math.round(
+			1000 / (totalFrameTimes / this.frameTimes.length)
+		);
 
 		fpsCounter.innerText = `FPS: ${fps}`;
 
-		setTimeout(() => {
+		requestAnimationFrame(() => {
 			this.Update();
-		}, 1000 / 60);
+		});
 	}
 
 	Draw() {

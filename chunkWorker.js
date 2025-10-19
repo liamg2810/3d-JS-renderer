@@ -269,7 +269,7 @@ function GetCulledFaces(x, y, z, caveVal, caveNoise) {
 			nx < 0 ||
 			nx >= CHUNKSIZE ||
 			nz < 0 ||
-			nz > CHUNKSIZE ||
+			nz >= CHUNKSIZE ||
 			ny < 1 ||
 			ny > MAX_HEIGHT
 		) {
