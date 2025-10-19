@@ -20,8 +20,16 @@ uniform mat4 uNormalMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
-const vec3 offsets[8] = vec3[](vec3(-0.5,0.5,-0.5), vec3(0.5,0.5,-0.5), vec3(-0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5),
-	vec3(-0.5,-0.5,-0.5), vec3(0.5,-0.5,-0.5), vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5));
+const vec3 offsets[8] = vec3[](
+	vec3(-0.5, 0.5, -0.5),  // 0: TOP LEFT BACK
+	vec3(0.5, 0.5, -0.5),   // 1: TOP RIGHT BACK
+	vec3(-0.5, 0.5, 0.5),   // 2: TOP LEFT FRONT
+	vec3(0.5, 0.5, 0.5),    // 3: TOP RIGHT FRONT
+	vec3(-0.5, -0.5, -0.5), // 4: BOTTOM LEFT BACK
+	vec3(0.5, -0.5, -0.5),  // 5: BOTTOM RIGHT BACK
+	vec3(-0.5, -0.5, 0.5),  // 6: BOTTOM LEFT FRONT
+	vec3(0.5, -0.5, 0.5)    // 7: BOTTOM RIGHT FRONT
+);
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 const vec3 normals[6] = vec3[](
@@ -43,6 +51,18 @@ vec3 GetColor(uint c) {
 	else if (c == 1u) {
 		return vec3(255, 0, 0);
 	}
+	else if (c == 2u) {
+		return vec3(0, 255, 0);
+	}
+	else if (c == 3u) {
+		return vec3(0, 0, 255);
+	}
+	else if (c == 4u) {
+		return vec3(255, 255, 255);
+	}
+	else if (c == 5u) {
+		return vec3(255, 255, 0);
+	}
 
 	return vec3(255, 255, 255);
 }
@@ -56,7 +76,7 @@ void main() {
 	uint dir = (aVertex >> 19) & uint(0x7);
 	uint color = (aVertex >> 22) & uint(0xF);
 
-	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y);
+	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 
 	vec4 vertexPos = vec4(pos, 1.0);
 

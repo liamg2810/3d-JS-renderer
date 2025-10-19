@@ -171,6 +171,8 @@ export class Renderer {
 
 	shadersInit = false;
 
+	showChunkBorders = true;
+
 	canvas;
 	/** @type {WebGL2RenderingContext} */
 	gl;
@@ -320,7 +322,7 @@ export class Renderer {
 	Update() {
 		const frameStart = performance.now();
 
-		const speed = 1;
+		const speed = 0.1;
 
 		if (this.keyMap.has("w")) {
 			this.cam = this.cam.Add(
@@ -370,25 +372,25 @@ export class Renderer {
 			this.cam.y -= speed;
 		}
 		if (this.keyMap.has("ArrowRight")) {
-			this.camRot.y -= speed / 2;
+			this.camRot.y -= 0.5;
 
 			if (this.camRot.y < 0) this.camRot.y = 360;
 		}
 
 		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot.y += speed / 2;
+			this.camRot.y += 0.5;
 
 			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
 		if (this.keyMap.has("ArrowUp")) {
-			this.camRot.x += speed / 2;
+			this.camRot.x += 0.5;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
 
 		if (this.keyMap.has("ArrowDown")) {
-			this.camRot.x -= speed / 2;
+			this.camRot.x -= 0.5;
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
@@ -529,7 +531,48 @@ export class Renderer {
 
 			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount);
 		}
+		this.DrawChunkBorders();
+	}
 
+	DrawChunkBorders() {
+		// Projection matrix
+		const projectionMatrix = mat4.create();
+		mat4.perspective(
+			projectionMatrix,
+			(45 * Math.PI) / 180,
+			this.canvas.width / this.canvas.height,
+			this.near,
+			this.far
+		);
+
+		// View matrix (camera)
+		const viewMatrix = mat4.create();
+		mat4.rotateX(viewMatrix, viewMatrix, (-this.camRot.x * Math.PI) / 180);
+		mat4.rotateY(viewMatrix, viewMatrix, (-this.camRot.y * Math.PI) / 180);
+		mat4.translate(viewMatrix, viewMatrix, [
+			-this.cam.x,
+			-this.cam.y,
+			-this.cam.z,
+		]);
+
+		const modelMatrix = mat4.create();
+
+		// Model-view matrix
+		const modelViewMatrix = mat4.create();
+		mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+
+		const normalMatrix = mat4.create();
+		mat4.invert(normalMatrix, modelViewMatrix);
+		mat4.transpose(normalMatrix, normalMatrix);
+
+		const camX = Math.floor(this.cam.x / 16);
+		const camZ = Math.floor(this.cam.z / 16);
+
+		const chunk = this.GetChunkAtPos(camX, camZ);
+
+		if (chunk === undefined || !this.showChunkBorders) {
+			return;
+		}
 		this.gl.useProgram(this.colorShaderProgram);
 
 		this.gl.uniformMatrix4fv(
@@ -553,59 +596,187 @@ export class Renderer {
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
 		this.gl.uniform1i(this.programInfo.color.uniformLocations.uSampler, 0);
 
-		for (let chunk of this.chunks) {
-			this.gl.uniform2f(
-				this.programInfo.color.uniformLocations.uChunkPos,
-				chunk.x * 16,
-				chunk.z * 16
-			);
+		this.gl.uniform2f(
+			this.programInfo.color.uniformLocations.uChunkPos,
+			chunk.x * 16,
+			chunk.z * 16
+		);
 
-			const borderBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, borderBuffer);
+		const borderBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, borderBuffer);
 
-			// encode border on ground plane y=0; set color=1 (red)
-			const C_RED = 0 << 22;
+		const C_RED = 1 << 22;
+		const C_BLUE = 3 << 22;
+		const C_YELLOW = 5 << 22;
 
-			let verts = [];
+		// Corner IDs: 0=TLB, 1=TRB, 2=TLF, 3=TRF, 4=BLB, 5=BRB, 6=BLF, 7=BRF
+		const TLB = 0 << 16; // Top-left-back
+		const TRB = 1 << 16; // Top-right-back
+		const TLF = 2 << 16; // Top-left-front
+		const TRF = 3 << 16; // Top-right-front
+		const BLB = 4 << 16; // Bottom-left-back
+		const BRB = 5 << 16; // Bottom-right-back
+		const BLF = 6 << 16; // Bottom-left-front
+		const BRF = 7 << 16; // Bottom-right-front
 
-			for (let i = 0; i < Math.floor(255 / 4); i += 4) {
-				const Y = i << 4;
-				const v = [
-					// (0,0) -> (15,0)
-					C_RED + (0 << 12) + Y + 0,
-					C_RED + (15 << 12) + Y + 0,
-					// (15,0) -> (15,15)
-					C_RED + (15 << 12) + Y + 0,
-					C_RED + (15 << 12) + Y + 15,
-					// (15,15) -> (0,15)
-					C_RED + (15 << 12) + Y + 15,
-					C_RED + (0 << 12) + Y + 15,
-					// (0,15) -> (0,0)
-					C_RED + (0 << 12) + Y + 15,
-					C_RED + (0 << 12) + Y + 0,
-				];
+		let verts = [];
 
-				verts.push(...v);
+		for (let i = 0; i < 255; i += 3) {
+			const Y = i << 4;
+
+			// Draw horizontal rectangle at this Y level
+			// Back edge (z=0): left to right
+			const v = [
+				C_YELLOW + TLB + (0 << 12) + Y + 0,
+				C_YELLOW + TRB + (15 << 12) + Y + 0,
+				// Right edge (x=15): back to front
+				C_YELLOW + TRB + (15 << 12) + Y + 0,
+				C_YELLOW + TRF + (15 << 12) + Y + 15,
+				// Front edge (z=15): right to left
+				C_YELLOW + TRF + (15 << 12) + Y + 15,
+				C_YELLOW + TLF + (0 << 12) + Y + 15,
+				// Left edge (x=0): front to back
+				C_YELLOW + TLF + (0 << 12) + Y + 15,
+				C_YELLOW + TLB + (0 << 12) + Y + 0,
+			];
+
+			verts.push(...v);
+
+			// Add vertical lines connecting this Y slice to the next one
+			if (i + 3 <= 255) {
+				const nextY = (i + 3) << 4;
+				const step = 3;
+
+				// Vertical lines along edges at regular intervals
+				// Back edge (z=0): along x from 0 to 15
+				for (let xPos = 0; xPos <= 15; xPos += step) {
+					let col = xPos === 0 || xPos === 15 ? C_BLUE : C_YELLOW;
+					// Use TLB for x=0, TRB for x=15, interpolate corner between them
+					let corner = xPos === 0 ? TLB : TRB;
+					verts.push(
+						col + corner + (xPos << 12) + Y + 0,
+						col + corner + (xPos << 12) + nextY + 0
+					);
+				}
+
+				// Right edge (x=15): along z from 0 to 15
+				for (let zPos = 0; zPos <= 15; zPos += step) {
+					let col = zPos === 0 || zPos === 15 ? C_BLUE : C_YELLOW;
+					// Use TRB for z=0, TRF for z=15
+					let corner = zPos === 0 ? TRB : TRF;
+					verts.push(
+						col + corner + (15 << 12) + Y + zPos,
+						col + corner + (15 << 12) + nextY + zPos
+					);
+				}
+
+				// Front edge (z=15): along x from 0 to 15
+				for (let xPos = 0; xPos <= 15; xPos += step) {
+					let col = xPos === 0 || xPos === 15 ? C_BLUE : C_YELLOW;
+					// Use TLF for x=0, TRF for x=15
+					let corner = xPos === 0 ? TLF : TRF;
+					verts.push(
+						col + corner + (xPos << 12) + Y + 15,
+						col + corner + (xPos << 12) + nextY + 15
+					);
+				}
+
+				// Left edge (x=0): along z from 0 to 15
+				for (let zPos = 0; zPos <= 15; zPos += step) {
+					let col = zPos === 0 || zPos === 15 ? C_BLUE : C_YELLOW;
+					// Use TLB for z=0, TLF for z=15
+					let corner = zPos === 0 ? TLB : TLF;
+					verts.push(
+						col + corner + (0 << 12) + Y + zPos,
+						col + corner + (0 << 12) + nextY + zPos
+					);
+				}
 			}
+		}
 
-			this.gl.bufferData(
-				this.gl.ARRAY_BUFFER,
-				new Uint32Array(verts),
-				this.gl.STATIC_DRAW
-			);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Uint32Array(verts),
+			this.gl.STATIC_DRAW
+		);
 
-			this.gl.vertexAttribIPointer(
-				this.programInfo.color.attribLocations.vertexPosition,
-				1,
-				this.gl.UNSIGNED_INT,
-				0,
-				0
-			);
-			this.gl.enableVertexAttribArray(
-				this.programInfo.color.attribLocations.vertexPosition
-			);
+		this.gl.vertexAttribIPointer(
+			this.programInfo.color.attribLocations.vertexPosition,
+			1,
+			this.gl.UNSIGNED_INT,
+			0,
+			0
+		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.color.attribLocations.vertexPosition
+		);
 
-			this.gl.drawArrays(this.gl.LINES, 0, verts.length);
+		this.gl.drawArrays(this.gl.LINES, 0, verts.length);
+
+		for (let x = -1; x <= 1; x++) {
+			if (x == 0) continue;
+
+			for (let z = -1; z <= 1; z++) {
+				if (z == 0) continue;
+
+				verts = [];
+
+				for (let i = 0; i < 255; i += 3) {
+					const Y = i << 4;
+
+					if (i + 15 <= 255) {
+						const nextY = (i + 15) << 4;
+
+						const corners = [
+							{ code: TLB, lx: 0, lz: 0 },
+							{ code: TRB, lx: 15, lz: 0 },
+							{ code: TRF, lx: 15, lz: 15 },
+							{ code: TLF, lx: 0, lz: 15 },
+						];
+
+						for (const c of corners) {
+							const skipLX = x === 1 ? 0 : 15;
+							const skipLZ = z === 1 ? 0 : 15;
+							if (c.lx === skipLX && c.lz === skipLZ) {
+								continue;
+							}
+
+							verts.push(
+								C_RED + c.code + (c.lx << 12) + Y + c.lz
+							);
+							verts.push(
+								C_RED + c.code + (c.lx << 12) + nextY + c.lz
+							);
+						}
+					}
+				}
+
+				if (verts.length === 0) continue;
+
+				this.gl.uniform2f(
+					this.programInfo.color.uniformLocations.uChunkPos,
+					(chunk.x + x) * 16,
+					(chunk.z + z) * 16
+				);
+				this.gl.bufferData(
+					this.gl.ARRAY_BUFFER,
+					new Uint32Array(verts),
+					this.gl.STATIC_DRAW
+				);
+
+				this.gl.vertexAttribIPointer(
+					this.programInfo.color.attribLocations.vertexPosition,
+					1,
+					this.gl.UNSIGNED_INT,
+					0,
+					0
+				);
+				this.gl.enableVertexAttribArray(
+					this.programInfo.color.attribLocations.vertexPosition
+				);
+
+				this.gl.drawArrays(this.gl.LINES, 0, verts.length);
+			}
 		}
 	}
 }

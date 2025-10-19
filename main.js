@@ -14,4 +14,8 @@ document.addEventListener("keyup", (ev) => {
 	if (r.keyMap.has(ev.key)) {
 		r.keyMap.delete(ev.key);
 	}
+
+	if (ev.key === "g" && ev.altKey) {
+		r.showChunkBorders = !r.showChunkBorders;
+	}
 });
