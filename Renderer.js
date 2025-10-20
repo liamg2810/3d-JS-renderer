@@ -171,6 +171,8 @@ export class Renderer {
 
 	shadersInit = false;
 
+	yVel = 0;
+
 	showChunkBorders = true;
 
 	canvas;
@@ -328,7 +330,7 @@ export class Renderer {
 			this.cam = this.cam.Add(
 				new Vector3(
 					speed * -Math.sin((this.camRot.y * Math.PI) / 180),
-					speed * Math.sin((this.camRot.x * Math.PI) / 180),
+					0,
 					speed * -Math.cos((this.camRot.y * Math.PI) / 180)
 				)
 			);
@@ -338,7 +340,7 @@ export class Renderer {
 			this.cam = this.cam.Add(
 				new Vector3(
 					speed * Math.sin((this.camRot.y * Math.PI) / 180),
-					speed * -Math.sin((this.camRot.x * Math.PI) / 180),
+					0,
 					speed * Math.cos((this.camRot.y * Math.PI) / 180)
 				)
 			);
@@ -364,13 +366,6 @@ export class Renderer {
 			);
 		}
 
-		if (this.keyMap.has("e")) {
-			this.cam.y += speed;
-		}
-
-		if (this.keyMap.has("q")) {
-			this.cam.y -= speed;
-		}
 		if (this.keyMap.has("ArrowRight")) {
 			this.camRot.y -= 0.5;
 
@@ -394,6 +389,8 @@ export class Renderer {
 
 			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
 		}
+
+		this.cam.y += this.yVel;
 
 		const camX = Math.floor(this.cam.x / 16);
 		const camZ = Math.floor(this.cam.z / 16);
@@ -438,11 +435,66 @@ export class Renderer {
 			1000 / (totalFrameTimes / this.frameTimes.length)
 		);
 
+		if (!this.IsGrounded()) {
+			this.yVel = -1;
+		} else {
+			this.yVel = 0;
+		}
+
+		if (this.keyMap.has("Space")) {
+			this.yVel = 1;
+		}
+
 		fpsCounter.innerText = `FPS: ${fps}`;
 
 		requestAnimationFrame(() => {
 			this.Update();
 		});
+	}
+
+	IsGrounded() {
+		// Camera chunk coordinates
+		const camChunkX = Math.floor(this.cam.x / 16);
+		const camChunkZ = Math.floor(this.cam.z / 16);
+		const camY = this.cam.y - 2;
+
+		const chunk = this.GetChunkAtPos(camChunkX, camChunkZ);
+
+		if (!chunk) return true;
+
+		for (let key in chunk.blocks) {
+			const block = Number(key);
+
+			const vertZ = block & 0xf;
+			const vertY = (block >>> 4) & 0xff;
+			const vertX = (block >>> 12) & 0xf;
+
+			const worldX = chunk.x * 16 + vertX;
+			const worldZ = chunk.z * 16 + vertZ;
+
+			const x0 = worldX - 0.5;
+			const y0 = vertY - 0.5;
+			const z0 = worldZ - 0.5;
+			const x1 = worldX + 0.5;
+			const y1 = vertY + 0.5;
+			const z1 = worldZ + 0.5;
+
+			if (
+				this.cam.x > x0 &&
+				this.cam.x < x1 &&
+				camY > y0 &&
+				camY < y1 &&
+				this.cam.z > z0 &&
+				this.cam.z < z1
+			) {
+				// console.log(this.cam.x, x0, x1);
+				// console.log(camY, y0, y1);
+				// console.log(this.cam.z, x0, x1);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	Draw() {
@@ -609,15 +661,10 @@ export class Renderer {
 		const C_BLUE = 3 << 22;
 		const C_YELLOW = 5 << 22;
 
-		// Corner IDs: 0=TLB, 1=TRB, 2=TLF, 3=TRF, 4=BLB, 5=BRB, 6=BLF, 7=BRF
-		const TLB = 0 << 16; // Top-left-back
-		const TRB = 1 << 16; // Top-right-back
-		const TLF = 2 << 16; // Top-left-front
-		const TRF = 3 << 16; // Top-right-front
-		const BLB = 4 << 16; // Bottom-left-back
-		const BRB = 5 << 16; // Bottom-right-back
-		const BLF = 6 << 16; // Bottom-left-front
-		const BRF = 7 << 16; // Bottom-right-front
+		const TLB = 0 << 16;
+		const TRB = 1 << 16;
+		const TLF = 2 << 16;
+		const TRF = 3 << 16;
 
 		let verts = [];
 

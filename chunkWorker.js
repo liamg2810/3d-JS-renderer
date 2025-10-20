@@ -135,53 +135,53 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				blocks.push(...tree);
 			}
 
-			// for (let y = height - 1; y > 2; y--) {
-			// 	let caveVal = 0.35;
+			for (let y = height - 1; y > 2; y--) {
+				let caveVal = 0.35;
 
-			// 	if (y < height / 1.5) {
-			// 		caveVal = 0.425;
-			// 	}
+				if (y < height / 1.5) {
+					caveVal = 0.425;
+				}
 
-			// 	if (y < height / 2) {
-			// 		caveVal = 0.5;
-			// 	}
+				if (y < height / 2) {
+					caveVal = 0.5;
+				}
 
-			// 	const culled = GetCulledFaces(x, y, z, caveVal, caveNoise);
+				const culled = GetCulledFaces(x, y, z, caveVal, caveNoise);
 
-			// 	if (culled.length === 6)
-			// 		// All faces
-			// 		continue;
+				if (culled.length === 6)
+					// All faces
+					continue;
 
-			// 	let belowT = textures.STONE;
-			// 	const oreNoise = perlin3D.perlin3D(
-			// 		x * ORE_NOISE_SCALE,
-			// 		y * ORE_NOISE_SCALE,
-			// 		z * ORE_NOISE_SCALE
-			// 	);
+				let belowT = textures.STONE;
+				const oreNoise = perlin3D.perlin3D(
+					x * ORE_NOISE_SCALE,
+					y * ORE_NOISE_SCALE,
+					z * ORE_NOISE_SCALE
+				);
 
-			// 	if (oreNoise < 0.2) {
-			// 		belowT = textures.COAL;
-			// 	}
+				if (oreNoise < 0.2) {
+					belowT = textures.COAL;
+				}
 
-			// 	if (y >= height - 3) {
-			// 		belowT = textures.DIRT;
-			// 	}
+				if (y >= height - 3) {
+					belowT = textures.DIRT;
+				}
 
-			// 	if (y < height - 3) {
-			// 		const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
+				if (y < height - 3) {
+					const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
-			// 		if (nVal < caveVal) {
-			// 			continue;
-			// 		}
-			// 	}
+					if (nVal < caveVal) {
+						continue;
+					}
+				}
 
-			// 	blocks.push(...Cube(x, y, z, belowT, culled));
-			// }
+				blocks.push(...Cube(x, y, z, belowT, culled));
+			}
 
-			// for (let y = 2; y > 0; y--) {
-			// 	// Bedrock
-			// 	blocks.push(...Cube(x, y, z, textures.BEDROCK));
-			// }
+			for (let y = 2; y > 0; y--) {
+				// Bedrock
+				blocks.push(...Cube(x, y, z, textures.BEDROCK));
+			}
 		}
 	}
 

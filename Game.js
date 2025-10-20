@@ -7,6 +7,8 @@ export class Chunk {
 	blockBuffer;
 	waterBuffer;
 
+	blocks = [];
+
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
@@ -25,5 +27,7 @@ export class Chunk {
 		gl.bufferData(gl.ARRAY_BUFFER, blocks, gl.STATIC_DRAW);
 
 		this.vertCount = blocks.length;
+
+		this.blocks = blocks;
 	}
 }
