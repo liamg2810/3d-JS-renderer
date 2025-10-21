@@ -7,7 +7,8 @@ export class Chunk {
 	blockBuffer;
 	waterBuffer;
 
-	blocks = [];
+	/** @type {Uint32Array} */
+	blocks = new Uint32Array();
 
 	/**
 	 *

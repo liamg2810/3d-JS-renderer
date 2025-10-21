@@ -229,6 +229,18 @@ export class Renderer {
 
 		this.texture = loadTexture(this.gl, "textures.png");
 
+		this.canvas.addEventListener("click", (ev) => {
+			this.canvas.requestPointerLock();
+
+			this.mouseX = ev.clientX;
+		});
+
+		this.canvas.addEventListener("mousemove", (ev) => {
+			this.camRot.y -= ev.movementX * 0.5;
+			this.camRot.x -= ev.movementY * 0.5;
+			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
+		});
+
 		requestAnimationFrame(() => {
 			this.Update();
 		});
@@ -378,18 +390,6 @@ export class Renderer {
 			if (this.camRot.y > 360) this.camRot.y = 0;
 		}
 
-		if (this.keyMap.has("ArrowUp")) {
-			this.camRot.x += 0.5;
-
-			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
-		}
-
-		if (this.keyMap.has("ArrowDown")) {
-			this.camRot.x -= 0.5;
-
-			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
-		}
-
 		this.cam.y += this.yVel;
 
 		const camX = Math.floor(this.cam.x / 16);
@@ -436,13 +436,13 @@ export class Renderer {
 		);
 
 		if (!this.IsGrounded()) {
-			this.yVel = -1;
+			this.yVel -= 0.1 * this.deltaTime;
 		} else {
 			this.yVel = 0;
 		}
 
-		if (this.keyMap.has("Space")) {
-			this.yVel = 1;
+		if (this.keyMap.has(" ") && this.IsGrounded()) {
+			this.yVel = 0.5;
 		}
 
 		fpsCounter.innerText = `FPS: ${fps}`;
@@ -456,40 +456,38 @@ export class Renderer {
 		// Camera chunk coordinates
 		const camChunkX = Math.floor(this.cam.x / 16);
 		const camChunkZ = Math.floor(this.cam.z / 16);
-		const camY = this.cam.y - 2;
+		const camBlockX = Math.floor(Math.abs(this.cam.x)) % 16;
+		const camBlockZ = Math.floor(Math.abs(this.cam.z)) % 16;
+		const camY = this.cam.y - 4;
 
 		const chunk = this.GetChunkAtPos(camChunkX, camChunkZ);
 
 		if (!chunk) return true;
 
-		for (let key in chunk.blocks) {
-			const block = Number(key);
-
+		for (let block of chunk.blocks) {
 			const vertZ = block & 0xf;
 			const vertY = (block >>> 4) & 0xff;
 			const vertX = (block >>> 12) & 0xf;
 
-			const worldX = chunk.x * 16 + vertX;
-			const worldZ = chunk.z * 16 + vertZ;
-
-			const x0 = worldX - 0.5;
+			const x0 = vertX - 0.5;
+			const x1 = vertX + 0.5;
 			const y0 = vertY - 0.5;
-			const z0 = worldZ - 0.5;
-			const x1 = worldX + 0.5;
 			const y1 = vertY + 0.5;
-			const z1 = worldZ + 0.5;
+			const z0 = vertZ - 0.5;
+			const z1 = vertZ + 0.5;
 
 			if (
-				this.cam.x > x0 &&
-				this.cam.x < x1 &&
-				camY > y0 &&
-				camY < y1 &&
-				this.cam.z > z0 &&
-				this.cam.z < z1
+				camBlockX >= x0 &&
+				camBlockX <= x1 &&
+				camY >= y0 &&
+				camY <= y1 &&
+				camBlockZ >= z0 &&
+				camBlockZ <= z1
 			) {
 				// console.log(this.cam.x, x0, x1);
 				// console.log(camY, y0, y1);
 				// console.log(this.cam.z, x0, x1);
+				// console.log(camY, y1);
 				return true;
 			}
 		}
