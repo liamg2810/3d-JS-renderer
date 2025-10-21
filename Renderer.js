@@ -1,4 +1,5 @@
 import { Chunk } from "./Game.js";
+import { Player } from "./Player.js";
 import { enqueueChunk } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
@@ -149,20 +150,12 @@ function isPowerOf2(value) {
 export class Renderer {
 	/** @type {Chunk[]} */
 	chunks = [];
-	cam = new Vector3(0, 100, 0);
-	camRot = new Vector3(-25, 225, 0);
-	keyMap = new Set();
-	light = new Vector3(50, 100, 50);
 
-	focalLength = 300;
-	near = 0.1;
-	far = 10000;
+	light = new Vector3(50, 100, 50);
 
 	deltaTime = 0;
 
 	shaderProgram;
-
-	renderDistance = 4;
 
 	/** @type {number[]} */
 	frameTimes = [];
@@ -170,8 +163,6 @@ export class Renderer {
 	seed = Math.random() * 25564235;
 
 	shadersInit = false;
-
-	yVel = 0;
 
 	showChunkBorders = true;
 
@@ -183,7 +174,20 @@ export class Renderer {
 	indexBuffer;
 	normalBuffer;
 
-	constructor() {
+	/**  @type {import("./Player.js").Player}*/
+	player;
+
+	/**
+	 *
+	 * @param {import("./Player.js").Player} player
+	 */
+	constructor(player) {
+		if (!(player instanceof Player)) {
+			throw new Error("Cannot initialize renderer without a player");
+		}
+
+		this.player = player;
+
 		/** @type {HTMLCanvasElement} */
 		this.canvas = document.getElementById("canvas");
 
@@ -228,18 +232,6 @@ export class Renderer {
 		);
 
 		this.texture = loadTexture(this.gl, "textures.png");
-
-		this.canvas.addEventListener("click", (ev) => {
-			this.canvas.requestPointerLock();
-
-			this.mouseX = ev.clientX;
-		});
-
-		this.canvas.addEventListener("mousemove", (ev) => {
-			this.camRot.y -= ev.movementX * 0.5;
-			this.camRot.x -= ev.movementY * 0.5;
-			this.camRot.x = Math.max(Math.min(this.camRot.x, 45), -45);
-		});
 
 		requestAnimationFrame(() => {
 			this.Update();
@@ -336,82 +328,7 @@ export class Renderer {
 	Update() {
 		const frameStart = performance.now();
 
-		const speed = 0.1;
-
-		if (this.keyMap.has("w")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * -Math.sin((this.camRot.y * Math.PI) / 180),
-					0,
-					speed * -Math.cos((this.camRot.y * Math.PI) / 180)
-				)
-			);
-		}
-
-		if (this.keyMap.has("s")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * Math.sin((this.camRot.y * Math.PI) / 180),
-					0,
-					speed * Math.cos((this.camRot.y * Math.PI) / 180)
-				)
-			);
-		}
-
-		if (this.keyMap.has("a")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * -Math.cos((this.camRot.y * Math.PI) / 180),
-					0,
-					speed * Math.sin((this.camRot.y * Math.PI) / 180)
-				)
-			);
-		}
-
-		if (this.keyMap.has("d")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * Math.cos((this.camRot.y * Math.PI) / 180),
-					0,
-					speed * -Math.sin((this.camRot.y * Math.PI) / 180)
-				)
-			);
-		}
-
-		if (this.keyMap.has("ArrowRight")) {
-			this.camRot.y -= 0.5;
-
-			if (this.camRot.y < 0) this.camRot.y = 360;
-		}
-
-		if (this.keyMap.has("ArrowLeft")) {
-			this.camRot.y += 0.5;
-
-			if (this.camRot.y > 360) this.camRot.y = 0;
-		}
-
-		this.cam.y += this.yVel;
-
-		const camX = Math.floor(this.cam.x / 16);
-		const camZ = Math.floor(this.cam.z / 16);
-
-		for (
-			let x = camX - this.renderDistance;
-			x < camX + this.renderDistance;
-			x++
-		) {
-			for (
-				let z = camZ - this.renderDistance;
-				z < camZ + this.renderDistance;
-				z++
-			) {
-				const chunk = this.GetChunkAtPos(x, z);
-
-				if (chunk === undefined) {
-					enqueueChunk(x, z, this);
-				}
-			}
-		}
+		this.player.Update();
 
 		this.Draw();
 
@@ -435,64 +352,11 @@ export class Renderer {
 			1000 / (totalFrameTimes / this.frameTimes.length)
 		);
 
-		if (!this.IsGrounded()) {
-			this.yVel -= 0.1 * this.deltaTime;
-		} else {
-			this.yVel = 0;
-		}
-
-		if (this.keyMap.has(" ") && this.IsGrounded()) {
-			this.yVel = 0.5;
-		}
-
 		fpsCounter.innerText = `FPS: ${fps}`;
 
 		requestAnimationFrame(() => {
 			this.Update();
 		});
-	}
-
-	IsGrounded() {
-		// Camera chunk coordinates
-		const camChunkX = Math.floor(this.cam.x / 16);
-		const camChunkZ = Math.floor(this.cam.z / 16);
-		const camBlockX = Math.floor(Math.abs(this.cam.x)) % 16;
-		const camBlockZ = Math.floor(Math.abs(this.cam.z)) % 16;
-		const camY = this.cam.y - 4;
-
-		const chunk = this.GetChunkAtPos(camChunkX, camChunkZ);
-
-		if (!chunk) return true;
-
-		for (let block of chunk.blocks) {
-			const vertZ = block & 0xf;
-			const vertY = (block >>> 4) & 0xff;
-			const vertX = (block >>> 12) & 0xf;
-
-			const x0 = vertX - 0.5;
-			const x1 = vertX + 0.5;
-			const y0 = vertY - 0.5;
-			const y1 = vertY + 0.5;
-			const z0 = vertZ - 0.5;
-			const z1 = vertZ + 0.5;
-
-			if (
-				camBlockX >= x0 &&
-				camBlockX <= x1 &&
-				camY >= y0 &&
-				camY <= y1 &&
-				camBlockZ >= z0 &&
-				camBlockZ <= z1
-			) {
-				// console.log(this.cam.x, x0, x1);
-				// console.log(camY, y0, y1);
-				// console.log(this.cam.z, x0, x1);
-				// console.log(camY, y1);
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 	Draw() {
@@ -509,18 +373,26 @@ export class Renderer {
 			projectionMatrix,
 			(45 * Math.PI) / 180,
 			this.canvas.width / this.canvas.height,
-			this.near,
-			this.far
+			this.player.near,
+			this.player.far
 		);
 
 		// View matrix (camera)
 		const viewMatrix = mat4.create();
-		mat4.rotateX(viewMatrix, viewMatrix, (-this.camRot.x * Math.PI) / 180);
-		mat4.rotateY(viewMatrix, viewMatrix, (-this.camRot.y * Math.PI) / 180);
+		mat4.rotateX(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.view.pitch * Math.PI) / 180
+		);
+		mat4.rotateY(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.view.yaw * Math.PI) / 180
+		);
 		mat4.translate(viewMatrix, viewMatrix, [
-			-this.cam.x,
-			-this.cam.y,
-			-this.cam.z,
+			-this.player.position.x,
+			-this.player.position.y,
+			-this.player.position.z,
 		]);
 
 		const modelMatrix = mat4.create();
@@ -597,12 +469,20 @@ export class Renderer {
 
 		// View matrix (camera)
 		const viewMatrix = mat4.create();
-		mat4.rotateX(viewMatrix, viewMatrix, (-this.camRot.x * Math.PI) / 180);
-		mat4.rotateY(viewMatrix, viewMatrix, (-this.camRot.y * Math.PI) / 180);
+		mat4.rotateX(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.pitch * Math.PI) / 180
+		);
+		mat4.rotateY(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.yaw * Math.PI) / 180
+		);
 		mat4.translate(viewMatrix, viewMatrix, [
-			-this.cam.x,
-			-this.cam.y,
-			-this.cam.z,
+			-this.player.position.x,
+			-this.player.position.y,
+			-this.player.position.z,
 		]);
 
 		const modelMatrix = mat4.create();
@@ -615,8 +495,8 @@ export class Renderer {
 		mat4.invert(normalMatrix, modelViewMatrix);
 		mat4.transpose(normalMatrix, normalMatrix);
 
-		const camX = Math.floor(this.cam.x / 16);
-		const camZ = Math.floor(this.cam.z / 16);
+		const camX = Math.floor(this.player.position.x / 16);
+		const camZ = Math.floor(this.player.position.z / 16);
 
 		const chunk = this.GetChunkAtPos(camX, camZ);
 
