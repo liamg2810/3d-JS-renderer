@@ -3,8 +3,10 @@ import { Renderer } from "./Renderer.js";
 
 const canvas = document.getElementById("canvas");
 
-const p = new Player(0, 50, 0);
+const p = new Player(0, 100, 0);
 const r = new Renderer(p);
+p.SetRenderer(r);
+r.Start();
 
 document.addEventListener("keydown", (ev) => {
 	// ev.preventDefault();
@@ -29,7 +31,7 @@ canvas.addEventListener("click", (ev) => {
 });
 
 canvas.addEventListener("mousemove", (ev) => {
-	p.view.pitch -= ev.movementX * 0.5;
-	p.view.yaw -= ev.movementY * 0.5;
-	p.view.yaw = Math.max(Math.min(p.view.yaw, 45), -45);
+	p.view.yaw -= ev.movementX * 0.5;
+	p.view.pitch -= ev.movementY * 0.5;
+	p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
 });

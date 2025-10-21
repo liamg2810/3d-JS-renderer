@@ -232,7 +232,9 @@ export class Renderer {
 		);
 
 		this.texture = loadTexture(this.gl, "textures.png");
+	}
 
+	Start() {
 		requestAnimationFrame(() => {
 			this.Update();
 		});

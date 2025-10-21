@@ -24,6 +24,8 @@ export class Player {
 
 	keyMap = new Set();
 
+	jump = 0;
+
 	/** @type {import("./Renderer.js").Renderer} */
 	renderer;
 
@@ -40,44 +42,27 @@ export class Player {
 	Update() {
 		const speed = 0.1;
 
+		const dx = speed * Math.sin((this.view.yaw * Math.PI) / 180);
+		const dz = speed * Math.cos((this.view.yaw * Math.PI) / 180);
+
 		if (this.keyMap.has("w")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * -Math.sin((this.view.yaw * Math.PI) / 180),
-					0,
-					speed * -Math.cos((this.view.yaw * Math.PI) / 180)
-				)
-			);
+			this.position.x -= dx;
+			this.position.z -= dz;
 		}
 
 		if (this.keyMap.has("s")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * Math.sin((this.view.yaw * Math.PI) / 180),
-					0,
-					speed * Math.cos((this.view.yaw * Math.PI) / 180)
-				)
-			);
+			this.position.x += dx;
+			this.position.z += dz;
 		}
 
 		if (this.keyMap.has("a")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * -Math.cos((this.view.yaw * Math.PI) / 180),
-					0,
-					speed * Math.sin((this.view.yaw * Math.PI) / 180)
-				)
-			);
+			this.position.x -= dz;
+			this.position.z += dx;
 		}
 
 		if (this.keyMap.has("d")) {
-			this.cam = this.cam.Add(
-				new Vector3(
-					speed * Math.cos((this.view.yaw * Math.PI) / 180),
-					0,
-					speed * -Math.sin((this.view.yaw * Math.PI) / 180)
-				)
-			);
+			this.position.x += dz;
+			this.position.z -= dx;
 		}
 
 		if (this.keyMap.has("ArrowRight")) {
@@ -92,8 +77,6 @@ export class Player {
 			if (this.view.yaw > 360) this.view.yaw = 0;
 		}
 
-		this.position.y += this.yVel;
-
 		const camX = Math.floor(this.position.x / 16);
 		const camZ = Math.floor(this.position.z / 16);
 
@@ -107,34 +90,45 @@ export class Player {
 				z < camZ + this.renderDistance;
 				z++
 			) {
-				const chunk = this.GetChunkAtPos(x, z);
+				const chunk = this.renderer.GetChunkAtPos(x, z);
 
 				if (chunk === undefined) {
-					enqueueChunk(x, z, this);
+					enqueueChunk(x, z, this.renderer);
 				}
 			}
 		}
 
-		if (!this.IsGrounded()) {
-			this.yVel -= 0.1 * this.deltaTime;
+		if (this.jump <= 0) {
+			if (!this.IsGrounded()) {
+				this.yVel -= 0.001 * this.renderer.deltaTime;
+			} else if (this.keyMap.has(" ")) {
+				this.jump = 0.1;
+				this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
+			} else {
+				this.yVel = 0;
+				this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
+			}
 		} else {
-			this.yVel = 0;
+			const j = Math.max(this.jump / 2, 0.005);
+
+			this.jump -= j;
+			this.yVel += j;
 		}
 
-		if (this.keyMap.has(" ") && this.IsGrounded()) {
-			this.yVel = 0.5;
-		}
+		this.yVel = Math.min(2, Math.max(-10, this.yVel));
+
+		this.position.y += this.yVel;
 	}
 
 	IsGrounded() {
 		// Camera chunk coordinates
-		const camChunkX = Math.floor(this.cam.x / 16);
-		const camChunkZ = Math.floor(this.cam.z / 16);
-		const camBlockX = Math.floor(Math.abs(this.cam.x)) % 16;
-		const camBlockZ = Math.floor(Math.abs(this.cam.z)) % 16;
-		const camY = this.cam.y - 4;
+		const camChunkX = Math.floor(this.position.x / 16);
+		const camChunkZ = Math.floor(this.position.z / 16);
+		const camBlockX = Math.floor(Math.abs(this.position.x)) % 16;
+		const camBlockZ = Math.floor(Math.abs(this.position.z)) % 16;
+		const camY = this.position.y - this.HEIGHT;
 
-		const chunk = this.GetChunkAtPos(camChunkX, camChunkZ);
+		const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
 
 		if (!chunk) return true;
 
