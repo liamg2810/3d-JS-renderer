@@ -49,20 +49,20 @@ const BLOCKS = {
 	BEDROCK: 9,
 };
 
-const CHUNKSIZE = 15;
+const CHUNKSIZE = 16;
 const TERRAIN_NOISE_SCALE = 0.025;
 const TEMPERATURE_NOISE_SCALE = 0.005;
 const HUMIDITY_NOISE_SCALE = 0.02;
 const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 5;
 const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
 
-const MAX_HEIGHT = 255;
+const MAX_HEIGHT = 256;
 
 function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint32Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
-	for (let x = 0; x <= CHUNKSIZE; x++) {
-		for (let z = 0; z <= CHUNKSIZE; z++) {
+	for (let x = 0; x < CHUNKSIZE; x++) {
+		for (let z = 0; z < CHUNKSIZE; z++) {
 			for (let y = 0; y < MAX_HEIGHT; y++) {
 				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] =
 					(x << 12) | (y << 4) | z;
@@ -75,16 +75,14 @@ function BuildChunk(chunkX, chunkZ, seed) {
 	perlin2D.SetSeed(seed);
 	perlin3D.SetSeed(seed);
 
-	let caveNoise = new Float32Array(
-		((CHUNKSIZE + 1) / 4) * ((CHUNKSIZE + 1) / 4) * 32
-	);
+	let caveNoise = new Float32Array((CHUNKSIZE / 4) * (CHUNKSIZE / 4) * 32);
 
-	for (let x = 0; x < CHUNKSIZE + 1; x += 4) {
+	for (let x = 0; x < CHUNKSIZE; x += 4) {
 		const cx = x / 4;
-		const worldX = x + chunkX * (CHUNKSIZE + 1);
-		for (let z = 0; z < CHUNKSIZE + 1; z += 4) {
+		const worldX = x + chunkX * CHUNKSIZE;
+		for (let z = 0; z < CHUNKSIZE; z += 4) {
 			const cz = z / 4;
-			const worldZ = z + chunkZ * (CHUNKSIZE + 1);
+			const worldZ = z + chunkZ * CHUNKSIZE;
 			for (let y = 0; y < 128; y += 4) {
 				const cy = y / 4;
 				const nVal = perlin3D.perlin3D(
@@ -95,16 +93,16 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 				caveNoise[
 					cx +
-						cz * ((CHUNKSIZE + 1) / 4) +
-						cy * ((CHUNKSIZE + 1) / 4) * ((CHUNKSIZE + 1) / 4)
+						cz * (CHUNKSIZE / 4) +
+						cy * (CHUNKSIZE / 4) * (CHUNKSIZE / 4)
 				] = nVal;
 			}
 		}
 	}
 
-	for (let x = 0; x <= CHUNKSIZE; x++) {
+	for (let x = 0; x < CHUNKSIZE; x++) {
 		const worldX = x + chunkX * CHUNKSIZE;
-		for (let z = 0; z <= CHUNKSIZE; z++) {
+		for (let z = 0; z < CHUNKSIZE; z++) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 
 			let elevation =
@@ -283,11 +281,11 @@ function GetCaveNoiseValAtPoint(x, y, z, caveNoise) {
 	const fy = (y % 4) / 4;
 	const fz = (z % 4) / 4;
 
-	const size4 = (CHUNKSIZE + 1) / 4;
+	const size4 = CHUNKSIZE / 4;
 
-	const cx1 = Math.min(cx0 + 1, size4);
+	const cx1 = Math.min(cx0 + 1, size4 - 1);
 	const cy1 = Math.min(cy0 + 1, 32 - 1); // 32 is y divisions
-	const cz1 = Math.min(cz0 + 1, size4);
+	const cz1 = Math.min(cz0 + 1, size4 - 1);
 
 	const n000 = caveNoise[cx0 + cz0 * size4 + cy0 * size4 * size4];
 	const n100 = caveNoise[cx1 + cz0 * size4 + cy0 * size4 * size4];

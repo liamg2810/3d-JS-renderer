@@ -33,6 +33,10 @@ export function enqueueChunk(chunkX, chunkZ, renderer) {
 	processQueue(renderer);
 }
 
+export function isQueueing() {
+	return chunkQueue.length > 0;
+}
+
 export function removeLoadedChunk(chunkX, chunkZ) {
 	completedChunks.delete(`${chunkX}, ${chunkZ}`);
 }

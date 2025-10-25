@@ -121,28 +121,92 @@ export class Chunk {
 				const ny = pos[1];
 				const nz = pos[2];
 
-				if (
-					ny < 0 ||
-					ny >= 255 ||
-					nx < 0 ||
-					nx >= 16 ||
-					nz < 0 ||
-					nz >= 16
-				) {
+				if (ny < 0 || ny >= 255) {
 					culled.push(ix);
 					continue;
 				}
 
 				if (nx >= 16) {
-					const nextChunk = this.r.GetChunkAtPos(this.x, this.z + 1);
+					const nextChunk = this.r.GetChunkAtPos(this.x + 1, this.z);
 
 					if (nextChunk === undefined) {
 						console.warn("Next chunk not found, drawing face!");
 						continue;
 					}
+
+					// nx = 0
+					const b = nextChunk.blocks[nz * 16 + ny * 256];
+
+					const t = (b >>> 16) & 0xff;
+
+					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+						culled.push(ix);
+					}
+					continue;
 				}
 
-				const b = this.blocks[nx + nz * 15 + ny * 255];
+				if (nx < 0) {
+					const nextChunk = this.r.GetChunkAtPos(this.x - 1, this.z);
+
+					if (nextChunk === undefined) {
+						console.warn("Next chunk not found, drawing face!");
+						continue;
+					}
+
+					// nx = 15
+					const b = nextChunk.blocks[15 + nz * 16 + ny * 256];
+
+					const t = (b >>> 16) & 0xff;
+
+					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+						culled.push(ix);
+					}
+					continue;
+				}
+
+				if (nz >= 16) {
+					const nextChunk = this.r.GetChunkAtPos(this.x, this.z + 1);
+
+					if (nextChunk === undefined) {
+						console.warn(
+							"Next chunk not found on +z, drawing face!"
+						);
+						continue;
+					}
+
+					// nz = 0
+					const b = nextChunk.blocks[nx + ny * 256];
+
+					const t = (b >>> 16) & 0xff;
+
+					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+						culled.push(ix);
+					}
+					continue;
+				}
+
+				if (nz < 0) {
+					const nextChunk = this.r.GetChunkAtPos(this.x, this.z - 1);
+
+					if (nextChunk === undefined) {
+						console.warn(
+							"Next chunk not found on -z, drawing face!"
+						);
+						continue;
+					}
+
+					// nz = 15
+					const b = nextChunk.blocks[nx + 15 * 16 + ny * 256];
+
+					const t = (b >>> 16) & 0xff;
+
+					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+						culled.push(ix);
+					}
+					continue;
+				}
+
+				const b = this.blocks[nx + nz * 16 + ny * 256];
 
 				const t = (b >>> 16) & 0xff;
 
@@ -160,6 +224,7 @@ export class Chunk {
 				[BLOCKS.LOG]: textures.LOG,
 				[BLOCKS.LEAVES]: textures.LEAVES,
 				[BLOCKS.DIRT]: textures.DIRT,
+				[BLOCKS.COAL]: textures.COAL,
 			};
 
 			tex = blockTextureMap[type] ?? tex;

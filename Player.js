@@ -1,4 +1,4 @@
-import { enqueueChunk, removeLoadedChunk } from "./Scene.js";
+import { enqueueChunk, isQueueing, removeLoadedChunk } from "./Scene.js";
 
 export class Player {
 	HEIGHT = 2;
@@ -31,6 +31,8 @@ export class Player {
 	/** @type {import("./Renderer.js").Renderer} */
 	renderer;
 
+	freezeChunks = false;
+
 	constructor(x, y, z) {
 		this.position.x = x;
 		this.position.y = y;
@@ -39,6 +41,8 @@ export class Player {
 
 	SetRenderer(r) {
 		this.renderer = r;
+
+		this.LoadChunks();
 	}
 
 	Update() {
@@ -89,8 +93,62 @@ export class Player {
 			}
 		}
 
+		let camX = Math.floor(this.position.x / 16);
+		let camZ = Math.floor(this.position.z / 16);
+
+		if (this.freezeChunks) {
+			camX = 0;
+			camZ = 0;
+		}
+
+		if (!this.freezeChunks) {
+			this.LoadChunks();
+		}
+
+		if (!isQueueing()) {
+			const visibleChunks = this.renderer.chunks.filter((c) => {
+				const unload =
+					c.x >= camX - this.renderDistance &&
+					c.x <= camX + this.renderDistance &&
+					c.z >= camZ - this.renderDistance &&
+					c.z <= camZ + this.renderDistance;
+
+				return unload;
+			});
+
+			for (const c of visibleChunks) {
+				if (!c.builtVerts) {
+					c.BuildVerts();
+				}
+			}
+		}
+
+		if (!this.flight) {
+			this.DoGravity();
+		}
+
+		this.yVel = Math.min(2, Math.max(-10, this.yVel));
+
+		this.position.y += this.yVel;
+	}
+
+	LoadChunks() {
 		const camX = Math.floor(this.position.x / 16);
 		const camZ = Math.floor(this.position.z / 16);
+
+		this.renderer.chunks = this.renderer.chunks.filter((c) => {
+			const unload =
+				c.x >= camX - this.renderDistance - 2 &&
+				c.x <= camX + this.renderDistance + 2 &&
+				c.z >= camZ - this.renderDistance - 2 &&
+				c.z <= camZ + this.renderDistance + 2;
+
+			if (unload) {
+				removeLoadedChunk(c.x, c.z);
+			}
+
+			return unload;
+		});
 
 		for (
 			let x = camX - this.renderDistance - 2;
@@ -109,30 +167,6 @@ export class Player {
 				}
 			}
 		}
-
-		const visibleChunks = this.renderer.chunks.filter((c) => {
-			const unload =
-				c.x >= camX - this.renderDistance &&
-				c.x <= camX + this.renderDistance &&
-				c.z >= camZ - this.renderDistance &&
-				c.z <= camZ + this.renderDistance;
-
-			return unload;
-		});
-
-		for (const c of visibleChunks) {
-			if (!c.builtVerts) {
-				c.BuildVerts();
-			}
-		}
-
-		if (!this.flight) {
-			this.DoGravity();
-		}
-
-		this.yVel = Math.min(2, Math.max(-10, this.yVel));
-
-		this.position.y += this.yVel;
 	}
 
 	DoGravity() {
