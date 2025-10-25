@@ -56,7 +56,8 @@ export class Chunk {
 	blockBuffer;
 	waterBuffer;
 
-	blocks = new Uint32Array();
+	/** @type {Uint8Array} */
+	blocks;
 
 	/** @type {import('./Renderer.js').Renderer} */
 	r;
@@ -70,7 +71,7 @@ export class Chunk {
 	 * @param {import('./Renderer.js').Renderer} r
 	 * @param {number} x
 	 * @param {number} z
-	 * @param {Uint32Array} blocks
+	 * @param {Uint8Array} blocks
 	 */
 	constructor(gl, r, x, z, blocks) {
 		this.r = r;
@@ -88,20 +89,19 @@ export class Chunk {
 
 	BuildVerts() {
 		let v = [];
+		let water = [];
 
-		for (let block of this.blocks) {
-			const type = (block >>> 16) & 0xff;
-
-			if (type === BLOCKS.AIR) {
+		for (let [i, block] of this.blocks.entries()) {
+			if (block === BLOCKS.AIR) {
 				continue;
 			}
 
-			const x = (block >>> 12) & 0xf;
-			const y = (block >>> 4) & 0xff;
-			const z = block & 0xf;
+			const x = i % 16;
+			const z = Math.floor(i / 16) % 16;
+			const y = Math.floor(i / 256);
 
-			if (type === BLOCKS.WATER) {
-				v.push(...Water(x, y, z, textures.WATER));
+			if (block === BLOCKS.WATER) {
+				water.push(...Water(x, y, z, textures.WATER));
 				continue;
 			}
 
@@ -137,9 +137,7 @@ export class Chunk {
 					// nx = 0
 					const b = nextChunk.blocks[nz * 16 + ny * 256];
 
-					const t = (b >>> 16) & 0xff;
-
-					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
 						culled.push(ix);
 					}
 					continue;
@@ -156,9 +154,7 @@ export class Chunk {
 					// nx = 15
 					const b = nextChunk.blocks[15 + nz * 16 + ny * 256];
 
-					const t = (b >>> 16) & 0xff;
-
-					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
 						culled.push(ix);
 					}
 					continue;
@@ -177,9 +173,7 @@ export class Chunk {
 					// nz = 0
 					const b = nextChunk.blocks[nx + ny * 256];
 
-					const t = (b >>> 16) & 0xff;
-
-					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
 						culled.push(ix);
 					}
 					continue;
@@ -198,9 +192,7 @@ export class Chunk {
 					// nz = 15
 					const b = nextChunk.blocks[nx + 15 * 16 + ny * 256];
 
-					const t = (b >>> 16) & 0xff;
-
-					if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
 						culled.push(ix);
 					}
 					continue;
@@ -208,9 +200,7 @@ export class Chunk {
 
 				const b = this.blocks[nx + nz * 16 + ny * 256];
 
-				const t = (b >>> 16) & 0xff;
-
-				if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
+				if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
 					culled.push(ix);
 				}
 			}
@@ -227,12 +217,14 @@ export class Chunk {
 				[BLOCKS.COAL]: textures.COAL,
 			};
 
-			tex = blockTextureMap[type] ?? tex;
+			tex = blockTextureMap[block] ?? tex;
 
 			const c = Cube(x, y, z, tex, culled);
 
 			v.push(...c);
 		}
+
+		v.push(...water);
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
 		this.gl.bufferData(

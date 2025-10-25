@@ -59,13 +59,12 @@ const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
 const MAX_HEIGHT = 256;
 
 function BuildChunk(chunkX, chunkZ, seed) {
-	let blocks = new Uint32Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
+	let blocks = new Uint8Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
 	for (let x = 0; x < CHUNKSIZE; x++) {
 		for (let z = 0; z < CHUNKSIZE; z++) {
 			for (let y = 0; y < MAX_HEIGHT; y++) {
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] =
-					(x << 12) | (y << 4) | z;
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.AIR;
 			}
 		}
 	}
@@ -138,7 +137,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const block = Biome(elevation, temp, humidity);
 
 			if (elevation < 0.4) {
-				const b = (BLOCKS.WATER << 16) | (x << 12) | (68 << 4) | z;
+				const b = BLOCKS.WATER;
 				blocks[x + z * CHUNKSIZE + 68 * MAX_HEIGHT] = b;
 
 				elevation -= 0.1;
@@ -146,7 +145,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 			const height = Math.round(elevation * 10) + 64;
 
-			const b = (block << 16) | (x << 12) | (height << 4) | z;
+			const b = block;
 
 			blocks[x + z * CHUNKSIZE + height * MAX_HEIGHT] = b;
 
@@ -194,16 +193,12 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					}
 				}
 
-				const b = (belowB << 16) | (x << 12) | (y << 4) | z;
-
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = b;
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
 			}
 
 			for (let y = 2; y > 0; y--) {
 				// Bedrock
-				const b = (BLOCKS.BEDROCK << 16) | (x << 12) | (y << 4) | z;
-
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = b;
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.BEDROCK;
 			}
 		}
 	}
