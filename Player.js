@@ -10,8 +10,8 @@ export class Player {
 	};
 
 	view = {
-		yaw: 0,
-		pitch: 0,
+		yaw: 45,
+		pitch: -45,
 	};
 
 	focalLength = 300;
@@ -93,13 +93,13 @@ export class Player {
 		const camZ = Math.floor(this.position.z / 16);
 
 		for (
-			let x = camX - this.renderDistance;
-			x < camX + this.renderDistance;
+			let x = camX - this.renderDistance - 2;
+			x <= camX + this.renderDistance + 2;
 			x++
 		) {
 			for (
-				let z = camZ - this.renderDistance;
-				z < camZ + this.renderDistance;
+				let z = camZ - this.renderDistance - 2;
+				z <= camZ + this.renderDistance + 2;
 				z++
 			) {
 				const chunk = this.renderer.GetChunkAtPos(x, z);
@@ -110,19 +110,21 @@ export class Player {
 			}
 		}
 
-		this.renderer.chunks = this.renderer.chunks.filter((c) => {
+		const visibleChunks = this.renderer.chunks.filter((c) => {
 			const unload =
 				c.x >= camX - this.renderDistance &&
-				c.x < camX + this.renderDistance &&
+				c.x <= camX + this.renderDistance &&
 				c.z >= camZ - this.renderDistance &&
-				c.z < camZ + this.renderDistance;
-
-			if (unload) {
-				removeLoadedChunk(c.x, c.z);
-			}
+				c.z <= camZ + this.renderDistance;
 
 			return unload;
 		});
+
+		for (const c of visibleChunks) {
+			if (!c.builtVerts) {
+				c.BuildVerts();
+			}
+		}
 
 		if (!this.flight) {
 			this.DoGravity();

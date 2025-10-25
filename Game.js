@@ -1,4 +1,4 @@
-import { Cube } from "./Primitives.js";
+import { Cube, Water } from "./Primitives.js";
 
 const textures = {
 	GRASS: {
@@ -56,30 +56,34 @@ export class Chunk {
 	blockBuffer;
 	waterBuffer;
 
-	/** @type {Uint32Array} */
-	verts = new Uint32Array();
-
 	blocks = new Uint32Array();
+
+	/** @type {import('./Renderer.js').Renderer} */
+	r;
+
+	/** @type {WebGL2RenderingContext} */
+	gl;
 
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
+	 * @param {import('./Renderer.js').Renderer} r
 	 * @param {number} x
 	 * @param {number} z
 	 * @param {Uint32Array} blocks
 	 */
-	constructor(gl, x, z, blocks) {
+	constructor(gl, r, x, z, blocks) {
+		this.r = r;
+
 		this.x = x;
 		this.z = z;
 		this.blocks = blocks;
 
-		this.BuildVerts();
+		this.builtVerts = false;
+
+		this.gl = gl;
 
 		this.blockBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.blockBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.verts, gl.STATIC_DRAW);
-
-		this.vertCount = this.verts.length;
 	}
 
 	BuildVerts() {
@@ -88,7 +92,7 @@ export class Chunk {
 		for (let block of this.blocks) {
 			const type = (block >>> 16) & 0xff;
 
-			if (type !== BLOCKS.AIR) {
+			if (type === BLOCKS.AIR) {
 				continue;
 			}
 
@@ -96,13 +100,18 @@ export class Chunk {
 			const y = (block >>> 4) & 0xff;
 			const z = block & 0xf;
 
+			if (type === BLOCKS.WATER) {
+				v.push(...Water(x, y, z, textures.WATER));
+				continue;
+			}
+
 			const neighbors = [
-				[x, y - 1, z],
 				[x, y + 1, z],
-				[x, y, z + 1],
-				[x, y, z - 1],
+				[x, y - 1, z],
 				[x - 1, y, z],
 				[x + 1, y, z],
+				[x, y, z + 1],
+				[x, y, z - 1],
 			];
 
 			let culled = [];
@@ -114,30 +123,60 @@ export class Chunk {
 
 				if (
 					ny < 0 ||
-					ny > 255 ||
+					ny >= 255 ||
 					nx < 0 ||
-					nx >= 15 ||
+					nx >= 16 ||
 					nz < 0 ||
-					nz >= 15
+					nz >= 16
 				) {
 					culled.push(ix);
 					continue;
 				}
 
+				if (nx >= 16) {
+					const nextChunk = this.r.GetChunkAtPos(this.x, this.z + 1);
+
+					if (nextChunk === undefined) {
+						console.warn("Next chunk not found, drawing face!");
+						continue;
+					}
+				}
+
 				const b = this.blocks[nx + nz * 15 + ny * 255];
 
-				const t = b >>> 16 && 0xff;
+				const t = (b >>> 16) & 0xff;
 
-				if (t === BLOCKS.AIR) {
+				if (t !== BLOCKS.AIR && t !== BLOCKS.WATER) {
 					culled.push(ix);
 				}
 			}
 
-			const c = Cube(x, y, z, textures.GRASS, culled);
+			let tex = textures.GRASS;
+
+			const blockTextureMap = {
+				[BLOCKS.STONE]: textures.STONE,
+				[BLOCKS.SAND]: textures.SAND,
+				[BLOCKS.BEDROCK]: textures.BEDROCK,
+				[BLOCKS.LOG]: textures.LOG,
+				[BLOCKS.LEAVES]: textures.LEAVES,
+				[BLOCKS.DIRT]: textures.DIRT,
+			};
+
+			tex = blockTextureMap[type] ?? tex;
+
+			const c = Cube(x, y, z, tex, culled);
 
 			v.push(...c);
 		}
 
-		this.verts = new Uint32Array(v);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			new Uint32Array(v),
+			this.gl.STATIC_DRAW
+		);
+
+		this.vertCount = v.length;
+		this.builtVerts = true;
 	}
 }

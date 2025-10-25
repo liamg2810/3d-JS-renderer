@@ -52,7 +52,7 @@ function processQueue(renderer) {
 				const { chunkX, chunkZ, blocks } = ev.data;
 				const key = `${chunkX}, ${chunkZ}`;
 				renderer.chunks.push(
-					new Chunk(renderer.gl, chunkX, chunkZ, blocks)
+					new Chunk(renderer.gl, renderer, chunkX, chunkZ, blocks)
 				);
 
 				activeChunks.delete(key);

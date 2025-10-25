@@ -75,14 +75,16 @@ function BuildChunk(chunkX, chunkZ, seed) {
 	perlin2D.SetSeed(seed);
 	perlin3D.SetSeed(seed);
 
-	let caveNoise = new Float32Array((CHUNKSIZE / 4) * (CHUNKSIZE / 4) * 32);
+	let caveNoise = new Float32Array(
+		((CHUNKSIZE + 1) / 4) * ((CHUNKSIZE + 1) / 4) * 32
+	);
 
-	for (let x = 0; x <= CHUNKSIZE; x += 4) {
+	for (let x = 0; x < CHUNKSIZE + 1; x += 4) {
 		const cx = x / 4;
-		const worldX = x + chunkX * CHUNKSIZE;
-		for (let z = 0; z <= CHUNKSIZE; z += 4) {
+		const worldX = x + chunkX * (CHUNKSIZE + 1);
+		for (let z = 0; z < CHUNKSIZE + 1; z += 4) {
 			const cz = z / 4;
-			const worldZ = z + chunkZ * CHUNKSIZE;
+			const worldZ = z + chunkZ * (CHUNKSIZE + 1);
 			for (let y = 0; y < 128; y += 4) {
 				const cy = y / 4;
 				const nVal = perlin3D.perlin3D(
@@ -93,8 +95,8 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 				caveNoise[
 					cx +
-						cz * (CHUNKSIZE / 4) +
-						cy * (CHUNKSIZE / 4) * (CHUNKSIZE / 4)
+						cz * ((CHUNKSIZE + 1) / 4) +
+						cy * ((CHUNKSIZE + 1) / 4) * ((CHUNKSIZE + 1) / 4)
 				] = nVal;
 			}
 		}
@@ -138,7 +140,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const block = Biome(elevation, temp, humidity);
 
 			if (elevation < 0.4) {
-				const b = (block << 16) | (x << 12) | (68 << 4) | z;
+				const b = (BLOCKS.WATER << 16) | (x << 12) | (68 << 4) | z;
 				blocks[x + z * CHUNKSIZE + 68 * MAX_HEIGHT] = b;
 
 				elevation -= 0.1;
@@ -281,11 +283,11 @@ function GetCaveNoiseValAtPoint(x, y, z, caveNoise) {
 	const fy = (y % 4) / 4;
 	const fz = (z % 4) / 4;
 
-	const size4 = CHUNKSIZE / 4;
+	const size4 = (CHUNKSIZE + 1) / 4;
 
-	const cx1 = Math.min(cx0 + 1, size4 - 1);
+	const cx1 = Math.min(cx0 + 1, size4);
 	const cy1 = Math.min(cy0 + 1, 32 - 1); // 32 is y divisions
-	const cz1 = Math.min(cz0 + 1, size4 - 1);
+	const cz1 = Math.min(cz0 + 1, size4);
 
 	const n000 = caveNoise[cx0 + cz0 * size4 + cy0 * size4 * size4];
 	const n100 = caveNoise[cx1 + cz0 * size4 + cy0 * size4 * size4];

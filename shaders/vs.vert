@@ -20,8 +20,15 @@ uniform mat4 uNormalMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
-const vec3 offsets[8] = vec3[](vec3(-0.5,0.5,-0.5), vec3(0.5,0.5,-0.5), vec3(-0.5, 0.5, 0.5), vec3(0.5, 0.5, 0.5),
-	vec3(-0.5,-0.5,-0.5), vec3(0.5,-0.5,-0.5), vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5));
+const vec3 offsets[8] = vec3[](
+	vec3(-0.5,0.5,-0.5), 
+	vec3(0.5,0.5,-0.5), 
+	vec3(-0.5, 0.5, 0.5), 
+	vec3(0.5, 0.5, 0.5),
+	vec3(-0.5,-0.5,-0.5), 
+	vec3(0.5,-0.5,-0.5), 
+	vec3(-0.5, -0.5, 0.5), 
+	vec3(0.5, -0.5, 0.5));
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 const vec3 normals[6] = vec3[](
