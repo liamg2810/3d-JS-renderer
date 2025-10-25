@@ -11,14 +11,14 @@ r.Start();
 document.addEventListener("keydown", (ev) => {
 	// ev.preventDefault();
 
-	p.keyMap.add(ev.key);
+	p.keyMap.add(ev.key.toLowerCase());
 });
 
 document.addEventListener("keyup", (ev) => {
 	ev.preventDefault();
 
-	if (p.keyMap.has(ev.key)) {
-		p.keyMap.delete(ev.key);
+	if (p.keyMap.has(ev.key.toLowerCase())) {
+		p.keyMap.delete(ev.key.toLowerCase());
 	}
 
 	if (ev.key === "g" && ev.altKey) {
@@ -31,7 +31,7 @@ canvas.addEventListener("click", (ev) => {
 });
 
 canvas.addEventListener("mousemove", (ev) => {
-	p.view.yaw -= ev.movementX * 0.5;
-	p.view.pitch -= ev.movementY * 0.5;
+	p.view.yaw -= ev.movementX * 0.3;
+	p.view.pitch -= ev.movementY * 0.2;
 	p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
 });

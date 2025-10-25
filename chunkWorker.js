@@ -36,7 +36,20 @@ const textures = {
 	},
 };
 
-const CHUNKSIZE = 16;
+const BLOCKS = {
+	AIR: 0,
+	GRASS: 1,
+	LOG: 2,
+	SAND: 3,
+	WATER: 4,
+	LEAVES: 5,
+	STONE: 6,
+	DIRT: 7,
+	COAL: 8,
+	BEDROCK: 9,
+};
+
+const CHUNKSIZE = 15;
 const TERRAIN_NOISE_SCALE = 0.025;
 const TEMPERATURE_NOISE_SCALE = 0.005;
 const HUMIDITY_NOISE_SCALE = 0.02;
@@ -46,8 +59,17 @@ const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
 const MAX_HEIGHT = 255;
 
 function BuildChunk(chunkX, chunkZ, seed) {
-	/** @type {number[] } */
-	let blocks = [];
+	let blocks = new Uint32Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
+
+	for (let x = 0; x <= CHUNKSIZE; x++) {
+		for (let z = 0; z <= CHUNKSIZE; z++) {
+			for (let y = 0; y < MAX_HEIGHT; y++) {
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] =
+					(x << 12) | (y << 4) | z;
+			}
+		}
+	}
+
 	let water = [];
 
 	perlin2D.SetSeed(seed);
@@ -55,10 +77,10 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 	let caveNoise = new Float32Array((CHUNKSIZE / 4) * (CHUNKSIZE / 4) * 32);
 
-	for (let x = 0; x < CHUNKSIZE; x += 4) {
+	for (let x = 0; x <= CHUNKSIZE; x += 4) {
 		const cx = x / 4;
 		const worldX = x + chunkX * CHUNKSIZE;
-		for (let z = 0; z < CHUNKSIZE; z += 4) {
+		for (let z = 0; z <= CHUNKSIZE; z += 4) {
 			const cz = z / 4;
 			const worldZ = z + chunkZ * CHUNKSIZE;
 			for (let y = 0; y < 128; y += 4) {
@@ -78,9 +100,9 @@ function BuildChunk(chunkX, chunkZ, seed) {
 		}
 	}
 
-	for (let x = 0; x < CHUNKSIZE; x++) {
+	for (let x = 0; x <= CHUNKSIZE; x++) {
 		const worldX = x + chunkX * CHUNKSIZE;
-		for (let z = 0; z < CHUNKSIZE; z++) {
+		for (let z = 0; z <= CHUNKSIZE; z++) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 
 			let elevation =
@@ -113,27 +135,29 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					worldZ * HUMIDITY_NOISE_SCALE
 				) + 0.5;
 
-			const tex = Biome(elevation, temp, humidity);
+			const block = Biome(elevation, temp, humidity);
 
 			if (elevation < 0.4) {
-				blocks.push(
-					...Water(x, Math.round(0.4 * 10) + 64, z, textures.WATER)
-				);
+				const b = (block << 16) | (x << 12) | (68 << 4) | z;
+				blocks[x + z * CHUNKSIZE + 68 * MAX_HEIGHT] = b;
 
 				elevation -= 0.1;
 			}
 
 			const height = Math.round(elevation * 10) + 64;
 
-			blocks.push(...Cube(x, height, z, tex));
+			const b = (block << 16) | (x << 12) | (height << 4) | z;
+
+			blocks[x + z * CHUNKSIZE + height * MAX_HEIGHT] = b;
 
 			const treeNoise = Math.random();
 
-			if (elevation > 0.4 && tex === textures.GRASS && treeNoise > 0.99) {
-				const tree = DrawTree(x, height, z);
+			// no trees <#-#>
+			// if (elevation > 0.4 && tex === textures.GRASS && treeNoise > 0.99) {
+			// 	const tree = DrawTree(x, height, z);
 
-				blocks.push(...tree);
-			}
+			// 	verts.push(...tree);
+			// }
 
 			for (let y = height - 1; y > 2; y--) {
 				let caveVal = 0.35;
@@ -146,13 +170,8 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					caveVal = 0.5;
 				}
 
-				const culled = GetCulledFaces(x, y, z, caveVal, caveNoise);
+				let belowB = BLOCKS.STONE;
 
-				if (culled.length === 6)
-					// All faces
-					continue;
-
-				let belowT = textures.STONE;
 				const oreNoise = perlin3D.perlin3D(
 					x * ORE_NOISE_SCALE,
 					y * ORE_NOISE_SCALE,
@@ -160,27 +179,31 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				);
 
 				if (oreNoise < 0.2) {
-					belowT = textures.COAL;
+					belowB = BLOCKS.COAL;
 				}
 
 				if (y >= height - 3) {
-					belowT = textures.DIRT;
+					belowB = BLOCKS.DIRT;
 				}
 
 				if (y < height - 3) {
 					const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
 					if (nVal < caveVal) {
-						continue;
+						belowB = BLOCKS.AIR;
 					}
 				}
 
-				blocks.push(...Cube(x, y, z, belowT, culled));
+				const b = (belowB << 16) | (x << 12) | (y << 4) | z;
+
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = b;
 			}
 
 			for (let y = 2; y > 0; y--) {
 				// Bedrock
-				blocks.push(...Cube(x, y, z, textures.BEDROCK));
+				const b = (BLOCKS.BEDROCK << 16) | (x << 12) | (y << 4) | z;
+
+				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = b;
 			}
 		}
 	}
@@ -196,12 +219,12 @@ function BuildChunk(chunkX, chunkZ, seed) {
  * @returns {number[]}
  */
 function DrawTree(grassX, grassY, grassZ) {
-	let blocks = [];
+	let verts = [];
 
 	const treeTop = Math.round(Math.random() * 1 + 2);
 
 	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-		blocks.push(...Cube(grassX, y, grassZ, textures.LOG));
+		verts.push(...Cube(grassX, y, grassZ, textures.LOG));
 	}
 
 	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -220,11 +243,11 @@ function DrawTree(grassX, grassY, grassZ) {
 				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
 					continue;
 
-				blocks.push(...Cube(x, y, z, textures.LEAVES));
+				verts.push(...Cube(x, y, z, textures.LEAVES));
 			}
 		}
 	}
-	return blocks;
+	return verts;
 }
 
 /**
@@ -234,56 +257,11 @@ function DrawTree(grassX, grassY, grassZ) {
  * @param {number} humidity
  */
 function Biome(e, temp, humidity) {
-	if (e < 0.45 && e > 0.4) return textures.SAND;
-	if (e > 1.4 && temp <= 0.6) return textures.STONE;
-	if (temp > 0.6 && humidity < 0.4) return textures.SAND;
+	if (e < 0.45 && e > 0.4) return BLOCKS.SAND;
+	if (e > 1.4 && temp <= 0.6) return BLOCKS.STONE;
+	if (temp > 0.6 && humidity < 0.4) return BLOCKS.SAND;
 	// if (temp < 0.3 && e > 1.0) return textures.STONE;
-	return textures.GRASS;
-}
-
-/**
- *
- * @param {number} x
- * @param {number} y
- * @param {number} z
- * @param {number} caveVal
- * @param {Float32Array} caveNoise
- * @returns {number[]}
- */
-function GetCulledFaces(x, y, z, caveVal, caveNoise) {
-	let toCull = [];
-
-	const neighbors = [
-		[x, y + 1, z],
-		[x, y - 1, z],
-		[x - 1, y, z],
-		[x + 1, y, z],
-		[x, y, z + 1],
-		[x, y, z - 1],
-	];
-
-	for (let i = 0; i < neighbors.length; i++) {
-		const [nx, ny, nz] = neighbors[i];
-
-		if (
-			nx < 0 ||
-			nx >= CHUNKSIZE ||
-			nz < 0 ||
-			nz >= CHUNKSIZE ||
-			ny < 1 ||
-			ny > MAX_HEIGHT
-		) {
-			continue;
-		}
-
-		const nVal = GetCaveNoiseValAtPoint(nx, ny, nz, caveNoise);
-
-		if (nVal >= caveVal) {
-			toCull.push(i);
-		}
-	}
-
-	return toCull;
+	return BLOCKS.GRASS;
 }
 
 /**
@@ -334,12 +312,7 @@ self.onmessage = function (event) {
 
 	let blocks = BuildChunk(chunkX, chunkZ, seed);
 
-	let typedBlocks = new Uint32Array(blocks);
-
-	self.postMessage({ chunkX, chunkZ, blocks: typedBlocks }, [
-		typedBlocks.buffer,
-	]);
+	self.postMessage({ chunkX, chunkZ, blocks }, [blocks.buffer]);
 
 	blocks = null;
-	typedBlocks = null;
 };

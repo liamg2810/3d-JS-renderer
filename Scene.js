@@ -33,6 +33,10 @@ export function enqueueChunk(chunkX, chunkZ, renderer) {
 	processQueue(renderer);
 }
 
+export function removeLoadedChunk(chunkX, chunkZ) {
+	completedChunks.delete(`${chunkX}, ${chunkZ}`);
+}
+
 /**
  *
  * @param {import('Renderer.js').Renderer} renderer
@@ -46,7 +50,7 @@ function processQueue(renderer) {
 
 			workers[i].onmessage = (ev) => {
 				const { chunkX, chunkZ, blocks } = ev.data;
-				const key = `${chunkX},${chunkZ}`;
+				const key = `${chunkX}, ${chunkZ}`;
 				renderer.chunks.push(
 					new Chunk(renderer.gl, chunkX, chunkZ, blocks)
 				);

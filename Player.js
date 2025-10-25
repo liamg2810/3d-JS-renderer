@@ -1,4 +1,4 @@
-import { enqueueChunk } from "./Scene.js";
+import { enqueueChunk, removeLoadedChunk } from "./Scene.js";
 
 export class Player {
 	HEIGHT = 2;
@@ -25,6 +25,8 @@ export class Player {
 	keyMap = new Set();
 
 	jump = 0;
+
+	flight = true;
 
 	/** @type {import("./Renderer.js").Renderer} */
 	renderer;
@@ -77,6 +79,16 @@ export class Player {
 			if (this.view.yaw > 360) this.view.yaw = 0;
 		}
 
+		if (this.flight) {
+			if (this.keyMap.has(" ")) {
+				this.position.y += 1;
+			}
+
+			if (this.keyMap.has("shift")) {
+				this.position.y -= 1;
+			}
+		}
+
 		const camX = Math.floor(this.position.x / 16);
 		const camZ = Math.floor(this.position.z / 16);
 
@@ -98,12 +110,36 @@ export class Player {
 			}
 		}
 
+		this.renderer.chunks = this.renderer.chunks.filter((c) => {
+			const unload =
+				c.x >= camX - this.renderDistance &&
+				c.x < camX + this.renderDistance &&
+				c.z >= camZ - this.renderDistance &&
+				c.z < camZ + this.renderDistance;
+
+			if (unload) {
+				removeLoadedChunk(c.x, c.z);
+			}
+
+			return unload;
+		});
+
+		if (!this.flight) {
+			this.DoGravity();
+		}
+
+		this.yVel = Math.min(2, Math.max(-10, this.yVel));
+
+		this.position.y += this.yVel;
+	}
+
+	DoGravity() {
 		if (this.jump <= 0) {
 			if (!this.IsGrounded()) {
 				this.yVel -= 0.001 * this.renderer.deltaTime;
 			} else if (this.keyMap.has(" ")) {
 				this.jump = 0.1;
-				this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
+				// this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
 			} else {
 				this.yVel = 0;
 				this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
@@ -114,10 +150,6 @@ export class Player {
 			this.jump -= j;
 			this.yVel += j;
 		}
-
-		this.yVel = Math.min(2, Math.max(-10, this.yVel));
-
-		this.position.y += this.yVel;
 	}
 
 	IsGrounded() {
