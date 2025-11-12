@@ -14,10 +14,71 @@ const BLOCKS = {
 	BEDROCK: 9,
 };
 
+/**
+ * @type {{
+ *   [key: string]: {
+ *     	baseHeight: number;
+ *     	heightVariation: number;
+ *     	terrainScale: number;
+ *     	tempCenter: number;
+ *     	humidityCenter: number;
+ * 		surfaceBlock: BLOCKS;
+ * 		treeChance: number
+ *   }
+ * }}
+ */
+const BIOMES = {
+	PLAINS: {
+		baseHeight: 68,
+		terrainScale: 0.02,
+		heightVariation: 6,
+		surfaceBlock: BLOCKS.GRASS,
+		tempCenter: 0.5,
+		humidityCenter: 0.5,
+		treeChance: 0.01,
+	},
+	DESERT: {
+		baseHeight: 70,
+		terrainScale: 0.03,
+		heightVariation: 3,
+		surfaceBlock: BLOCKS.SAND,
+		tempCenter: 0.7,
+		humidityCenter: 0.3,
+		treeChance: 0,
+	},
+	MOUNTAINS: {
+		baseHeight: 72,
+		terrainScale: 0.05,
+		heightVariation: 32,
+		surfaceBlock: BLOCKS.STONE,
+		tempCenter: 0.3,
+		humidityCenter: 0.7,
+		treeChance: 0,
+	},
+	GRASSLANDS: {
+		baseHeight: 64,
+		terrainScale: 0.025,
+		heightVariation: 12,
+		surfaceBlock: BLOCKS.GRASS,
+		tempCenter: 0.6,
+		humidityCenter: 0.5,
+		treeChance: 0.05,
+	},
+	TAIGA: {
+		baseHeight: 64,
+		terrainScale: 0.025,
+		heightVariation: 12,
+		surfaceBlock: BLOCKS.GRASS,
+		tempCenter: 0.2,
+		humidityCenter: 0.2,
+		treeChance: 0.05,
+	},
+};
+
 const CHUNKSIZE = 16;
 const TERRAIN_NOISE_SCALE = 0.025;
-const TEMPERATURE_NOISE_SCALE = 0.005;
-const HUMIDITY_NOISE_SCALE = 0.02;
+const TEMPERATURE_NOISE_SCALE = 0.001;
+const HUMIDITY_NOISE_SCALE = 0.002;
 const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 5;
 const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
 
@@ -69,71 +130,92 @@ function BuildChunk(chunkX, chunkZ, seed) {
 		for (let z = 0; z < CHUNKSIZE; z++) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 
+			let temp = perlin2D.perlin2D(
+				worldX * TEMPERATURE_NOISE_SCALE,
+				worldZ * TEMPERATURE_NOISE_SCALE
+			);
+			let humidity = perlin2D.perlin2D(
+				worldX * HUMIDITY_NOISE_SCALE,
+				worldZ * HUMIDITY_NOISE_SCALE
+			);
+
+			temp = (temp + 1) / 2;
+			humidity = (humidity + 1) / 2;
+
+			let biomes = Biome(temp, humidity);
+
+			let chosenBiome = BIOMES.PLAINS;
+
+			let height = 0;
+			let terrainScale = 0;
+			let heightVariation = 0;
+			let maxWeight = 0;
+
+			for (const b of biomes) {
+				if (maxWeight < b.weight) {
+					chosenBiome = b.biome;
+				}
+
+				height += b.biome.baseHeight * b.weight;
+				terrainScale += b.biome.terrainScale * b.weight;
+				heightVariation += b.biome.heightVariation * b.weight;
+			}
+
+			let block = chosenBiome.surfaceBlock;
+
 			let elevation =
-				perlin2D.perlin2D(
-					worldX * TERRAIN_NOISE_SCALE,
-					worldZ * TERRAIN_NOISE_SCALE
+				height +
+				(perlin2D.perlin2D(
+					worldX * terrainScale,
+					worldZ * terrainScale
 				) +
-				0.5 *
-					perlin2D.perlin2D(
-						2 * worldX * TERRAIN_NOISE_SCALE,
-						2 * worldZ * TERRAIN_NOISE_SCALE
-					) +
-				0.25 *
-					perlin2D.perlin2D(
-						4 * worldX * TERRAIN_NOISE_SCALE,
-						4 * worldZ * TERRAIN_NOISE_SCALE
-					) +
-				1;
+					1) *
+					heightVariation;
 
-			// elevation = elevation / (1 + 0.5 + 0.25);
+			elevation = Math.round(elevation);
 
-			const temp =
-				perlin2D.perlin2D(
-					worldX * TEMPERATURE_NOISE_SCALE,
-					worldZ * TEMPERATURE_NOISE_SCALE
-				) + 0.5;
-			const humidity =
-				perlin2D.perlin2D(
-					worldX * HUMIDITY_NOISE_SCALE,
-					worldZ * HUMIDITY_NOISE_SCALE
-				) + 0.5;
-
-			let block = Biome(elevation, temp, humidity);
-
-			if (elevation < 0.4) {
+			if (elevation < 64) {
 				const b = BLOCKS.WATER;
-				blocks[x + z * CHUNKSIZE + 68 * MAX_HEIGHT] = b;
+				blocks[x + z * CHUNKSIZE + 64 * MAX_HEIGHT] = b;
 
-				elevation -= 0.1;
+				elevation -= 1;
 				block = BLOCKS.SAND;
 			}
 
-			const height = Math.round(elevation * 10) + 64;
-
 			const b = block;
 
-			blocks[x + z * CHUNKSIZE + height * MAX_HEIGHT] = b;
+			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] = b;
 
 			const treeNoise = Math.random();
 
 			// no trees <#-#>
-			if (elevation > 0.4 && block === BLOCKS.GRASS && treeNoise > 0.99) {
-				const tree = DrawTree(x, height, z);
+			if (elevation > 64 && treeNoise > 1 - chosenBiome.treeChance) {
+				let tree = [];
+
+				if (
+					chosenBiome === BIOMES.PLAINS ||
+					chosenBiome === BIOMES.GRASSLANDS
+				) {
+					tree = DrawPlainsTree(x, elevation, z);
+				}
+
+				if (chosenBiome === BIOMES.TAIGA) {
+					tree = DrawTaigaTree(x, elevation, z);
+				}
 
 				tree.forEach((b) => {
 					blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] = b.block;
 				});
 			}
 
-			for (let y = height - 1; y > 2; y--) {
+			for (let y = elevation - 1; y > 2; y--) {
 				let caveVal = 0.35;
 
-				if (y < height / 1.5) {
+				if (y < elevation / 1.5) {
 					caveVal = 0.425;
 				}
 
-				if (y < height / 2) {
+				if (y < elevation / 2) {
 					caveVal = 0.5;
 				}
 
@@ -149,11 +231,11 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					belowB = BLOCKS.COAL;
 				}
 
-				if (y >= height - 3) {
+				if (y >= elevation - 3) {
 					belowB = BLOCKS.DIRT;
 				}
 
-				if (y < height - 3) {
+				if (y < elevation - 3) {
 					const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
 					if (nVal < caveVal) {
@@ -181,7 +263,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
  * @param {number} grassZ
  * @returns {{x: number, y: number, z: number, block: BLOCKS}[]}
  */
-function DrawTree(grassX, grassY, grassZ) {
+function DrawPlainsTree(grassX, grassY, grassZ) {
 	let blocks = [];
 
 	const treeTop = Math.round(Math.random() * 1 + 2);
@@ -219,16 +301,99 @@ function DrawTree(grassX, grassY, grassZ) {
 
 /**
  *
- * @param {number} e
+ * @param {number} grassX
+ * @param {number} grassY
+ * @param {number} grassZ
+ * @returns {{x: number, y: number, z: number, block: BLOCKS}[]}
+ */
+function DrawTaigaTree(grassX, grassY, grassZ) {
+	let blocks = [];
+
+	const treeTop = Math.round(Math.random() * 1 + 5);
+
+	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
+		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.LOG });
+	}
+
+	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
+		for (let x = grassX - 1; x <= grassX + 1; x++) {
+			for (let z = grassZ - 1; z <= grassZ + 1; z++) {
+				if (x < 0 || z < 0 || x >= CHUNKSIZE || z >= CHUNKSIZE)
+					continue;
+
+				if (x === grassX && z === grassZ && y < treeTop + grassY + 2) {
+					continue;
+				}
+
+				if (y === treeTop + grassY + 2) {
+					if (x === grassX - 1 && z === grassZ - 1) continue;
+					if (x === grassX - 1 && z === grassZ + 1) continue;
+					if (x === grassX + 1 && z === grassZ - 1) continue;
+					if (x === grassX + 1 && z === grassZ + 1) continue;
+				}
+
+				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
+					continue;
+
+				blocks.push({ x, y, z, block: BLOCKS.LEAVES });
+			}
+		}
+	}
+	return blocks;
+}
+
+/**
+ *
  * @param {number} temp
  * @param {number} humidity
+ * @returns {{biome: BIOMES, weight: number}[]}
  */
-function Biome(e, temp, humidity) {
-	if (e < 0.45 && e > 0.4) return BLOCKS.SAND;
-	if (e > 1.4 && temp <= 0.6) return BLOCKS.STONE;
-	if (temp > 0.6 && humidity < 0.4) return BLOCKS.SAND;
-	// if (temp < 0.3 && e > 1.0) return textures.STONE;
-	return BLOCKS.GRASS;
+function Biome(temp, humidity) {
+	/** @type {{biome: BIOMES, weight: number}[]} */
+	let biomes = [];
+
+	const biome_radius = 0.4;
+
+	for (const [key, value] of Object.entries(BIOMES)) {
+		if (isNaN(temp) || isNaN(humidity)) console.warn(temp, humidity);
+
+		const dx = temp - value.tempCenter;
+		const dy = humidity - value.humidityCenter;
+
+		if (!isFinite(dx) || !isFinite(dy)) {
+			console.warn("INFINITE DISTANCE:");
+			console.warn(temp, value.tempCenter);
+			console.warn(humidity, value.humidityCenter);
+			continue;
+		}
+
+		const distance = Math.sqrt(dx * dx + dy * dy);
+
+		if (distance > biome_radius) continue;
+
+		const weight = Math.pow(1 - distance / biome_radius, 2);
+
+		biomes.push({ biome: value, weight: weight });
+	}
+
+	if (biomes.length === 0) {
+		console.warn(
+			`No valid biomes for ${temp}, ${humidity}. Defaulting to PLAINS`
+		);
+		return [{ biome: BIOMES.PLAINS, weight: 1 }];
+	}
+
+	let weightSum = 0;
+
+	for (const b of biomes) {
+		weightSum += b.weight;
+	}
+
+	for (const b of biomes) {
+		b.weight = b.weight / weightSum;
+	}
+
+	return biomes;
 }
 
 /**

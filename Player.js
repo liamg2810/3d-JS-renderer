@@ -24,7 +24,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 2;
+	renderDistance = 8;
 
 	keyMap = new Set();
 
@@ -83,7 +83,7 @@ export class Player {
 
 		this.position.x = newX;
 
-		if (this.IsColliding()) {
+		if (this.IsColliding() && !this.flight) {
 			this.position.x = oldX;
 		}
 
@@ -91,7 +91,7 @@ export class Player {
 
 		this.position.z = newZ;
 
-		if (this.IsColliding()) {
+		if (this.IsColliding() && !this.flight) {
 			this.position.z = oldZ;
 		}
 
