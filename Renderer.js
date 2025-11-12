@@ -491,8 +491,8 @@ export class Renderer {
 			projectionMatrix,
 			(45 * Math.PI) / 180,
 			this.canvas.width / this.canvas.height,
-			this.near,
-			this.far
+			this.player.near,
+			this.player.far
 		);
 
 		// View matrix (camera)
@@ -500,12 +500,12 @@ export class Renderer {
 		mat4.rotateX(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.pitch * Math.PI) / 180
+			(-this.player.view.pitch * Math.PI) / 180
 		);
 		mat4.rotateY(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.yaw * Math.PI) / 180
+			(-this.player.view.yaw * Math.PI) / 180
 		);
 		mat4.translate(viewMatrix, viewMatrix, [
 			-this.player.position.x,

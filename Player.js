@@ -1,7 +1,11 @@
 import { enqueueChunk, isQueueing, removeLoadedChunk } from "./Scene.js";
 
+const worldPosDebug = document.getElementById("world-pos");
+const blockPosDebug = document.getElementById("block-pos");
+const chunkPosDebug = document.getElementById("chunk-pos");
+
 export class Player {
-	HEIGHT = 2;
+	HEIGHT = 1.8;
 
 	position = {
 		x: 0,
@@ -24,9 +28,10 @@ export class Player {
 
 	keyMap = new Set();
 
-	jump = 0;
+	jumpPower = 0.5;
+	gravity = 0.5;
 
-	flight = false;
+	flight = true;
 
 	/** @type {import("./Renderer.js").Renderer} */
 	renderer;
@@ -51,24 +56,43 @@ export class Player {
 		const dx = speed * Math.sin((this.view.yaw * Math.PI) / 180);
 		const dz = speed * Math.cos((this.view.yaw * Math.PI) / 180);
 
+		let newX = this.position.x;
+		let newZ = this.position.z;
+
 		if (this.keyMap.has("w")) {
-			this.position.x -= dx;
-			this.position.z -= dz;
+			newX -= dx;
+			newZ -= dz;
 		}
 
 		if (this.keyMap.has("s")) {
-			this.position.x += dx;
-			this.position.z += dz;
+			newX += dx;
+			newZ += dz;
 		}
 
 		if (this.keyMap.has("a")) {
-			this.position.x -= dz;
-			this.position.z += dx;
+			newX -= dz;
+			newZ += dx;
 		}
 
 		if (this.keyMap.has("d")) {
-			this.position.x += dz;
-			this.position.z -= dx;
+			newX += dz;
+			newZ -= dx;
+		}
+
+		const oldX = this.position.x;
+
+		this.position.x = newX;
+
+		if (this.IsColliding()) {
+			this.position.x = oldX;
+		}
+
+		const oldZ = this.position.z;
+
+		this.position.z = newZ;
+
+		if (this.IsColliding()) {
+			this.position.z = oldZ;
 		}
 
 		if (this.keyMap.has("ArrowRight")) {
@@ -123,13 +147,38 @@ export class Player {
 			}
 		}
 
+		let lastY = this.position.y;
+
 		if (!this.flight) {
 			this.DoGravity();
+
+			if (this.IsColliding()) {
+				this.position.y = lastY;
+				this.yVel = 0;
+			}
 		}
 
 		this.yVel = Math.min(2, Math.max(-10, this.yVel));
 
-		this.position.y += this.yVel;
+		this.SetDebugs();
+	}
+
+	SetDebugs() {
+		worldPosDebug.innerText = `Position: ${
+			Math.round(this.position.x * 10) / 10
+		} ${Math.round(this.position.y * 10) / 10} ${
+			Math.round(this.position.z * 10) / 10
+		}`;
+
+		const bx = Math.floor(Math.abs(this.position.x)) % 16;
+		const bz = Math.floor(Math.abs(this.position.z)) % 16;
+
+		blockPosDebug.innerText = `Block: ${
+			this.position.x > 0 ? bx : 15 - bx
+		} ${Math.round(this.position.y)} ${this.position.z > 0 ? bz : 15 - bz}`;
+		chunkPosDebug.innerText = `Chunk: ${Math.floor(
+			this.position.x / 16
+		)} ${Math.floor(this.position.z / 16)}`;
 	}
 
 	LoadChunks() {
@@ -170,30 +219,43 @@ export class Player {
 	}
 
 	DoGravity() {
-		if (this.jump <= 0) {
-			if (!this.IsGrounded()) {
-				this.yVel -= 0.01 * this.renderer.deltaTime;
-			} else if (this.keyMap.has(" ")) {
-				this.jump = 0.1;
-				// this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
-			} else {
+		const g =
+			this.gravity *
+			Math.min(Math.max(this.renderer.deltaTime, 0.05), 0.2);
+
+		if (this.IsGrounded()) {
+			if (this.keyMap.has(" ") && this.yVel <= 0) {
+				console.log("jump");
+				this.yVel = this.jumpPower;
+			} else if (
+				this.yVel <= 0 &&
+				this.position.y - Math.floor(this.position.y) < 0.1
+			) {
 				this.yVel = 0;
-				this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
+				this.position.y = Math.floor(this.position.y);
 			}
 		} else {
-			const j = Math.max(this.jump / 2, 0.005);
-
-			this.jump -= j;
-			this.yVel += j;
+			this.yVel -= g;
 		}
+
+		this.position.y += this.yVel;
 	}
 
 	IsGrounded() {
 		// Camera chunk coordinates
 		const camChunkX = Math.floor(this.position.x / 16);
 		const camChunkZ = Math.floor(this.position.z / 16);
-		const camBlockX = Math.floor(Math.abs(this.position.x)) % 16;
-		const camBlockZ = Math.floor(Math.abs(this.position.z)) % 16;
+		let camBlockX = Math.floor(Math.abs(this.position.x)) % 16;
+		let camBlockZ = Math.floor(Math.abs(this.position.z)) % 16;
+
+		if (this.position.x < 0) {
+			camBlockX = 15 - camBlockX;
+		}
+
+		if (this.position.z < 0) {
+			camBlockZ = 15 - camBlockZ;
+		}
+
 		const camY = this.position.y - this.HEIGHT;
 
 		const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
@@ -204,5 +266,52 @@ export class Player {
 			chunk.blocks[camBlockX + camBlockZ * 16 + Math.floor(camY) * 256];
 
 		return blockBelow !== 0;
+	}
+
+	IsColliding() {
+		const XZDist = 0.3;
+		const corners = [
+			[XZDist, this.HEIGHT / 4, XZDist],
+			[XZDist, this.HEIGHT / 4, -XZDist],
+			[-XZDist, this.HEIGHT / 4, -XZDist],
+			[-XZDist, this.HEIGHT / 4, XZDist],
+			[XZDist, (-3 / 4) * this.HEIGHT, XZDist],
+			[XZDist, (-3 / 4) * this.HEIGHT, -XZDist],
+			[-XZDist, (-3 / 4) * this.HEIGHT, -XZDist],
+			[-XZDist, (-3 / 4) * this.HEIGHT, XZDist],
+		];
+
+		return corners.some((c) =>
+			this.CornerCollision(
+				this.position.x + c[0],
+				this.position.y + c[1],
+				this.position.z + c[2]
+			)
+		);
+	}
+
+	CornerCollision(x, y, z) {
+		const cx = Math.floor(Math.round(x) / 16);
+		const cz = Math.floor(Math.round(z) / 16);
+
+		const chunk = this.renderer.GetChunkAtPos(cx, cz);
+
+		if (!chunk) return false;
+
+		let bx = Math.round(Math.abs(x)) % 16;
+		const fy = Math.round(y);
+		let bz = Math.round(Math.abs(z)) % 16;
+
+		if (cx < 0) {
+			bx = 16 - bx;
+		}
+
+		if (cz < 0) {
+			bz = 16 - bz;
+		}
+
+		const block = chunk.blocks[bx + bz * 16 + fy * 256];
+
+		return block !== 0;
 	}
 }

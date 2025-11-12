@@ -8,15 +8,28 @@ body {
 	background-color: #222222;
 	display: flex;
 	flex-direction: column;
+	font-family: sans-serif;
 }
 
-#fps-count {
-	color:white
+.debug {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	margin:8px;
+	position:absolute;
+}
+
+.debug span {
+	width: auto;
+	padding: 4px;
+	background-color: rgba(50, 50, 50, 0.5);
+	color:white;
 }
 
 #canvas {
-	width: 1200px;
-	height: 800px;
+	width: 100vw;
+	height: 100vh;
 	background-color: white;
 	image-rendering: pixelated;
 }

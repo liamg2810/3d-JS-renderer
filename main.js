@@ -38,3 +38,14 @@ canvas.addEventListener("mousemove", (ev) => {
 	p.view.pitch -= ev.movementY * 0.2;
 	p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
 });
+
+window.addEventListener("resize", () => {
+	ResizeCanvas();
+});
+
+function ResizeCanvas() {
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+}
+
+ResizeCanvas();
