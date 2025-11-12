@@ -200,7 +200,11 @@ export class Chunk {
 
 				const b = this.blocks[nx + nz * 16 + ny * 256];
 
-				if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
+				if (
+					b !== BLOCKS.AIR &&
+					b !== BLOCKS.WATER &&
+					b !== BLOCKS.LEAVES
+				) {
 					culled.push(ix);
 				}
 			}

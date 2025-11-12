@@ -1,40 +1,5 @@
 import * as perlin2D from "./Perlin2D.js";
 import * as perlin3D from "./Perlin3D.js";
-import { Cube, Water } from "./Primitives.js";
-
-const textures = {
-	GRASS: {
-		top: 1,
-		base: 0,
-		bottom: 8,
-	},
-	LOG: {
-		top: 4,
-		bottom: 4,
-		base: 3,
-	},
-	SAND: {
-		base: 5,
-	},
-	WATER: {
-		base: 6,
-	},
-	LEAVES: {
-		base: 2,
-	},
-	STONE: {
-		base: 7,
-	},
-	DIRT: {
-		base: 8,
-	},
-	COAL: {
-		base: 9,
-	},
-	BEDROCK: {
-		base: 10,
-	},
-};
 
 const BLOCKS = {
 	AIR: 0,
@@ -134,13 +99,14 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					worldZ * HUMIDITY_NOISE_SCALE
 				) + 0.5;
 
-			const block = Biome(elevation, temp, humidity);
+			let block = Biome(elevation, temp, humidity);
 
 			if (elevation < 0.4) {
 				const b = BLOCKS.WATER;
 				blocks[x + z * CHUNKSIZE + 68 * MAX_HEIGHT] = b;
 
 				elevation -= 0.1;
+				block = BLOCKS.SAND;
 			}
 
 			const height = Math.round(elevation * 10) + 64;
@@ -152,11 +118,13 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const treeNoise = Math.random();
 
 			// no trees <#-#>
-			// if (elevation > 0.4 && tex === textures.GRASS && treeNoise > 0.99) {
-			// 	const tree = DrawTree(x, height, z);
+			if (elevation > 0.4 && block === BLOCKS.GRASS && treeNoise > 0.99) {
+				const tree = DrawTree(x, height, z);
 
-			// 	verts.push(...tree);
-			// }
+				tree.forEach((b) => {
+					blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] = b.block;
+				});
+			}
 
 			for (let y = height - 1; y > 2; y--) {
 				let caveVal = 0.35;
@@ -211,15 +179,15 @@ function BuildChunk(chunkX, chunkZ, seed) {
  * @param {number} grassX
  * @param {number} grassY
  * @param {number} grassZ
- * @returns {number[]}
+ * @returns {{x: number, y: number, z: number, block: BLOCKS}[]}
  */
 function DrawTree(grassX, grassY, grassZ) {
-	let verts = [];
+	let blocks = [];
 
 	const treeTop = Math.round(Math.random() * 1 + 2);
 
 	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-		verts.push(...Cube(grassX, y, grassZ, textures.LOG));
+		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.LOG });
 	}
 
 	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -227,6 +195,10 @@ function DrawTree(grassX, grassY, grassZ) {
 			for (let z = grassZ - 1; z <= grassZ + 1; z++) {
 				if (x < 0 || z < 0 || x >= CHUNKSIZE || z >= CHUNKSIZE)
 					continue;
+
+				if (x === grassX && z === grassZ && y < treeTop + grassY + 2) {
+					continue;
+				}
 
 				if (y === treeTop + grassY + 2) {
 					if (x === grassX - 1 && z === grassZ - 1) continue;
@@ -238,11 +210,11 @@ function DrawTree(grassX, grassY, grassZ) {
 				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
 					continue;
 
-				verts.push(...Cube(x, y, z, textures.LEAVES));
+				blocks.push({ x, y, z, block: BLOCKS.LEAVES });
 			}
 		}
 	}
-	return verts;
+	return blocks;
 }
 
 /**

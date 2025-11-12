@@ -1,6 +1,6 @@
 import { Chunk } from "./Game.js";
 import { Player } from "./Player.js";
-import { enqueueChunk } from "./Scene.js";
+import { enqueueChunk, isQueueing } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
 let mat4 =
@@ -174,6 +174,8 @@ export class Renderer {
 	indexBuffer;
 	normalBuffer;
 
+	sceneInit = false;
+
 	/**  @type {import("./Player.js").Player}*/
 	player;
 
@@ -187,6 +189,7 @@ export class Renderer {
 		}
 
 		this.player = player;
+		player.SetRenderer(this);
 
 		/** @type {HTMLCanvasElement} */
 		this.canvas = document.getElementById("canvas");
@@ -223,7 +226,7 @@ export class Renderer {
 
 		start = Date.now();
 
-		// VoxelTerrainScene(this);
+		this.InitScene();
 
 		end = Date.now();
 
@@ -331,7 +334,21 @@ export class Renderer {
 		return this.chunks.find((c) => c.x === x && c.z === z);
 	}
 
+	InitScene() {
+		this.player.LoadChunks();
+	}
+
 	Update() {
+		if (!this.sceneInit && isQueueing()) {
+			requestAnimationFrame(() => {
+				this.Update();
+			});
+
+			return;
+		}
+
+		this.sceneInit = true;
+
 		const frameStart = performance.now();
 
 		this.player.Update();

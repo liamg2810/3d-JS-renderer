@@ -5,7 +5,6 @@ const canvas = document.getElementById("canvas");
 
 const p = new Player(8, 90, 8);
 const r = new Renderer(p);
-p.SetRenderer(r);
 r.Start();
 
 document.addEventListener("keydown", (ev) => {

@@ -26,7 +26,7 @@ export class Player {
 
 	jump = 0;
 
-	flight = true;
+	flight = false;
 
 	/** @type {import("./Renderer.js").Renderer} */
 	renderer;
@@ -172,7 +172,7 @@ export class Player {
 	DoGravity() {
 		if (this.jump <= 0) {
 			if (!this.IsGrounded()) {
-				this.yVel -= 0.001 * this.renderer.deltaTime;
+				this.yVel -= 0.01 * this.renderer.deltaTime;
 			} else if (this.keyMap.has(" ")) {
 				this.jump = 0.1;
 				// this.position.y = Math.ceil(this.position.y) - this.HEIGHT / 4;
@@ -198,36 +198,11 @@ export class Player {
 
 		const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
 
-		if (!chunk) return true;
+		if (!chunk) return false;
 
-		for (let block of chunk.blocks) {
-			const vertZ = block & 0xf;
-			const vertY = (block >>> 4) & 0xff;
-			const vertX = (block >>> 12) & 0xf;
+		const blockBelow =
+			chunk.blocks[camBlockX + camBlockZ * 16 + Math.floor(camY) * 256];
 
-			const x0 = vertX - 0.5;
-			const x1 = vertX + 0.5;
-			const y0 = vertY - 0.5;
-			const y1 = vertY + 0.5;
-			const z0 = vertZ - 0.5;
-			const z1 = vertZ + 0.5;
-
-			if (
-				camBlockX >= x0 &&
-				camBlockX <= x1 &&
-				camY >= y0 &&
-				camY <= y1 &&
-				camBlockZ >= z0 &&
-				camBlockZ <= z1
-			) {
-				// console.log(this.cam.x, x0, x1);
-				// console.log(camY, y0, y1);
-				// console.log(this.cam.z, x0, x1);
-				// console.log(camY, y1);
-				return true;
-			}
-		}
-
-		return false;
+		return blockBelow !== 0;
 	}
 }
