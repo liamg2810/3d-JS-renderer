@@ -81,6 +81,7 @@ const TEMPERATURE_NOISE_SCALE = 0.001;
 const HUMIDITY_NOISE_SCALE = 0.002;
 const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 5;
 const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
+const WATER_LEVEL = 72;
 
 const MAX_HEIGHT = 256;
 
@@ -174,9 +175,9 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 			elevation = Math.round(elevation);
 
-			if (elevation < 64) {
+			if (elevation < WATER_LEVEL) {
 				const b = BLOCKS.WATER;
-				blocks[x + z * CHUNKSIZE + 64 * MAX_HEIGHT] = b;
+				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
 				elevation -= 1;
 				block = BLOCKS.SAND;
@@ -189,7 +190,11 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const treeNoise = Math.random();
 
 			// no trees <#-#>
-			if (elevation > 64 && treeNoise > 1 - chosenBiome.treeChance) {
+			if (
+				elevation > 64 &&
+				block === BLOCKS.GRASS &&
+				treeNoise > 1 - chosenBiome.treeChance
+			) {
 				let tree = [];
 
 				if (

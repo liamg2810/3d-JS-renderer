@@ -130,8 +130,8 @@ export class Chunk {
 					const nextChunk = this.r.GetChunkAtPos(this.x + 1, this.z);
 
 					if (nextChunk === undefined) {
-						console.warn("Next chunk not found, drawing face!");
-						continue;
+						console.warn("Next chunk not found!");
+						return;
 					}
 
 					// nx = 0
