@@ -284,6 +284,10 @@ export class Renderer {
 						this.shaderProgram,
 						"uChunkPos"
 					),
+					uTimePos: this.gl.getUniformLocation(
+						this.shaderProgram,
+						"uTime"
+					),
 				},
 			},
 			color: {
@@ -425,6 +429,11 @@ export class Renderer {
 			this.programInfo.default.uniformLocations.normalMatrix,
 			false,
 			normalMatrix
+		);
+
+		this.gl.uniform1f(
+			this.programInfo.default.uniformLocations.uTimePos,
+			performance.now()
 		);
 
 		this.gl.activeTexture(this.gl.TEXTURE0);

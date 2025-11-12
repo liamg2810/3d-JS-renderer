@@ -20,6 +20,8 @@ uniform mat4 uNormalMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
+uniform float uTime;
+
 const vec3 offsets[8] = vec3[](
 	vec3(-0.5,0.5,-0.5), 
 	vec3(0.5,0.5,-0.5), 
@@ -98,6 +100,10 @@ vec2 getFaceUV(uint cID, uint dir) {
 	return baseUVs[idx];
 }
 
+float getWaterY() {
+	return mod(uTime / 100.0, 32.0);
+}
+
 void main() {
 	uint vertZ = aVertex & uint(0xF);
 	uint vertY = (aVertex >> 4) & uint(0xFF);
@@ -123,10 +129,16 @@ void main() {
 	uint atlasRows = 32u;
 
 	uint col = texture % uint(atlasCols);
+	
 	uint row = texture / uint(atlasCols);
+
+	if (texture == 6u) {
+		row = uint(getWaterY());
+	}
 
 	vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
 	vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
+
 
 	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
 

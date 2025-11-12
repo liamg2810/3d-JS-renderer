@@ -31,6 +31,10 @@ canvas.addEventListener("click", (ev) => {
 });
 
 canvas.addEventListener("mousemove", (ev) => {
+	if (!document.pointerLockElement) {
+		return;
+	}
+
 	p.view.yaw -= ev.movementX * 0.3;
 	p.view.pitch -= ev.movementY * 0.2;
 	p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
