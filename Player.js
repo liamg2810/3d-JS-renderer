@@ -129,21 +129,19 @@ export class Player {
 			this.LoadChunks();
 		}
 
-		if (!isQueueing()) {
-			const visibleChunks = this.renderer.chunks.filter((c) => {
-				const unload =
-					c.x >= camX - this.renderDistance &&
-					c.x <= camX + this.renderDistance &&
-					c.z >= camZ - this.renderDistance &&
-					c.z <= camZ + this.renderDistance;
+		const visibleChunks = this.renderer.chunks.filter((c) => {
+			const unload =
+				c.x >= camX - this.renderDistance &&
+				c.x <= camX + this.renderDistance &&
+				c.z >= camZ - this.renderDistance &&
+				c.z <= camZ + this.renderDistance;
 
-				return unload;
-			});
+			return unload;
+		});
 
-			for (const c of visibleChunks) {
-				if (!c.builtVerts) {
-					c.BuildVerts();
-				}
+		for (const c of visibleChunks) {
+			if (!c.builtVerts) {
+				c.BuildVerts();
 			}
 		}
 

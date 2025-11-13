@@ -25,15 +25,18 @@ function grad2(hash, x, y) {
 }
 
 export function perlin2D(x, y) {
-	const X = Math.floor(x) & 255;
-	const Y = Math.floor(y) & 255;
+	const xi = Math.floor(x) % 256;
+	const yi = Math.floor(y) % 256;
 	const xf = x - Math.floor(x);
 	const yf = y - Math.floor(y);
 
-	const topRight = perm[X + 1 + perm[Y + 1]];
-	const topLeft = perm[X + perm[Y + 1]];
-	const bottomRight = perm[X + 1 + perm[Y]];
-	const bottomLeft = perm[X + perm[Y]];
+	const X = ((xi % 256) + 256) % 256;
+	const Y = ((yi % 256) + 256) % 256;
+
+	const topRight = perm[(X + 1 + perm[(Y + 1) & 255]) & 255];
+	const topLeft = perm[(X + perm[(Y + 1) & 255]) & 255];
+	const bottomRight = perm[(X + 1 + perm[Y & 255]) & 255];
+	const bottomLeft = perm[(X + perm[Y & 255]) & 255];
 
 	const u = fade(xf);
 	const v = fade(yf);
