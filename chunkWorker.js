@@ -312,7 +312,7 @@ function Biome(temp, humidity) {
 	/** @type {{biome: BIOMES, weight: number}[]} */
 	let biomes = [];
 
-	const biome_radius = 0.4;
+	const biome_radius = 0.2;
 
 	for (const [key, value] of Object.entries(BIOMES)) {
 		if (isNaN(temp) || isNaN(humidity)) console.warn(temp, humidity);

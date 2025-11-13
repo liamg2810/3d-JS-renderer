@@ -110,16 +110,16 @@ export const BIOMES = {
 		terrainScale: 0.025,
 		heightVariation: 12,
 		surfaceBlock: BLOCKS.GRASS,
-		tempCenter: 0.2,
-		humidityCenter: 0.2,
+		tempCenter: 0.3,
+		humidityCenter: 0.3,
 		treeChance: 0.05,
 	},
 };
 
 export const CHUNKSIZE = 16;
 export const TERRAIN_NOISE_SCALE = 0.025;
-export const TEMPERATURE_NOISE_SCALE = 0.05;
-export const HUMIDITY_NOISE_SCALE = 0.01;
+export const TEMPERATURE_NOISE_SCALE = 0.005;
+export const HUMIDITY_NOISE_SCALE = 0.001;
 export const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 5;
 export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
 export const WATER_LEVEL = 72;

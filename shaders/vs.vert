@@ -5,8 +5,8 @@
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // CID = 0-7 = 3 bits
 // DIRECTION = 0-5 = 3 bits
-// TEXTURE = 0-63 = 8 bits
-// TOTAL BITS = 30
+// TEXTURE = 0-63 = 6 bits
+// TOTAL BITS = 28
 
 // CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
 // 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
@@ -112,7 +112,7 @@ void main() {
 
 	uint cID = (aVertex >> 16) & uint(0x7);
 	uint dir = (aVertex >> 19) & uint(0x7);
-	uint texture = (aVertex >> 22) & uint(0xFF);
+	uint texture = (aVertex >> 22) & uint(0x3F);
 
 	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 	

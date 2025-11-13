@@ -63,8 +63,6 @@ export class Chunk {
 	}
 
 	BuildVerts() {
-		console.log(`Building verts for chunk ${this.x}, ${this.z}`);
-
 		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
