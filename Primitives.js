@@ -68,7 +68,8 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111) {
 		// BACK face normal
 		5,
 	];
-	const verts = new Uint32Array(corners.length);
+
+	let out = [];
 
 	for (let [ix, cID] of corners.entries()) {
 		const dir = directions[Math.floor(ix / 6)];
@@ -98,10 +99,10 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111) {
 
 		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
 
-		verts[ix] = vert;
+		out.push(vert >>> 0);
 	}
 
-	return verts;
+	return new Uint32Array(out);
 }
 
 /**

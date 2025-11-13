@@ -460,6 +460,8 @@ export class Renderer {
 			0
 		);
 
+		let chunksWithWater = [];
+
 		for (let chunk of this.chunks) {
 			this.gl.uniform2f(
 				this.programInfo.default.uniformLocations.uChunkPos,
@@ -480,7 +482,34 @@ export class Renderer {
 			);
 
 			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount);
+
+			if (chunk.waterVertCount > 0) {
+				chunksWithWater.push(chunk);
+			}
 		}
+
+		for (const chunk of chunksWithWater) {
+			this.gl.uniform2f(
+				this.programInfo.default.uniformLocations.uChunkPos,
+				chunk.x * 16,
+				chunk.z * 16
+			);
+
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.waterBuffer);
+			this.gl.vertexAttribIPointer(
+				this.programInfo.default.attribLocations.vertexPosition,
+				1,
+				this.gl.UNSIGNED_INT,
+				0,
+				0
+			);
+			this.gl.enableVertexAttribArray(
+				this.programInfo.default.attribLocations.vertexPosition
+			);
+
+			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.waterVertCount);
+		}
+
 		this.DrawChunkBorders();
 	}
 

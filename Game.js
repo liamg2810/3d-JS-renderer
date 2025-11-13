@@ -24,6 +24,7 @@ const blockTextureMap = {
 
 export class Chunk {
 	vertCount = 0;
+	waterVertCount = 0;
 
 	x = 0;
 	z = 0;
@@ -60,12 +61,16 @@ export class Chunk {
 		this.gl = gl;
 
 		this.blockBuffer = gl.createBuffer();
+		this.waterBuffer = gl.createBuffer();
 	}
 
 	BuildVerts() {
 		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
+
+		const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
+		let waterVi = 0;
 
 		const neighborChunks = {
 			px: this.r.GetChunkAtPos(this.x + 1, this.z),
@@ -106,8 +111,8 @@ export class Chunk {
 
 			if (block === BLOCKS.WATER) {
 				const w = Water(x, y, z, TEXTURES.WATER);
-				verts.set(w, vi);
-				vi += w.length;
+				waterVerts.set(w, waterVi);
+				waterVi += w.length;
 				continue;
 			}
 
@@ -145,6 +150,18 @@ export class Chunk {
 		);
 
 		this.vertCount = vi;
+
+		if (waterVi > 0) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.waterBuffer);
+			this.gl.bufferData(
+				this.gl.ARRAY_BUFFER,
+				waterVerts.subarray(0, waterVi),
+				this.gl.STATIC_DRAW
+			);
+
+			this.waterVertCount = waterVi;
+		}
+
 		this.builtVerts = true;
 	}
 }

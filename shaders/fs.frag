@@ -9,13 +9,14 @@ uniform sampler2D uSampler;
 
 out vec4 fragColor;
 
-void main(void) {
+void main() {
 	highp vec4 texelColor = texture(uSampler, vTextureCoord);
 
-		texelColor.rgb *= vTint;
-	
+	texelColor.rgb *= vTint;
 
-		if (texelColor.a <= 0.0) { discard; }
+
+	if (texelColor.a <= 0.0) { discard; }
+
 	fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
 }
   

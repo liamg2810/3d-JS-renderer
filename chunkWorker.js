@@ -337,9 +337,9 @@ function Biome(temp, humidity) {
 	}
 
 	if (biomes.length === 0) {
-		console.warn(
-			`No valid biomes for ${temp}, ${humidity}. Defaulting to PLAINS`
-		);
+		// console.warn(
+		// 	`No valid biomes for ${temp}, ${humidity}. Defaulting to PLAINS`
+		// );
 		return [{ biome: BIOMES.PLAINS, weight: 1 }];
 	}
 
