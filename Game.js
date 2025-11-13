@@ -32,6 +32,14 @@ const textures = {
 	BEDROCK: {
 		base: 10,
 	},
+	SPRUCE_LEAVES: {
+		base: 14,
+	},
+	SPRUCE_LOG: {
+		base: 11,
+		top: 12,
+		bottom: 12,
+	},
 };
 
 const BLOCKS = {
@@ -45,6 +53,8 @@ const BLOCKS = {
 	DIRT: 7,
 	COAL: 8,
 	BEDROCK: 9,
+	SPRUCE_LEAVES: 10,
+	SPRUCE_LOG: 11,
 };
 
 export class Chunk {
@@ -136,8 +146,12 @@ export class Chunk {
 
 					// nx = 0
 					const b = nextChunk.blocks[nz * 16 + ny * 256];
-
-					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
+					if (
+						b !== BLOCKS.AIR &&
+						b !== BLOCKS.WATER &&
+						b !== BLOCKS.LEAVES &&
+						b !== BLOCKS.SPRUCE_LEAVES
+					) {
 						culled.push(ix);
 					}
 					continue;
@@ -153,8 +167,12 @@ export class Chunk {
 
 					// nx = 15
 					const b = nextChunk.blocks[15 + nz * 16 + ny * 256];
-
-					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
+					if (
+						b !== BLOCKS.AIR &&
+						b !== BLOCKS.WATER &&
+						b !== BLOCKS.LEAVES &&
+						b !== BLOCKS.SPRUCE_LEAVES
+					) {
 						culled.push(ix);
 					}
 					continue;
@@ -172,8 +190,12 @@ export class Chunk {
 
 					// nz = 0
 					const b = nextChunk.blocks[nx + ny * 256];
-
-					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
+					if (
+						b !== BLOCKS.AIR &&
+						b !== BLOCKS.WATER &&
+						b !== BLOCKS.LEAVES &&
+						b !== BLOCKS.SPRUCE_LEAVES
+					) {
 						culled.push(ix);
 					}
 					continue;
@@ -192,7 +214,12 @@ export class Chunk {
 					// nz = 15
 					const b = nextChunk.blocks[nx + 15 * 16 + ny * 256];
 
-					if (b !== BLOCKS.AIR && b !== BLOCKS.WATER) {
+					if (
+						b !== BLOCKS.AIR &&
+						b !== BLOCKS.WATER &&
+						b !== BLOCKS.LEAVES &&
+						b !== BLOCKS.SPRUCE_LEAVES
+					) {
 						culled.push(ix);
 					}
 					continue;
@@ -203,7 +230,8 @@ export class Chunk {
 				if (
 					b !== BLOCKS.AIR &&
 					b !== BLOCKS.WATER &&
-					b !== BLOCKS.LEAVES
+					b !== BLOCKS.LEAVES &&
+					b !== BLOCKS.SPRUCE_LEAVES
 				) {
 					culled.push(ix);
 				}
@@ -219,6 +247,8 @@ export class Chunk {
 				[BLOCKS.LEAVES]: textures.LEAVES,
 				[BLOCKS.DIRT]: textures.DIRT,
 				[BLOCKS.COAL]: textures.COAL,
+				[BLOCKS.SPRUCE_LEAVES]: textures.SPRUCE_LEAVES,
+				[BLOCKS.SPRUCE_LOG]: textures.SPRUCE_LOG,
 			};
 
 			tex = blockTextureMap[block] ?? tex;

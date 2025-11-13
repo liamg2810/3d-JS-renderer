@@ -12,6 +12,8 @@ const BLOCKS = {
 	DIRT: 7,
 	COAL: 8,
 	BEDROCK: 9,
+	SPRUCE_LEAVES: 10,
+	SPRUCE_LOG: 11,
 };
 
 /**
@@ -42,7 +44,7 @@ const BIOMES = {
 		terrainScale: 0.03,
 		heightVariation: 3,
 		surfaceBlock: BLOCKS.SAND,
-		tempCenter: 0.7,
+		tempCenter: 0.5,
 		humidityCenter: 0.3,
 		treeChance: 0,
 	},
@@ -52,7 +54,7 @@ const BIOMES = {
 		heightVariation: 32,
 		surfaceBlock: BLOCKS.STONE,
 		tempCenter: 0.3,
-		humidityCenter: 0.7,
+		humidityCenter: 0.5,
 		treeChance: 0,
 	},
 	GRASSLANDS: {
@@ -209,6 +211,13 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				}
 
 				tree.forEach((b) => {
+					if (
+						blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] !==
+						BLOCKS.AIR
+					) {
+						return;
+					}
+
 					blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] = b.block;
 				});
 			}
@@ -314,10 +323,10 @@ function DrawPlainsTree(grassX, grassY, grassZ) {
 function DrawTaigaTree(grassX, grassY, grassZ) {
 	let blocks = [];
 
-	const treeTop = Math.round(Math.random() * 1 + 5);
+	const treeTop = Math.round(Math.random() * 1 + 10);
 
 	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.LOG });
+		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.SPRUCE_LOG });
 	}
 
 	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -340,10 +349,31 @@ function DrawTaigaTree(grassX, grassY, grassZ) {
 				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
 					continue;
 
-				blocks.push({ x, y, z, block: BLOCKS.LEAVES });
+				blocks.push({ x, y, z, block: BLOCKS.SPRUCE_LEAVES });
 			}
 		}
 	}
+
+	for (let y = treeTop + grassY - 2; y > treeTop + grassY - 8; y -= 2) {
+		for (let x = grassX - 2; x <= grassX + 2; x++) {
+			for (let z = grassZ - 2; z <= grassZ + 2; z++) {
+				if (x < 0 || z < 0 || x >= CHUNKSIZE || z >= CHUNKSIZE)
+					continue;
+
+				if (x === grassX && z === grassZ) {
+					continue;
+				}
+
+				if (x === grassX - 2 && z === grassZ - 2) continue;
+				if (x === grassX - 2 && z === grassZ + 2) continue;
+				if (x === grassX + 2 && z === grassZ - 2) continue;
+				if (x === grassX + 2 && z === grassZ + 2) continue;
+
+				blocks.push({ x, y, z, block: BLOCKS.SPRUCE_LEAVES });
+			}
+		}
+	}
+
 	return blocks;
 }
 

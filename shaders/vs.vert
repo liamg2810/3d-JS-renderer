@@ -44,6 +44,7 @@ const vec3 normals[6] = vec3[](
 
 out highp vec2 vTextureCoord;
 out highp vec3 vLighting;
+out highp vec3 vTint;
 
 vec2 getFaceUV(uint cID, uint dir) {
 	// Base UVs for the corners of a face
@@ -141,6 +142,14 @@ void main() {
 
 
 	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
+
+	vec3 tint = vec3(1.0, 1.0, 1.0);
+
+	if (texture == 14u) {
+		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
+	}
+
+	vTint = tint;
 
 	// Apply lighting effect
 
