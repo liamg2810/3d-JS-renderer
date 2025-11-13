@@ -17,10 +17,10 @@
  * @param {number} y
  * @param {number} z
  * @param {{top?: number; base: number; bottom?: number}} tex
- * @param {number[]} culledFaces
+ * @param {number} culledFaces
  * @returns {Uint32Array}
  */
-export function Cube(x, y, z, tex, culledFaces = []) {
+export function Cube(x, y, z, tex, culledFaces = 0b111111) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -73,10 +73,7 @@ export function Cube(x, y, z, tex, culledFaces = []) {
 
 	for (let [ix, cID] of corners.entries()) {
 		const dir = directions[Math.floor(ix / 6)];
-
-		if (culledFaces.includes(dir)) {
-			continue;
-		}
+		if (!((culledFaces >> dir) & 0b1)) continue;
 		let tId;
 
 		switch (dir) {

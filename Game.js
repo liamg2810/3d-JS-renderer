@@ -1,61 +1,14 @@
 import { Cube, Water } from "./Primitives.js";
+import { BLOCKS, TEXTURES } from "./constants.js";
 
-const textures = {
-	GRASS: {
-		top: 1,
-		base: 0,
-		bottom: 8,
-	},
-	LOG: {
-		top: 4,
-		bottom: 4,
-		base: 3,
-	},
-	SAND: {
-		base: 5,
-	},
-	WATER: {
-		base: 6,
-	},
-	LEAVES: {
-		base: 2,
-	},
-	STONE: {
-		base: 7,
-	},
-	DIRT: {
-		base: 8,
-	},
-	COAL: {
-		base: 9,
-	},
-	BEDROCK: {
-		base: 10,
-	},
-	SPRUCE_LEAVES: {
-		base: 14,
-	},
-	SPRUCE_LOG: {
-		base: 11,
-		top: 12,
-		bottom: 12,
-	},
-};
-
-const BLOCKS = {
-	AIR: 0,
-	GRASS: 1,
-	LOG: 2,
-	SAND: 3,
-	WATER: 4,
-	LEAVES: 5,
-	STONE: 6,
-	DIRT: 7,
-	COAL: 8,
-	BEDROCK: 9,
-	SPRUCE_LEAVES: 10,
-	SPRUCE_LOG: 11,
-};
+const neighbors = [
+	[0, 1, 0],
+	[0, -1, 0],
+	[-1, 0, 0],
+	[1, 0, 0],
+	[0, 0, 1],
+	[0, 0, -1],
+];
 
 export class Chunk {
 	vertCount = 0;
@@ -98,46 +51,47 @@ export class Chunk {
 	}
 
 	BuildVerts() {
-		let v = [];
-		let water = [];
+		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
+		const verts = new Uint32Array(estimatedMaxVerts);
+		let vi = 0;
+
+		const neighborChunks = {
+			px: this.r.GetChunkAtPos(this.x + 1, this.z),
+			nx: this.r.GetChunkAtPos(this.x - 1, this.z),
+			pz: this.r.GetChunkAtPos(this.x, this.z + 1),
+			nz: this.r.GetChunkAtPos(this.x, this.z - 1),
+		};
 
 		for (let [i, block] of this.blocks.entries()) {
 			if (block === BLOCKS.AIR) {
 				continue;
 			}
 
-			const x = i % 16;
-			const z = Math.floor(i / 16) % 16;
-			const y = Math.floor(i / 256);
+			const y = i >> 8;
+			const z = (i >> 4) & 0xf;
+			const x = i & 0xf;
 
 			if (block === BLOCKS.WATER) {
-				water.push(...Water(x, y, z, textures.WATER));
+				const w = Water(x, y, z, TEXTURES.WATER);
+				v.set(w, vi);
+				vi += w.length;
 				continue;
 			}
 
-			const neighbors = [
-				[x, y + 1, z],
-				[x, y - 1, z],
-				[x - 1, y, z],
-				[x + 1, y, z],
-				[x, y, z + 1],
-				[x, y, z - 1],
-			];
-
-			let culled = [];
+			let culled = 0b111111;
 
 			for (let [ix, pos] of neighbors.entries()) {
-				const nx = pos[0];
-				const ny = pos[1];
-				const nz = pos[2];
+				const nx = pos[0] + x;
+				const ny = pos[1] + y;
+				const nz = pos[2] + z;
 
 				if (ny < 0 || ny >= 255) {
-					culled.push(ix);
+					culled &= ~(0b1 << ix);
 					continue;
 				}
 
 				if (nx >= 16) {
-					const nextChunk = this.r.GetChunkAtPos(this.x + 1, this.z);
+					const nextChunk = neighborChunks.px;
 
 					if (nextChunk === undefined) {
 						console.warn("Next chunk not found!");
@@ -152,13 +106,13 @@ export class Chunk {
 						b !== BLOCKS.LEAVES &&
 						b !== BLOCKS.SPRUCE_LEAVES
 					) {
-						culled.push(ix);
+						culled &= ~(0b1 << ix);
 					}
 					continue;
 				}
 
 				if (nx < 0) {
-					const nextChunk = this.r.GetChunkAtPos(this.x - 1, this.z);
+					const nextChunk = neighborChunks.nx;
 
 					if (nextChunk === undefined) {
 						console.warn("Next chunk not found, drawing face!");
@@ -173,13 +127,13 @@ export class Chunk {
 						b !== BLOCKS.LEAVES &&
 						b !== BLOCKS.SPRUCE_LEAVES
 					) {
-						culled.push(ix);
+						culled &= ~(0b1 << ix);
 					}
 					continue;
 				}
 
 				if (nz >= 16) {
-					const nextChunk = this.r.GetChunkAtPos(this.x, this.z + 1);
+					const nextChunk = neighborChunks.pz;
 
 					if (nextChunk === undefined) {
 						console.warn(
@@ -196,13 +150,13 @@ export class Chunk {
 						b !== BLOCKS.LEAVES &&
 						b !== BLOCKS.SPRUCE_LEAVES
 					) {
-						culled.push(ix);
+						culled &= ~(0b1 << ix);
 					}
 					continue;
 				}
 
 				if (nz < 0) {
-					const nextChunk = this.r.GetChunkAtPos(this.x, this.z - 1);
+					const nextChunk = neighborChunks.nz;
 
 					if (nextChunk === undefined) {
 						console.warn(
@@ -220,7 +174,7 @@ export class Chunk {
 						b !== BLOCKS.LEAVES &&
 						b !== BLOCKS.SPRUCE_LEAVES
 					) {
-						culled.push(ix);
+						culled &= ~(0b1 << ix);
 					}
 					continue;
 				}
@@ -233,41 +187,41 @@ export class Chunk {
 					b !== BLOCKS.LEAVES &&
 					b !== BLOCKS.SPRUCE_LEAVES
 				) {
-					culled.push(ix);
+					culled &= ~(0b1 << ix);
 				}
 			}
 
-			let tex = textures.GRASS;
+			let tex = TEXTURES.GRASS;
 
 			const blockTextureMap = {
-				[BLOCKS.STONE]: textures.STONE,
-				[BLOCKS.SAND]: textures.SAND,
-				[BLOCKS.BEDROCK]: textures.BEDROCK,
-				[BLOCKS.LOG]: textures.LOG,
-				[BLOCKS.LEAVES]: textures.LEAVES,
-				[BLOCKS.DIRT]: textures.DIRT,
-				[BLOCKS.COAL]: textures.COAL,
-				[BLOCKS.SPRUCE_LEAVES]: textures.SPRUCE_LEAVES,
-				[BLOCKS.SPRUCE_LOG]: textures.SPRUCE_LOG,
+				[BLOCKS.STONE]: TEXTURES.STONE,
+				[BLOCKS.SAND]: TEXTURES.SAND,
+				[BLOCKS.BEDROCK]: TEXTURES.BEDROCK,
+				[BLOCKS.LOG]: TEXTURES.LOG,
+				[BLOCKS.LEAVES]: TEXTURES.LEAVES,
+				[BLOCKS.DIRT]: TEXTURES.DIRT,
+				[BLOCKS.COAL]: TEXTURES.COAL,
+				[BLOCKS.SPRUCE_LEAVES]: TEXTURES.SPRUCE_LEAVES,
+				[BLOCKS.SPRUCE_LOG]: TEXTURES.SPRUCE_LOG,
 			};
 
 			tex = blockTextureMap[block] ?? tex;
 
 			const c = Cube(x, y, z, tex, culled);
 
-			v.push(...c);
-		}
+			verts.set(c, vi);
 
-		v.push(...water);
+			vi += c.length;
+		}
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
 		this.gl.bufferData(
 			this.gl.ARRAY_BUFFER,
-			new Uint32Array(v),
+			verts.subarray(0, vi),
 			this.gl.STATIC_DRAW
 		);
 
-		this.vertCount = v.length;
+		this.vertCount = vi;
 		this.builtVerts = true;
 	}
 }
