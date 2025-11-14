@@ -83,7 +83,7 @@ export const BIOMES = {
 		terrainScale: 0.03,
 		heightVariation: 3,
 		surfaceBlock: BLOCKS.SAND,
-		tempCenter: 0.7,
+		tempCenter: 0.6,
 		humidityCenter: 0.3,
 		treeChance: 0,
 	},
@@ -93,7 +93,7 @@ export const BIOMES = {
 		heightVariation: 32,
 		surfaceBlock: BLOCKS.STONE,
 		tempCenter: 0.3,
-		humidityCenter: 0.7,
+		humidityCenter: 0.4,
 		treeChance: 0,
 	},
 	GRASSLANDS: {
@@ -113,6 +113,14 @@ export const BIOMES = {
 		tempCenter: 0.3,
 		humidityCenter: 0.3,
 		treeChance: 0.05,
+	},
+	OCEAN: {
+		baseHeight: 45,
+		heightVariation: 15,
+		terrainScale: 0.05,
+		surfaceBlock: BLOCKS.SAND,
+		tempCenter: 0.2,
+		humidityCenter: 0.5,
 	},
 };
 

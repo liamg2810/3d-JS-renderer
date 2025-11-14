@@ -72,6 +72,8 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 			let biomes = Biome(temp, humidity);
 
+			// let biomes = [{ biome: BIOMES.OCEAN, weight: 1 }];
+
 			let chosenBiome = BIOMES.PLAINS;
 
 			let height = 0;

@@ -24,7 +24,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 8;
+	renderDistance = 2;
 
 	keyMap = new Set();
 
@@ -51,8 +51,11 @@ export class Player {
 	}
 
 	Update() {
-		const speed = 0.1;
+		let speed = 0.2;
 
+		if (this.keyMap.has("shift")) {
+			speed *= 2;
+		}
 		const dx = speed * Math.sin((this.view.yaw * Math.PI) / 180);
 		const dz = speed * Math.cos((this.view.yaw * Math.PI) / 180);
 
@@ -108,11 +111,11 @@ export class Player {
 		}
 
 		if (this.flight) {
-			if (this.keyMap.has(" ")) {
+			if (this.keyMap.has("e")) {
 				this.position.y += 1;
 			}
 
-			if (this.keyMap.has("shift")) {
+			if (this.keyMap.has("q")) {
 				this.position.y -= 1;
 			}
 		}
