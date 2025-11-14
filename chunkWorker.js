@@ -91,8 +91,6 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				heightVariation += b.biome.heightVariation * b.weight;
 			}
 
-			let block = chosenBiome.surfaceBlock;
-
 			let elevation =
 				height +
 				(perlin2D.perlin2D(
@@ -103,6 +101,8 @@ function BuildChunk(chunkX, chunkZ, seed) {
 					heightVariation;
 
 			elevation = Math.round(elevation);
+
+			let block = chosenBiome.surfaceBlock(worldX, worldZ, elevation);
 
 			if (elevation < WATER_LEVEL) {
 				const b = BLOCKS.WATER;
@@ -173,7 +173,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				}
 
 				if (y >= elevation - 3) {
-					belowB = BLOCKS.DIRT;
+					belowB = chosenBiome.subSurfaceBlock;
 				}
 
 				if (y < elevation - 3) {

@@ -38,6 +38,9 @@ export const TEXTURES = {
 		top: 12,
 		bottom: 12,
 	},
+	SANDSTONE: {
+		base: 5, // TODO: Actually change
+	},
 };
 
 export const BLOCKS = {
@@ -53,6 +56,7 @@ export const BLOCKS = {
 	BEDROCK: 9,
 	SPRUCE_LEAVES: 10,
 	SPRUCE_LOG: 11,
+	SANDSTONE: 12,
 };
 
 /**
@@ -97,7 +101,8 @@ export const BIOMES = {
 		baseHeight: 72,
 		terrainScale: 0.05,
 		heightVariation: 32,
-		surfaceBlock: BLOCKS.STONE,
+		surfaceBlock: (x, z, elevation) => BLOCKS.STONE,
+		subSurfaceBlock: BLOCKS.STONE,
 		tempCenter: 0.3,
 		humidityCenter: 0.4,
 		treeChance: 0,
@@ -107,7 +112,8 @@ export const BIOMES = {
 		baseHeight: 64,
 		terrainScale: 0.025,
 		heightVariation: 12,
-		surfaceBlock: BLOCKS.GRASS,
+		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
+		subSurfaceBlock: BLOCKS.DIRT,
 		tempCenter: 0.6,
 		humidityCenter: 0.5,
 		treeChance: 0.05,
@@ -117,7 +123,8 @@ export const BIOMES = {
 		baseHeight: 64,
 		terrainScale: 0.025,
 		heightVariation: 12,
-		surfaceBlock: BLOCKS.GRASS,
+		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
+		subSurfaceBlock: BLOCKS.DIRT,
 		tempCenter: 0.3,
 		humidityCenter: 0.3,
 		treeChance: 0.05,
@@ -125,9 +132,10 @@ export const BIOMES = {
 	},
 	OCEAN: {
 		baseHeight: 45,
-		heightVariation: 15,
+		heightVariation: 5,
 		terrainScale: 0.05,
-		surfaceBlock: BLOCKS.SAND,
+		surfaceBlock: (x, z, elevation) => BLOCKS.SAND,
+		subSurfaceBlock: BLOCKS.STONE,
 		tempCenter: 0.2,
 		humidityCenter: 0.5,
 		code: 5,
