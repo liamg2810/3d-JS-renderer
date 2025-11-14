@@ -5,30 +5,25 @@ in highp vec2 vTextureCoord;
 in highp vec3 vLighting;
 in highp vec3 vTint;
 in highp vec2 vTintedTexCoord;
+flat in uint vTintFlag;
 
 uniform sampler2D uSampler;
 
 out vec4 fragColor;
 
 void main() {
-	highp vec4 texelColor = texture(uSampler, vTextureCoord);
+	
+    highp vec4 texelColor;
 
-	if (vTintedTexCoord.x != 99.0) {
-		highp vec4 texelColor = texture(uSampler, vTintedTexCoord);
+    if (vTintFlag == 1u) {
+        texelColor = texture(uSampler, vTintedTexCoord);
+        texelColor.rgb *= vTint;
+    } else {
+        texelColor = texture(uSampler, vTextureCoord);
+    }
 
-		texelColor.rgb *= vTint;
-		
-		if (texelColor.a > 0.0) { 
+    if (texelColor.a <= 0.0) { discard; }
 
-			fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
-			
-			return;
-		 }
-
-	}
-
-	if (texelColor.a <= 0.0) { discard; }
-
-	fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+    fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
 }
   

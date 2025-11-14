@@ -66,7 +66,7 @@ export class Chunk {
 	}
 
 	BuildVerts() {
-		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
+		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6 * 2;
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
 

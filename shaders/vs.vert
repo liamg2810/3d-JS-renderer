@@ -14,7 +14,7 @@
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
-in uint aVertex;
+in uvec2 aVertex;
 
 uniform vec2 uChunkPos;
 uniform mat4 uNormalMatrix;
@@ -47,6 +47,7 @@ out highp vec2 vTextureCoord;
 out highp vec3 vLighting;
 out highp vec3 vTint;
 out highp vec2 vTintedTexCoord;
+flat out uint vTintFlag;
 
 vec2 getFaceUV(uint cID, uint dir) {
 	// Base UVs for the corners of a face
@@ -108,14 +109,16 @@ float getWaterY() {
 }
 
 void main() {
-	uint vertZ = aVertex & uint(0xF);
-	uint vertY = (aVertex >> 4) & uint(0xFF);
-	uint vertX = (aVertex >> 12) & uint(0xF);
+	uint lowBits = aVertex.y;
 
-	uint cID = (aVertex >> 16) & uint(0x7);
-	uint dir = (aVertex >> 19) & uint(0x7);
-	uint texture = (aVertex >> 22) & uint(0x3F);
-	uint biome = (aVertex >> 28) & uint(0xF);
+	uint vertZ = lowBits & uint(0xF);
+	uint vertY = (lowBits >> 4) & uint(0xFF);
+	uint vertX = (lowBits >> 12) & uint(0xF);
+
+	uint cID = (lowBits >> 16) & uint(0x7);
+	uint dir = (lowBits >> 19) & uint(0x7);
+	uint texture = (lowBits >> 22) & uint(0x3F);
+	uint biome = (lowBits >> 28) & uint(0xF);
 
 	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 	
@@ -142,31 +145,31 @@ void main() {
 
 	vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
 	vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
-
-
 	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
-	vTintedTexCoord = vec2(99.0, 0.0);
+
+	vTintFlag = (texture == 14u || texture == 1u || texture == 2u) ? 1u : 0u;
+	vec2 texCoord = vec2(1000.0, 0.0);
 
 	vec3 tint = vec3(1.0, 1.0, 1.0);
 
 	if (texture == 14u) {
 		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
-		vTintedTexCoord = vTextureCoord;
+		texCoord = vTextureCoord;
 	}
 
 
 	if (texture == 1u || texture == 2u) {
 		tint = vec3(121.0/255.0, 192.0/255.0, 90.0/255.0);
-		vTintedTexCoord = vTextureCoord;
+		texCoord = vTextureCoord;
 	}
 
 	if (texture == 1u && biome == 4u) {
 		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
-		vTintedTexCoord = vTextureCoord;
+		texCoord = vTextureCoord;
 	}
 
 	if (texture == 0u) {
-		vTintedTexCoord = vec2(float(1) / float(atlasCols), float(2) / float(atlasRows)) + (getFaceUV(cID, dir)) * tileScale;
+		texCoord = vec2(float(1) / float(atlasCols), float(2) / float(atlasRows)) + (getFaceUV(cID, dir)) * tileScale;
 	
 		if (biome == 4u) {
 			tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
@@ -175,6 +178,7 @@ void main() {
 		}
 	}
 
+	vTintedTexCoord = texCoord;
 	vTint = tint;
 
 	// Apply lighting effect

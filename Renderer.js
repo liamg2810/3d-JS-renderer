@@ -472,7 +472,7 @@ export class Renderer {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.blockBuffer);
 			this.gl.vertexAttribIPointer(
 				this.programInfo.default.attribLocations.vertexPosition,
-				1,
+				2,
 				this.gl.UNSIGNED_INT,
 				0,
 				0
@@ -498,7 +498,7 @@ export class Renderer {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.waterBuffer);
 			this.gl.vertexAttribIPointer(
 				this.programInfo.default.attribLocations.vertexPosition,
-				1,
+				2,
 				this.gl.UNSIGNED_INT,
 				0,
 				0

@@ -101,7 +101,7 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, chunk = 0) {
 		let vert =
 			(chunk << 28) | (tId << 22) | (dir << 19) | (cID << 16) | position;
 
-		out.push(vert >>> 0);
+		out.push(1 >>> 0, vert >>> 0);
 	}
 
 	return new Uint32Array(out);
@@ -139,7 +139,8 @@ export function Water(x, y, z, tex) {
 		// TOP face normal
 		0,
 	];
-	const verts = new Uint32Array(corners.length);
+
+	let out = [];
 
 	for (let [ix, cID] of corners.entries()) {
 		const dir = directions[Math.floor(ix / 6)];
@@ -154,8 +155,8 @@ export function Water(x, y, z, tex) {
 
 		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
 
-		verts[ix] = vert;
+		out.push(0 >>> 0, vert);
 	}
 
-	return verts;
+	return new Uint32Array(out);
 }
