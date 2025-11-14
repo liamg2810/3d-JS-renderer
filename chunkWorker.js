@@ -13,7 +13,7 @@ import {
 } from "./constants.js";
 
 function BuildChunk(chunkX, chunkZ, seed) {
-	let blocks = new Uint8Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
+	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
 	for (let x = 0; x < CHUNKSIZE; x++) {
 		for (let z = 0; z < CHUNKSIZE; z++) {
@@ -114,11 +114,11 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 			const b = block;
 
-			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] = b;
+			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] =
+				(chosenBiome.code << 8) | b;
 
 			const treeNoise = Math.random();
 
-			// no trees <#-#>
 			if (
 				elevation > 64 &&
 				block === BLOCKS.GRASS &&

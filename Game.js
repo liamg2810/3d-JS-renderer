@@ -32,7 +32,7 @@ export class Chunk {
 	blockBuffer;
 	waterBuffer;
 
-	/** @type {Uint8Array} */
+	/** @type {Uint16Array} */
 	blocks;
 
 	/** @type {import('./Renderer.js').Renderer} */
@@ -47,7 +47,7 @@ export class Chunk {
 	 * @param {import('./Renderer.js').Renderer} r
 	 * @param {number} x
 	 * @param {number} z
-	 * @param {Uint8Array} blocks
+	 * @param {Uint16Array} blocks
 	 */
 	constructor(gl, r, x, z, blocks) {
 		this.r = r;
@@ -105,11 +105,14 @@ export class Chunk {
 				continue;
 			}
 
+			const chunk = block >>> 8;
+			const b = block & 0xff;
+
 			const y = i >> 8;
 			const z = (i >> 4) & 0xf;
 			const x = i & 0xf;
 
-			if (block === BLOCKS.WATER) {
+			if (b === BLOCKS.WATER) {
 				const w = Water(x, y, z, TEXTURES.WATER);
 				waterVerts.set(w, waterVi);
 				waterVi += w.length;
@@ -133,9 +136,9 @@ export class Chunk {
 
 			let tex = TEXTURES.GRASS;
 
-			tex = blockTextureMap[block] ?? tex;
+			tex = blockTextureMap[b] ?? tex;
 
-			const c = Cube(x, y, z, tex, culled);
+			const c = Cube(x, y, z, tex, culled, chunk);
 
 			verts.set(c, vi);
 

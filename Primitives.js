@@ -17,9 +17,10 @@
  * @param {number} z
  * @param {{top?: number; base: number; bottom?: number}} tex
  * @param {number} culledFaces
+ * @param {number} chunk
  * @returns {Uint32Array}
  */
-export function Cube(x, y, z, tex, culledFaces = 0b111111) {
+export function Cube(x, y, z, tex, culledFaces = 0b111111, chunk = 0) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -97,7 +98,8 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111) {
 				break;
 		}
 
-		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
+		let vert =
+			(chunk << 28) | (tId << 22) | (dir << 19) | (cID << 16) | position;
 
 		out.push(vert >>> 0);
 	}

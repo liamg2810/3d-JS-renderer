@@ -64,7 +64,8 @@ export const BLOCKS = {
  *     	tempCenter: number;
  *     	humidityCenter: number;
  * 		surfaceBlock: BLOCKS;
- * 		treeChance: number
+ * 		treeChance: number;
+ * 		code: number;
  *   }
  * }}
  */
@@ -77,6 +78,7 @@ export const BIOMES = {
 		tempCenter: 0.5,
 		humidityCenter: 0.5,
 		treeChance: 0.01,
+		code: 0,
 	},
 	DESERT: {
 		baseHeight: 70,
@@ -86,6 +88,7 @@ export const BIOMES = {
 		tempCenter: 0.6,
 		humidityCenter: 0.3,
 		treeChance: 0,
+		code: 1,
 	},
 	MOUNTAINS: {
 		baseHeight: 72,
@@ -95,6 +98,7 @@ export const BIOMES = {
 		tempCenter: 0.3,
 		humidityCenter: 0.4,
 		treeChance: 0,
+		code: 2,
 	},
 	GRASSLANDS: {
 		baseHeight: 64,
@@ -104,6 +108,7 @@ export const BIOMES = {
 		tempCenter: 0.6,
 		humidityCenter: 0.5,
 		treeChance: 0.05,
+		code: 3,
 	},
 	TAIGA: {
 		baseHeight: 64,
@@ -113,6 +118,7 @@ export const BIOMES = {
 		tempCenter: 0.3,
 		humidityCenter: 0.3,
 		treeChance: 0.05,
+		code: 4,
 	},
 	OCEAN: {
 		baseHeight: 45,
@@ -121,6 +127,7 @@ export const BIOMES = {
 		surfaceBlock: BLOCKS.SAND,
 		tempCenter: 0.2,
 		humidityCenter: 0.5,
+		code: 5,
 	},
 };
 

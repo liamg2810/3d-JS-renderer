@@ -1,12 +1,13 @@
 #version 300 es
 
 
-// [TEXTURE][DIRECTION][CID][POSITION]
+// [BOIME][TEXTURE][DIRECTION][CID][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // CID = 0-7 = 3 bits
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 6 bits
-// TOTAL BITS = 28
+// BIOME = 0-15 = 4 bits
+// TOTAL BITS = 32
 
 // CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
 // 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
@@ -45,6 +46,7 @@ const vec3 normals[6] = vec3[](
 out highp vec2 vTextureCoord;
 out highp vec3 vLighting;
 out highp vec3 vTint;
+out highp vec2 vTintedTexCoord;
 
 vec2 getFaceUV(uint cID, uint dir) {
 	// Base UVs for the corners of a face
@@ -113,6 +115,7 @@ void main() {
 	uint cID = (aVertex >> 16) & uint(0x7);
 	uint dir = (aVertex >> 19) & uint(0x7);
 	uint texture = (aVertex >> 22) & uint(0x3F);
+	uint biome = (aVertex >> 28) & uint(0xF);
 
 	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 	
@@ -142,11 +145,34 @@ void main() {
 
 
 	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
+	vTintedTexCoord = vec2(99.0, 0.0);
 
 	vec3 tint = vec3(1.0, 1.0, 1.0);
 
 	if (texture == 14u) {
 		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
+		vTintedTexCoord = vTextureCoord;
+	}
+
+
+	if (texture == 1u || texture == 2u) {
+		tint = vec3(121.0/255.0, 192.0/255.0, 90.0/255.0);
+		vTintedTexCoord = vTextureCoord;
+	}
+
+	if (texture == 1u && biome == 4u) {
+		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
+		vTintedTexCoord = vTextureCoord;
+	}
+
+	if (texture == 0u) {
+		vTintedTexCoord = vec2(float(1) / float(atlasCols), float(2) / float(atlasRows)) + (getFaceUV(cID, dir)) * tileScale;
+	
+		if (biome == 4u) {
+			tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
+		} else {
+			tint = vec3(121.0/255.0, 192.0/255.0, 90.0/255.0);
+		}
 	}
 
 	vTint = tint;
