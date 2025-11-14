@@ -21,6 +21,7 @@ export class Player {
 	focalLength = 300;
 	near = 0.1;
 	far = 10000;
+	fov = 60;
 
 	yVel = 0;
 
@@ -55,7 +56,14 @@ export class Player {
 
 		if (this.keyMap.has("shift")) {
 			speed *= 2;
+
+			this.fov += 3;
+		} else {
+			this.fov -= 3;
 		}
+
+		this.fov = Math.max(Math.min(this.fov, 75), 60);
+
 		const dx = speed * Math.sin((this.view.yaw * Math.PI) / 180);
 		const dz = speed * Math.cos((this.view.yaw * Math.PI) / 180);
 

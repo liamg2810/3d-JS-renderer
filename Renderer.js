@@ -394,7 +394,7 @@ export class Renderer {
 		const projectionMatrix = mat4.create();
 		mat4.perspective(
 			projectionMatrix,
-			(45 * Math.PI) / 180,
+			(this.player.fov * Math.PI) / 180,
 			this.canvas.width / this.canvas.height,
 			this.player.near,
 			this.player.far
@@ -518,7 +518,7 @@ export class Renderer {
 		const projectionMatrix = mat4.create();
 		mat4.perspective(
 			projectionMatrix,
-			(45 * Math.PI) / 180,
+			(this.player.fov * Math.PI) / 180,
 			this.canvas.width / this.canvas.height,
 			this.player.near,
 			this.player.far
