@@ -63,7 +63,8 @@ export const BLOCKS = {
  *     	terrainScale: number;
  *     	tempCenter: number;
  *     	humidityCenter: number;
- * 		surfaceBlock: BLOCKS;
+ * 		surfaceBlock: (x, z, elevation) => BLOCKS;
+ * 		subSurfaceBlock: BLOCKS;
  * 		treeChance: number;
  * 		code: number;
  *   }
@@ -74,7 +75,8 @@ export const BIOMES = {
 		baseHeight: 68,
 		terrainScale: 0.02,
 		heightVariation: 6,
-		surfaceBlock: BLOCKS.GRASS,
+		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
+		subSurfaceBlock: BLOCKS.DIRT,
 		tempCenter: 0.5,
 		humidityCenter: 0.5,
 		treeChance: 0.01,
@@ -84,7 +86,8 @@ export const BIOMES = {
 		baseHeight: 70,
 		terrainScale: 0.03,
 		heightVariation: 3,
-		surfaceBlock: BLOCKS.SAND,
+		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
+		subSurfaceBlock: BLOCKS.SANDSTONE,
 		tempCenter: 0.6,
 		humidityCenter: 0.3,
 		treeChance: 0,
