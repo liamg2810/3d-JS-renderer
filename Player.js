@@ -14,8 +14,8 @@ export class Player {
 	};
 
 	view = {
-		yaw: 45,
-		pitch: -45,
+		yaw: 0,
+		pitch: 0,
 	};
 
 	focalLength = 300;
@@ -25,7 +25,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 2;
+	renderDistance = 4;
 
 	keyMap = new Set();
 
@@ -34,7 +34,7 @@ export class Player {
 
 	flight = true;
 
-	/** @type {import("./Renderer.js").Renderer} */
+	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
 	renderer;
 
 	freezeChunks = false;
@@ -106,18 +106,6 @@ export class Player {
 			this.position.z = oldZ;
 		}
 
-		if (this.keyMap.has("ArrowRight")) {
-			this.view.yaw -= 0.5;
-
-			if (this.view.yaw < 0) this.view.yaw = 360;
-		}
-
-		if (this.keyMap.has("ArrowLeft")) {
-			this.view.yaw += 0.5;
-
-			if (this.view.yaw > 360) this.view.yaw = 0;
-		}
-
 		if (this.flight) {
 			if (this.keyMap.has("e")) {
 				this.position.y += 1;
@@ -150,9 +138,11 @@ export class Player {
 			return unload;
 		});
 
-		for (const c of visibleChunks) {
-			if (!c.builtVerts) {
-				c.BuildVerts();
+		if (!this.renderer.isTwoD) {
+			for (const c of visibleChunks) {
+				if (!c.builtVerts) {
+					c.BuildVerts();
+				}
 			}
 		}
 

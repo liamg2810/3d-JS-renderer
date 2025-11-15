@@ -71,6 +71,7 @@ export const BLOCKS = {
  * 		subSurfaceBlock: BLOCKS;
  * 		treeChance: number;
  * 		code: number;
+ * 		color: string;
  *   }
  * }}
  */
@@ -85,6 +86,7 @@ export const BIOMES = {
 		humidityCenter: 0.5,
 		treeChance: 0.01,
 		code: 0,
+		color: "rgb(0, 255, 0)",
 	},
 	DESERT: {
 		baseHeight: 70,
@@ -92,14 +94,15 @@ export const BIOMES = {
 		heightVariation: 3,
 		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
 		subSurfaceBlock: BLOCKS.SANDSTONE,
-		tempCenter: 0.6,
+		tempCenter: 0.7,
 		humidityCenter: 0.3,
 		treeChance: 0,
 		code: 1,
+		color: "rgb(135, 135, 7)",
 	},
 	MOUNTAINS: {
 		baseHeight: 72,
-		terrainScale: 0.05,
+		terrainScale: 0.025,
 		heightVariation: 32,
 		surfaceBlock: (x, z, elevation) => BLOCKS.STONE,
 		subSurfaceBlock: BLOCKS.STONE,
@@ -107,17 +110,19 @@ export const BIOMES = {
 		humidityCenter: 0.4,
 		treeChance: 0,
 		code: 2,
+		color: "rgb(150, 150, 150)",
 	},
 	GRASSLANDS: {
 		baseHeight: 64,
-		terrainScale: 0.025,
+		terrainScale: 0.035,
 		heightVariation: 12,
 		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
 		subSurfaceBlock: BLOCKS.DIRT,
 		tempCenter: 0.6,
-		humidityCenter: 0.5,
+		humidityCenter: 0.4,
 		treeChance: 0.05,
 		code: 3,
+		color: "rgb(0, 150, 0)",
 	},
 	TAIGA: {
 		baseHeight: 64,
@@ -129,25 +134,27 @@ export const BIOMES = {
 		humidityCenter: 0.3,
 		treeChance: 0.05,
 		code: 4,
+		color: "rgb(0, 50, 0)",
 	},
 	OCEAN: {
 		baseHeight: 45,
+		terrainScale: 0.025,
 		heightVariation: 5,
-		terrainScale: 0.05,
 		surfaceBlock: (x, z, elevation) => BLOCKS.SAND,
 		subSurfaceBlock: BLOCKS.STONE,
 		tempCenter: 0.2,
-		humidityCenter: 0.5,
+		humidityCenter: 0.7,
 		code: 5,
+		color: "rgb(0, 115, 255)",
 	},
 };
 
 export const CHUNKSIZE = 16;
 export const TERRAIN_NOISE_SCALE = 0.025;
-export const TEMPERATURE_NOISE_SCALE = 0.005;
-export const HUMIDITY_NOISE_SCALE = 0.001;
-export const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 5;
-export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE * 3;
+export const TEMPERATURE_NOISE_SCALE = 0.01;
+export const HUMIDITY_NOISE_SCALE = 0.02;
+export const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 2;
+export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 3;
 export const WATER_LEVEL = 72;
 
 export const MAX_HEIGHT = 256;

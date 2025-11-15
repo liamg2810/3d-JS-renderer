@@ -1,5 +1,3 @@
-import * as perlin2D from "./Perlin2D.js";
-import * as perlin3D from "./Perlin3D.js";
 import {
 	BIOMES,
 	BLOCKS,
@@ -11,6 +9,7 @@ import {
 	TEMPERATURE_NOISE_SCALE,
 	WATER_LEVEL,
 } from "./constants.js";
+import noise from "./perlin.js";
 
 function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
@@ -25,8 +24,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 	let water = [];
 
-	perlin2D.SetSeed(seed);
-	perlin3D.SetSeed(seed);
+	noise.seed(seed);
 
 	let caveNoise = new Float32Array((CHUNKSIZE / 4) * (CHUNKSIZE / 4) * 32);
 
@@ -38,7 +36,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 			for (let y = 0; y < 128; y += 4) {
 				const cy = y / 4;
-				const nVal = perlin3D.perlin3D(
+				const nVal = noise.perlin3(
 					worldX * CAVE_NOISE_SCALE,
 					y * CAVE_NOISE_SCALE,
 					worldZ * CAVE_NOISE_SCALE
@@ -58,11 +56,11 @@ function BuildChunk(chunkX, chunkZ, seed) {
 		for (let z = 0; z < CHUNKSIZE; z++) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 
-			let temp = perlin2D.perlin2D(
+			let temp = noise.perlin2(
 				worldX * TEMPERATURE_NOISE_SCALE,
 				worldZ * TEMPERATURE_NOISE_SCALE
 			);
-			let humidity = perlin2D.perlin2D(
+			let humidity = noise.perlin2(
 				worldX * HUMIDITY_NOISE_SCALE,
 				worldZ * HUMIDITY_NOISE_SCALE
 			);
@@ -93,10 +91,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 
 			let elevation =
 				height +
-				(perlin2D.perlin2D(
-					worldX * terrainScale,
-					worldZ * terrainScale
-				) +
+				(noise.perlin2(worldX * terrainScale, worldZ * terrainScale) +
 					1) *
 					heightVariation;
 
@@ -150,19 +145,23 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			}
 
 			for (let y = elevation - 1; y > 2; y--) {
-				let caveVal = 0.35;
+				let caveVal = -0.4;
 
 				if (y < elevation / 1.5) {
-					caveVal = 0.425;
+					caveVal = -0.3;
 				}
 
 				if (y < elevation / 2) {
-					caveVal = 0.5;
+					caveVal = -0.2;
+				}
+
+				if (y < elevation / 3) {
+					caveVal = -0.4;
 				}
 
 				let belowB = BLOCKS.STONE;
 
-				const oreNoise = perlin3D.perlin3D(
+				const oreNoise = noise.perlin3(
 					x * ORE_NOISE_SCALE,
 					y * ORE_NOISE_SCALE,
 					z * ORE_NOISE_SCALE

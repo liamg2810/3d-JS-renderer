@@ -42,6 +42,9 @@ export class Chunk {
 	/** @type {WebGL2RenderingContext} */
 	gl;
 
+	/** @type {boolean} */
+	twoDRenderer = false;
+
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
@@ -50,8 +53,10 @@ export class Chunk {
 	 * @param {number} z
 	 * @param {Uint16Array} blocks
 	 */
-	constructor(gl, r, x, z, blocks) {
+	constructor(gl, r, x, z, blocks, twoD) {
 		this.r = r;
+
+		this.twoDRenderer = twoD;
 
 		this.x = x;
 		this.z = z;
@@ -59,19 +64,18 @@ export class Chunk {
 
 		this.builtVerts = false;
 
-		this.gl = gl;
+		if (!twoD) {
+			this.gl = gl;
 
-		this.blockBuffer = gl.createBuffer();
-		this.waterBuffer = gl.createBuffer();
+			this.blockBuffer = gl.createBuffer();
+			this.waterBuffer = gl.createBuffer();
+		}
 	}
 
 	BuildVerts() {
 		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6 * 2;
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
-
-		const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
-		let waterVi = 0;
 
 		const neighborChunks = {
 			px: this.r.GetChunkAtPos(this.x + 1, this.z),
@@ -80,33 +84,15 @@ export class Chunk {
 			nz: this.r.GetChunkAtPos(this.x, this.z - 1),
 		};
 
-		const blockAt = (nx, ny, nz) => {
-			if (ny < 0 || ny >= 256) return BLOCKS.AIR;
-			if (nx < 0)
-				return (
-					neighborChunks.nx?.blocks[15 + nz * 16 + ny * 256] ??
-					BLOCKS.AIR
-				);
-			if (nx >= 16)
-				return (
-					neighborChunks.px?.blocks[nz * 16 + ny * 256] ?? BLOCKS.AIR
-				);
-			if (nz < 0)
-				return (
-					neighborChunks.nz?.blocks[nx + 15 * 16 + ny * 256] ??
-					BLOCKS.AIR
-				);
-			if (nz >= 16)
-				return neighborChunks.pz?.blocks[nx + ny * 256] ?? BLOCKS.AIR;
-			return this.blocks[nx + nz * 16 + ny * 256];
-		};
+		const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
+		let waterVi = 0;
 
 		for (let [i, block] of this.blocks.entries()) {
 			if (block === BLOCKS.AIR) {
 				continue;
 			}
 
-			const chunk = block >>> 8;
+			const biome = block >>> 8;
 			const b = block & 0xff;
 
 			const y = i >> 8;
@@ -124,7 +110,7 @@ export class Chunk {
 
 			for (let dir = 0; dir < 6; dir++) {
 				const [dx, dy, dz] = neighbors[dir];
-				const b = blockAt(x + dx, y + dy, z + dz);
+				const b = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
 				if (
 					b !== BLOCKS.AIR &&
 					b !== BLOCKS.WATER &&
@@ -139,7 +125,7 @@ export class Chunk {
 
 			tex = blockTextureMap[b] ?? tex;
 
-			const c = Cube(x, y, z, tex, culled, chunk);
+			const c = Cube(x, y, z, tex, culled, biome);
 
 			verts.set(c, vi);
 
@@ -167,5 +153,22 @@ export class Chunk {
 		}
 
 		this.builtVerts = true;
+	}
+
+	BlockAt(nx, ny, nz, neighborChunks) {
+		if (ny < 0 || ny >= 256) return BLOCKS.AIR;
+		if (nx < 0)
+			return (
+				neighborChunks.nx?.blocks[15 + nz * 16 + ny * 256] ?? BLOCKS.AIR
+			);
+		if (nx >= 16)
+			return neighborChunks.px?.blocks[nz * 16 + ny * 256] ?? BLOCKS.AIR;
+		if (nz < 0)
+			return (
+				neighborChunks.nz?.blocks[nx + 15 * 16 + ny * 256] ?? BLOCKS.AIR
+			);
+		if (nz >= 16)
+			return neighborChunks.pz?.blocks[nx + ny * 256] ?? BLOCKS.AIR;
+		return this.blocks[nx + nz * 16 + ny * 256];
 	}
 }

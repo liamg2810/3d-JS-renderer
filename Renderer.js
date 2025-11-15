@@ -176,6 +176,8 @@ export class Renderer {
 
 	sceneInit = false;
 
+	isTwoD = false;
+
 	/**  @type {import("./Player.js").Player}*/
 	player;
 

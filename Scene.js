@@ -43,7 +43,7 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 
 /**
  *
- * @param {import('Renderer.js').Renderer} renderer
+ * @param {import('./Renderer.js').Renderer | import('./2D-Renderer.js').TwoDRenderer} renderer
  */
 function processQueue(renderer) {
 	for (let i = 0; i < workers.length; i++) {
@@ -56,7 +56,14 @@ function processQueue(renderer) {
 				const { chunkX, chunkZ, blocks } = ev.data;
 				const key = `${chunkX}, ${chunkZ}`;
 				renderer.chunks.push(
-					new Chunk(renderer.gl, renderer, chunkX, chunkZ, blocks)
+					new Chunk(
+						renderer.gl,
+						renderer,
+						chunkX,
+						chunkZ,
+						blocks,
+						renderer.isTwoD
+					)
 				);
 
 				activeChunks.delete(key);

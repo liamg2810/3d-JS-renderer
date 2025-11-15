@@ -1,9 +1,10 @@
+import { TwoDRenderer } from "./2D-Renderer.js";
 import { Player } from "./Player.js";
 import { Renderer } from "./Renderer.js";
 
 const canvas = document.getElementById("canvas");
 
-const p = new Player(8, 90, 8);
+const p = new Player(5, 90, 5);
 const r = new Renderer(p);
 r.Start();
 
@@ -34,9 +35,11 @@ canvas.addEventListener("mousemove", (ev) => {
 		return;
 	}
 
-	p.view.yaw -= ev.movementX * 0.3;
-	p.view.pitch -= ev.movementY * 0.2;
-	p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
+	if (!r.isTwoD) {
+		p.view.yaw -= ev.movementX * 0.3;
+		p.view.pitch -= ev.movementY * 0.2;
+		p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
+	}
 });
 
 window.addEventListener("resize", () => {
