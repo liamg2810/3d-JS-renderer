@@ -411,9 +411,9 @@ function Biome(temp, humidity) {
 		const dy = humidity - value.humidityCenter;
 
 		if (!isFinite(dx) || !isFinite(dy)) {
-			console.warn("INFINITE DISTANCE:");
-			console.warn(temp, value.tempCenter);
-			console.warn(humidity, value.humidityCenter);
+			// console.warn("INFINITE DISTANCE:");
+			// console.warn(temp, value.tempCenter);
+			// console.warn(humidity, value.humidityCenter);
 			continue;
 		}
 
