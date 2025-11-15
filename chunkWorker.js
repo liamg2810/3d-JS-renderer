@@ -492,7 +492,8 @@ function GetCaveNoiseValAtPoint(x, y, z, caveNoise) {
 self.onmessage = function (event) {
 	const { chunkX, chunkZ, seed } = event.data;
 
-	let blocks = BuildChunk(chunkX, chunkZ, seed);
+	// let blocks = BuildChunk(chunkX, chunkZ, seed);
+	let blocks = new Uint16Array();
 
 	self.postMessage({ chunkX, chunkZ, blocks }, [blocks.buffer]);
 

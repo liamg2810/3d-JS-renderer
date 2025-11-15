@@ -132,8 +132,8 @@ void main() {
 	vec4 mvPosition = uModelViewMatrix * vertexPos;
 	gl_Position = uProjectionMatrix * mvPosition;
 
-	uint atlasCols = 7u;
-	uint atlasRows = 32u;
+	float atlasCols = 7.0;
+	float atlasRows = 32.0;
 
 	uint col = texture % uint(atlasCols);
 	

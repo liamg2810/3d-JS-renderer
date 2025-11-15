@@ -74,6 +74,9 @@ function loadShader(gl, type, source) {
 	return shader;
 }
 
+/**
+ * @param {WebGL2RenderingContext} gl
+ */
 function loadTexture(gl, url) {
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
