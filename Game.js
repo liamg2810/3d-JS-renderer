@@ -21,6 +21,7 @@ const blockTextureMap = {
 	[BLOCKS.SPRUCE_LEAVES]: TEXTURES.SPRUCE_LEAVES,
 	[BLOCKS.SPRUCE_LOG]: TEXTURES.SPRUCE_LOG,
 	[BLOCKS.SANDSTONE]: TEXTURES.SANDSTONE,
+	[BLOCKS.ICE]: TEXTURES.ICE,
 };
 
 export class Chunk {
@@ -110,12 +111,13 @@ export class Chunk {
 
 			for (let dir = 0; dir < 6; dir++) {
 				const [dx, dy, dz] = neighbors[dir];
-				const b = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
+				const b2 = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
 				if (
-					b !== BLOCKS.AIR &&
-					b !== BLOCKS.WATER &&
-					b !== BLOCKS.LEAVES &&
-					b !== BLOCKS.SPRUCE_LEAVES
+					b2 !== BLOCKS.AIR &&
+					b2 !== BLOCKS.WATER &&
+					b2 !== BLOCKS.LEAVES &&
+					b2 !== BLOCKS.SPRUCE_LEAVES &&
+					(b2 !== BLOCKS.ICE || b === BLOCKS.ICE)
 				) {
 					culled &= ~(1 << dir);
 				}
@@ -127,9 +129,14 @@ export class Chunk {
 
 			const c = Cube(x, y, z, tex, culled, biome);
 
-			verts.set(c, vi);
+			if (tex === TEXTURES.ICE) {
+				waterVerts.set(c, waterVi);
+				waterVi += c.length;
+			} else {
+				verts.set(c, vi);
 
-			vi += c.length;
+				vi += c.length;
+			}
 		}
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);

@@ -3,11 +3,14 @@ import {
 	BLOCKS,
 	CAVE_NOISE_SCALE,
 	CHUNKSIZE,
+	CONTINENTIAL_NOISE_SCALE,
 	HUMIDITY_NOISE_SCALE,
 	MAX_HEIGHT,
 	ORE_NOISE_SCALE,
 	TEMPERATURE_NOISE_SCALE,
+	TERRAIN_NOISE_SCALE,
 	WATER_LEVEL,
+	WEIRDNESS_NOISE_SCALE,
 } from "./constants.js";
 import noise from "./perlin.js";
 
@@ -65,12 +68,84 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				worldZ * HUMIDITY_NOISE_SCALE
 			);
 
-			temp = (temp + 1) / 2;
-			humidity = (humidity + 1) / 2;
+			// humidity = (humidity + 1) / 2;
 
-			let biomes = Biome(temp, humidity);
+			let continential =
+				noise.perlin2(
+					worldX * CONTINENTIAL_NOISE_SCALE,
+					worldZ * CONTINENTIAL_NOISE_SCALE
+				) +
+				0.5 *
+					noise.perlin2(
+						worldX * CONTINENTIAL_NOISE_SCALE,
+						worldZ * CONTINENTIAL_NOISE_SCALE
+					) +
+				0.25 *
+					noise.perlin2(
+						worldX * CONTINENTIAL_NOISE_SCALE,
+						worldZ * CONTINENTIAL_NOISE_SCALE
+					) +
+				noise.perlin2(
+					worldX * CONTINENTIAL_NOISE_SCALE,
+					worldZ * CONTINENTIAL_NOISE_SCALE
+				);
 
-			// let biomes = [{ biome: BIOMES.OCEAN, weight: 1 }];
+			continential = continential / (1 + 0.5 + 0.25);
+
+			let weirdness =
+				noise.perlin2(
+					worldX * WEIRDNESS_NOISE_SCALE,
+					worldZ * WEIRDNESS_NOISE_SCALE
+				) +
+				0.5 *
+					noise.perlin2(
+						worldX * WEIRDNESS_NOISE_SCALE,
+						worldZ * WEIRDNESS_NOISE_SCALE
+					) +
+				0.25 *
+					noise.perlin2(
+						worldX * WEIRDNESS_NOISE_SCALE,
+						worldZ * WEIRDNESS_NOISE_SCALE
+					) +
+				noise.perlin2(
+					worldX * WEIRDNESS_NOISE_SCALE,
+					worldZ * WEIRDNESS_NOISE_SCALE
+				);
+
+			weirdness = weirdness / (1 + 0.5 + 0.25);
+
+			// let biomes = Biome(temp, humidity);
+
+			let biomes = [];
+
+			if (continential > -0.1) {
+				if (humidity < -0.25) {
+					biomes = [{ biome: BIOMES.TAIGA, weight: 1 }];
+				} else if (humidity < 0) {
+					const blend = (humidity + 0.25) * 4;
+					biomes = [
+						{ biome: BIOMES.TAIGA, weight: 1 - blend },
+						{ biome: BIOMES.PLAINS, weight: blend },
+					];
+				} else {
+					biomes = [{ biome: BIOMES.PLAINS, weight: 1 }];
+				}
+			} else if (continential > -0.2) {
+				const blend = (continential + 0.2) * 10;
+
+				biomes = [
+					{
+						biome: BIOMES.DESERT,
+						weight: 1 - blend,
+					},
+					{
+						biome: BIOMES.PLAINS,
+						weight: blend,
+					},
+				];
+			} else {
+				biomes = [{ biome: BIOMES.OCEAN, weight: 1 }];
+			}
 
 			let chosenBiome = BIOMES.PLAINS;
 
@@ -82,6 +157,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			for (const b of biomes) {
 				if (maxWeight < b.weight) {
 					chosenBiome = b.biome;
+					maxWeight = b.weight;
 				}
 
 				height += b.biome.baseHeight * b.weight;
@@ -100,7 +176,12 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			let block = chosenBiome.surfaceBlock(worldX, worldZ, elevation);
 
 			if (elevation < WATER_LEVEL) {
-				const b = BLOCKS.WATER;
+				let b = BLOCKS.WATER;
+
+				if (chosenBiome === BIOMES.OCEAN && temp < -0.45) {
+					b = BLOCKS.ICE;
+				}
+
 				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
 				elevation -= 1;
@@ -144,56 +225,60 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				});
 			}
 
-			for (let y = elevation - 1; y > 2; y--) {
-				let caveVal = -0.4;
-
-				if (y < elevation / 1.5) {
-					caveVal = -0.3;
-				}
-
-				if (y < elevation / 2) {
-					caveVal = -0.2;
-				}
-
-				if (y < elevation / 3) {
-					caveVal = -0.4;
-				}
-
-				let belowB = BLOCKS.STONE;
-
-				const oreNoise = noise.perlin3(
-					x * ORE_NOISE_SCALE,
-					y * ORE_NOISE_SCALE,
-					z * ORE_NOISE_SCALE
-				);
-
-				if (oreNoise < 0.2) {
-					belowB = BLOCKS.COAL;
-				}
-
-				if (y >= elevation - 3) {
-					belowB = chosenBiome.subSurfaceBlock;
-				}
-
-				if (y < elevation - 3) {
-					const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
-
-					if (nVal < caveVal) {
-						belowB = BLOCKS.AIR;
-					}
-				}
-
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
-			}
-
-			for (let y = 2; y > 0; y--) {
-				// Bedrock
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.BEDROCK;
-			}
+			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
 		}
 	}
 
 	return blocks;
+}
+
+function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
+	for (let y = elevation - 1; y > 2; y--) {
+		let caveVal = -0.4;
+
+		if (y < elevation / 1.5) {
+			caveVal = -0.3;
+		}
+
+		if (y < elevation / 2) {
+			caveVal = -0.2;
+		}
+
+		if (y < elevation / 3) {
+			caveVal = -0.4;
+		}
+
+		let belowB = BLOCKS.STONE;
+
+		const oreNoise = noise.perlin3(
+			x * ORE_NOISE_SCALE,
+			y * ORE_NOISE_SCALE,
+			z * ORE_NOISE_SCALE
+		);
+
+		if (oreNoise < 0.2) {
+			belowB = BLOCKS.COAL;
+		}
+
+		if (y >= elevation - 3) {
+			belowB = chosenBiome.subSurfaceBlock;
+		}
+
+		if (y < elevation - 3) {
+			const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
+
+			if (nVal < caveVal) {
+				belowB = BLOCKS.AIR;
+			}
+		}
+
+		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
+	}
+
+	for (let y = 2; y > 0; y--) {
+		// Bedrock
+		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.BEDROCK;
+	}
 }
 
 /**

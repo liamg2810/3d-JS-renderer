@@ -39,7 +39,12 @@ export const TEXTURES = {
 		bottom: 12,
 	},
 	SANDSTONE: {
-		base: 5, // TODO: Actually change
+		base: 22,
+		top: 19,
+		bottom: 21,
+	},
+	ICE: {
+		base: 18,
 	},
 };
 
@@ -57,6 +62,7 @@ export const BLOCKS = {
 	SPRUCE_LEAVES: 10,
 	SPRUCE_LOG: 11,
 	SANDSTONE: 12,
+	ICE: 13,
 };
 
 /**
@@ -92,7 +98,7 @@ export const BIOMES = {
 		baseHeight: 70,
 		terrainScale: 0.03,
 		heightVariation: 3,
-		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
+		surfaceBlock: (x, z, elevation) => BLOCKS.SAND,
 		subSurfaceBlock: BLOCKS.SANDSTONE,
 		tempCenter: 0.7,
 		humidityCenter: 0.3,
@@ -152,9 +158,11 @@ export const BIOMES = {
 export const CHUNKSIZE = 16;
 export const TERRAIN_NOISE_SCALE = 0.025;
 export const TEMPERATURE_NOISE_SCALE = 0.01;
-export const HUMIDITY_NOISE_SCALE = 0.02;
+export const HUMIDITY_NOISE_SCALE = 0.015;
 export const CAVE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 2;
 export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 3;
 export const WATER_LEVEL = 72;
+export const CONTINENTIAL_NOISE_SCALE = 0.005;
+export const WEIRDNESS_NOISE_SCALE = 0.02;
 
 export const MAX_HEIGHT = 256;
