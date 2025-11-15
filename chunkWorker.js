@@ -68,6 +68,7 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				worldZ * HUMIDITY_NOISE_SCALE
 			);
 
+			// temp = (temp + 1) / 2;
 			// humidity = (humidity + 1) / 2;
 
 			let continential =
@@ -119,17 +120,19 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			let biomes = [];
 
 			if (continential > -0.1) {
-				if (humidity < -0.25) {
-					biomes = [{ biome: BIOMES.TAIGA, weight: 1 }];
-				} else if (humidity < 0) {
-					const blend = (humidity + 0.25) * 4;
-					biomes = [
-						{ biome: BIOMES.TAIGA, weight: 1 - blend },
-						{ biome: BIOMES.PLAINS, weight: blend },
-					];
-				} else {
-					biomes = [{ biome: BIOMES.PLAINS, weight: 1 }];
-				}
+				// if (humidity < -0.25) {
+				// 	biomes = [{ biome: BIOMES.TAIGA, weight: 1 }];
+				// } else if (humidity < 0) {
+				// 	const blend = (humidity + 0.25) * 4;
+				// 	biomes = [
+				// 		{ biome: BIOMES.TAIGA, weight: 1 - blend },
+				// 		{ biome: BIOMES.PLAINS, weight: blend },
+				// 	];
+				// } else {
+				// 	biomes = [{ biome: BIOMES.PLAINS, weight: 1 }];
+				// }
+
+				biomes = Biome((temp + 1) / 2, (humidity + 1) / 2);
 			} else if (continential > -0.2) {
 				const blend = (continential + 0.2) * 10;
 
@@ -150,7 +153,6 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			let chosenBiome = BIOMES.PLAINS;
 
 			let height = 0;
-			let terrainScale = 0;
 			let heightVariation = 0;
 			let maxWeight = 0;
 
@@ -161,13 +163,15 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				}
 
 				height += b.biome.baseHeight * b.weight;
-				terrainScale += b.biome.terrainScale * b.weight;
 				heightVariation += b.biome.heightVariation * b.weight;
 			}
 
 			let elevation =
 				height +
-				(noise.perlin2(worldX * terrainScale, worldZ * terrainScale) +
+				(noise.perlin2(
+					worldX * TERRAIN_NOISE_SCALE,
+					worldZ * TERRAIN_NOISE_SCALE
+				) +
 					1) *
 					heightVariation;
 
@@ -181,10 +185,10 @@ function BuildChunk(chunkX, chunkZ, seed) {
 				if (chosenBiome === BIOMES.OCEAN && temp < -0.45) {
 					b = BLOCKS.ICE;
 				}
+				elevation -= 1;
 
 				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
-				elevation -= 1;
 				block = BLOCKS.SAND;
 			}
 

@@ -3,6 +3,7 @@ import {
 	BLOCKS,
 	HUMIDITY_NOISE_SCALE,
 	TEMPERATURE_NOISE_SCALE,
+	WEIRDNESS_NOISE_SCALE,
 } from "./constants.js";
 import { Chunk } from "./Game.js";
 import noise from "./perlin.js";
@@ -17,6 +18,8 @@ const heightmapToggle = document.getElementById("heightmap");
 const temperatureToggle = document.getElementById("temp");
 /** @type {HTMLInputElement} */
 const humidityToggle = document.getElementById("humidity");
+/** @type {HTMLInputElement} */
+const weirdnessToggle = document.getElementById("weirdness");
 
 const surfaceBlocks = [BLOCKS.GRASS, BLOCKS.SAND, BLOCKS.STONE];
 
@@ -216,6 +219,37 @@ export class TwoDRenderer {
 						this.ctx.fillStyle = `rgb(${humidity * 255},${
 							humidity * 255
 						},${humidity * 255})`;
+					} else if (weirdnessToggle.checked) {
+						let weirdness =
+							noise.perlin2(
+								globalX * WEIRDNESS_NOISE_SCALE,
+								globalZ * WEIRDNESS_NOISE_SCALE
+							) +
+							0.5 *
+								noise.perlin2(
+									globalX * WEIRDNESS_NOISE_SCALE,
+									globalZ * WEIRDNESS_NOISE_SCALE
+								) +
+							0.25 *
+								noise.perlin2(
+									globalX * WEIRDNESS_NOISE_SCALE,
+									globalZ * WEIRDNESS_NOISE_SCALE
+								) +
+							noise.perlin2(
+								globalX * WEIRDNESS_NOISE_SCALE,
+								globalZ * WEIRDNESS_NOISE_SCALE
+							);
+
+						weirdness = weirdness / (1 + 0.5 + 0.25);
+
+						weirdness = 1 - Math.abs(3 * Math.abs(weirdness) - 2);
+
+						// Just for visualisation, actual ridges dont use this
+						weirdness = (weirdness + 1) / 2;
+
+						this.ctx.fillStyle = `rgb(${weirdness * 255},${
+							weirdness * 255
+						},${weirdness * 255})`;
 					} else {
 						this.ctx.fillStyle = biome.color;
 					}

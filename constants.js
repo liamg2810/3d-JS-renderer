@@ -70,9 +70,8 @@ export const BLOCKS = {
  *   [key: string]: {
  *     	baseHeight: number;
  *     	heightVariation: number;
- *     	terrainScale: number;
- *     	tempCenter: number;
- *     	humidityCenter: number;
+ *     	tempCenter?: number;
+ *     	humidityCenter?: number;
  * 		surfaceBlock: (x, z, elevation) => BLOCKS;
  * 		subSurfaceBlock: BLOCKS;
  * 		treeChance: number;
@@ -84,7 +83,6 @@ export const BLOCKS = {
 export const BIOMES = {
 	PLAINS: {
 		baseHeight: 68,
-		terrainScale: 0.02,
 		heightVariation: 6,
 		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
 		subSurfaceBlock: BLOCKS.DIRT,
@@ -96,7 +94,6 @@ export const BIOMES = {
 	},
 	DESERT: {
 		baseHeight: 70,
-		terrainScale: 0.03,
 		heightVariation: 3,
 		surfaceBlock: (x, z, elevation) => BLOCKS.SAND,
 		subSurfaceBlock: BLOCKS.SANDSTONE,
@@ -108,7 +105,6 @@ export const BIOMES = {
 	},
 	MOUNTAINS: {
 		baseHeight: 72,
-		terrainScale: 0.025,
 		heightVariation: 32,
 		surfaceBlock: (x, z, elevation) => BLOCKS.STONE,
 		subSurfaceBlock: BLOCKS.STONE,
@@ -120,7 +116,6 @@ export const BIOMES = {
 	},
 	GRASSLANDS: {
 		baseHeight: 64,
-		terrainScale: 0.035,
 		heightVariation: 12,
 		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
 		subSurfaceBlock: BLOCKS.DIRT,
@@ -132,7 +127,6 @@ export const BIOMES = {
 	},
 	TAIGA: {
 		baseHeight: 64,
-		terrainScale: 0.025,
 		heightVariation: 12,
 		surfaceBlock: (x, z, elevation) => BLOCKS.GRASS,
 		subSurfaceBlock: BLOCKS.DIRT,
@@ -144,12 +138,9 @@ export const BIOMES = {
 	},
 	OCEAN: {
 		baseHeight: 45,
-		terrainScale: 0.025,
 		heightVariation: 5,
 		surfaceBlock: (x, z, elevation) => BLOCKS.SAND,
 		subSurfaceBlock: BLOCKS.STONE,
-		tempCenter: 0.2,
-		humidityCenter: 0.7,
 		code: 5,
 		color: "rgb(0, 115, 255)",
 	},

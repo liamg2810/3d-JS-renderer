@@ -147,7 +147,7 @@ void main() {
 	vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
 	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
 
-	vTintFlag = (texture == 14u || texture == 1u || texture == 2u) ? 1u : 0u;
+	vTintFlag = (texture == 14u || texture == 1u || texture == 2u || texture == 0u) ? 1u : 0u;
 	vec2 texCoord = vec2(1000.0, 0.0);
 
 	vec3 tint = vec3(1.0, 1.0, 1.0);

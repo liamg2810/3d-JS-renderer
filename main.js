@@ -4,7 +4,7 @@ import { Renderer } from "./Renderer.js";
 
 const canvas = document.getElementById("canvas");
 
-const p = new Player(5, 90, 5);
+const p = new Player(5000, 90, 5000);
 const r = new Renderer(p);
 r.Start();
 

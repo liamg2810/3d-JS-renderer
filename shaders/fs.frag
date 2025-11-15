@@ -18,6 +18,10 @@ void main() {
     if (vTintFlag == 1u) {
         texelColor = texture(uSampler, vTintedTexCoord);
         texelColor.rgb *= vTint;
+
+		if (texelColor.a == 0.0) {
+        	texelColor = texture(uSampler, vTextureCoord);
+		}
     } else {
         texelColor = texture(uSampler, vTextureCoord);
     }
