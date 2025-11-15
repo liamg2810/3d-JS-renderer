@@ -78,10 +78,20 @@ export class Chunk {
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
 
-		const cube = Cube(8, 128, 8, TEXTURES.SAND);
+		const blocks = [
+			...Cube(7, 80, 7, TEXTURES.SAND),
+			...Cube(8, 80, 7, TEXTURES.SAND),
+			...Cube(9, 80, 7, TEXTURES.SAND),
+			...Cube(7, 80, 8, TEXTURES.SAND),
+			...Cube(8, 80, 8, TEXTURES.SAND),
+			...Cube(9, 80, 8, TEXTURES.SAND),
+			...Cube(7, 80, 9, TEXTURES.SAND),
+			...Cube(8, 80, 9, TEXTURES.SAND),
+			...Cube(9, 80, 9, TEXTURES.SAND),
+		];
 
-		verts.set(cube, vi);
-		vi += cube.length;
+		verts.set(blocks, vi);
+		vi += blocks.length;
 
 		// const neighborChunks = {
 		// 	px: this.r.GetChunkAtPos(this.x + 1, this.z),
