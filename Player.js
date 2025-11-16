@@ -1,4 +1,5 @@
 import { enqueueChunk, isQueueing, removeLoadedChunk } from "./Scene.js";
+import { BLOCKS } from "./constants.js";
 
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
@@ -29,10 +30,10 @@ export class Player {
 
 	keyMap = new Set();
 
-	jumpPower = 0.5;
-	gravity = 0.5;
+	jumpPower = 0.1;
+	gravity = 0.05;
 
-	flight = true;
+	flight = false;
 
 	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
 	renderer;
@@ -53,6 +54,10 @@ export class Player {
 
 	Update() {
 		let speed = 0.2;
+
+		if (!this.flight) {
+			speed = 0.025;
+		}
 
 		if (this.keyMap.has("shift")) {
 			speed *= 2;
@@ -113,6 +118,25 @@ export class Player {
 
 			if (this.keyMap.has("q")) {
 				this.position.y -= 1;
+			}
+		}
+
+		if (this.keyMap.has("f")) {
+			const by = Math.round(this.position.y) - 2;
+			const bx = Math.floor(Math.abs(this.position.x)) % 16;
+			const bz = Math.floor(Math.abs(this.position.z)) % 16;
+
+			const camChunkX = Math.floor(this.position.x / 16);
+			const camChunkZ = Math.floor(this.position.z / 16);
+
+			const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
+
+			const b = chunk.blocks[bx + bz * 16 + by * 256];
+
+			if (b !== BLOCKS.BEDROCK) {
+				chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
+
+				chunk.BuildVerts();
 			}
 		}
 
@@ -244,8 +268,8 @@ export class Player {
 		// Camera chunk coordinates
 		const camChunkX = Math.floor(this.position.x / 16);
 		const camChunkZ = Math.floor(this.position.z / 16);
-		let camBlockX = Math.floor(Math.abs(this.position.x)) % 16;
-		let camBlockZ = Math.floor(Math.abs(this.position.z)) % 16;
+		let camBlockX = Math.round(Math.abs(this.position.x)) % 16;
+		let camBlockZ = Math.round(Math.abs(this.position.z)) % 16;
 
 		if (this.position.x < 0) {
 			camBlockX = 15 - camBlockX;

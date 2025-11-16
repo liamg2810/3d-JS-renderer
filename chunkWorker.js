@@ -7,6 +7,8 @@ import {
 	HUMIDITY_NOISE_SCALE,
 	MAX_HEIGHT,
 	ORE_NOISE_SCALE,
+	SPAGHETTI_CAVE_RANGE,
+	SPAGHETTI_CAVE_VALUE,
 	TEMPERATURE_NOISE_SCALE,
 	TERRAIN_NOISE_SCALE,
 	WATER_LEVEL,
@@ -39,11 +41,13 @@ function BuildChunk(chunkX, chunkZ, seed) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
 			for (let y = 0; y < 128; y += 4) {
 				const cy = y / 4;
-				const nVal = noise.perlin3(
+				let nVal = noise.perlin3(
 					worldX * CAVE_NOISE_SCALE,
 					y * CAVE_NOISE_SCALE,
 					worldZ * CAVE_NOISE_SCALE
 				);
+
+				nVal = Math.abs(nVal);
 
 				caveNoise[
 					cx +
@@ -254,11 +258,13 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 
 		let belowB = BLOCKS.STONE;
 
-		const oreNoise = noise.perlin3(
+		let oreNoise = noise.perlin3(
 			x * ORE_NOISE_SCALE,
 			y * ORE_NOISE_SCALE,
 			z * ORE_NOISE_SCALE
 		);
+
+		oreNoise = (oreNoise + 1) / 2;
 
 		if (oreNoise < 0.2) {
 			belowB = BLOCKS.COAL;
@@ -271,7 +277,10 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		if (y < elevation - 3) {
 			const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
-			if (nVal < caveVal) {
+			if (
+				nVal < SPAGHETTI_CAVE_VALUE + SPAGHETTI_CAVE_RANGE &&
+				nVal > SPAGHETTI_CAVE_VALUE - SPAGHETTI_CAVE_RANGE
+			) {
 				belowB = BLOCKS.AIR;
 			}
 		}

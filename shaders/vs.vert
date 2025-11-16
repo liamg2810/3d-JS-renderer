@@ -172,7 +172,7 @@ void main() {
 	}
 
 	if (texture == 0u) {
-		texCoord = vec2(float(1) / float(atlasCols), float(2) / float(atlasRows)) + (getFaceUV(cID, dir)) * tileScale;
+		texCoord = vec2(float(1) / float(atlasCols), float(2) / float(atlasRows)) + (paddingRatio + getFaceUV(cID, dir) * innerRatio) * tileScale;
 	
 		if (biome == 4u) {
 			tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
