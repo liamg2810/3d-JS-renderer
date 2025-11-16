@@ -126,6 +126,10 @@ function loadTexture(gl, url) {
 	return texture;
 }
 
+function BuildTextureAtlas() {
+	const blocks = "/textures/blocks.json";
+}
+
 function isPowerOf2(value) {
 	return (value & (value - 1)) === 0;
 }

@@ -143,9 +143,12 @@ void main() {
 		row = uint(getWaterY());
 	}
 
+	float paddingRatio = 1.0 / 18.0;
+	float innerRatio = 16.0 / 18.0;
+
 	vec2 tileOffset = vec2(float(col) / float(atlasCols), float(row) / float(atlasRows));
 	vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
-	vTextureCoord = tileOffset + (getFaceUV(cID, dir)) * tileScale;
+	vTextureCoord = tileOffset + (paddingRatio + getFaceUV(cID, dir) * innerRatio) * tileScale;
 
 	vTintFlag = (texture == 14u || texture == 1u || texture == 2u || texture == 0u) ? 1u : 0u;
 	vec2 texCoord = vec2(1000.0, 0.0);

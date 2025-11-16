@@ -78,81 +78,66 @@ export class Chunk {
 		const verts = new Uint32Array(estimatedMaxVerts);
 		let vi = 0;
 
-		const blocks = [
-			...Cube(7, 80, 7, TEXTURES.SAND),
-			...Cube(8, 80, 7, TEXTURES.SAND),
-			...Cube(9, 80, 7, TEXTURES.SAND),
-			...Cube(7, 80, 8, TEXTURES.SAND),
-			...Cube(8, 80, 8, TEXTURES.SAND),
-			...Cube(9, 80, 8, TEXTURES.SAND),
-			...Cube(7, 80, 9, TEXTURES.SAND),
-			...Cube(8, 80, 9, TEXTURES.SAND),
-			...Cube(9, 80, 9, TEXTURES.SAND),
-		];
-
-		verts.set(blocks, vi);
-		vi += blocks.length;
-
-		// const neighborChunks = {
-		// 	px: this.r.GetChunkAtPos(this.x + 1, this.z),
-		// 	nx: this.r.GetChunkAtPos(this.x - 1, this.z),
-		// 	pz: this.r.GetChunkAtPos(this.x, this.z + 1),
-		// 	nz: this.r.GetChunkAtPos(this.x, this.z - 1),
-		// };
+		const neighborChunks = {
+			px: this.r.GetChunkAtPos(this.x + 1, this.z),
+			nx: this.r.GetChunkAtPos(this.x - 1, this.z),
+			pz: this.r.GetChunkAtPos(this.x, this.z + 1),
+			nz: this.r.GetChunkAtPos(this.x, this.z - 1),
+		};
 
 		const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
 		let waterVi = 0;
 
-		// for (let [i, block] of this.blocks.entries()) {
-		// 	if (block === BLOCKS.AIR) {
-		// 		continue;
-		// 	}
+		for (let [i, block] of this.blocks.entries()) {
+			if (block === BLOCKS.AIR) {
+				continue;
+			}
 
-		// 	const biome = block >>> 8;
-		// 	const b = block & 0xff;
+			const biome = block >>> 8;
+			const b = block & 0xff;
 
-		// 	const y = i >> 8;
-		// 	const z = (i >> 4) & 0xf;
-		// 	const x = i & 0xf;
+			const y = i >> 8;
+			const z = (i >> 4) & 0xf;
+			const x = i & 0xf;
 
-		// 	if (b === BLOCKS.WATER) {
-		// 		const w = Water(x, y, z, TEXTURES.WATER);
-		// 		waterVerts.set(w, waterVi);
-		// 		waterVi += w.length;
-		// 		continue;
-		// 	}
+			if (b === BLOCKS.WATER) {
+				const w = Water(x, y, z, TEXTURES.WATER);
+				waterVerts.set(w, waterVi);
+				waterVi += w.length;
+				continue;
+			}
 
-		// 	let culled = 0b111111;
+			let culled = 0b111111;
 
-		// 	for (let dir = 0; dir < 6; dir++) {
-		// 		const [dx, dy, dz] = neighbors[dir];
-		// 		const b2 = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
-		// 		if (
-		// 			b2 !== BLOCKS.AIR &&
-		// 			b2 !== BLOCKS.WATER &&
-		// 			b2 !== BLOCKS.LEAVES &&
-		// 			b2 !== BLOCKS.SPRUCE_LEAVES &&
-		// 			(b2 !== BLOCKS.ICE || b === BLOCKS.ICE)
-		// 		) {
-		// 			culled &= ~(1 << dir);
-		// 		}
-		// 	}
+			for (let dir = 0; dir < 6; dir++) {
+				const [dx, dy, dz] = neighbors[dir];
+				const b2 = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
+				if (
+					b2 !== BLOCKS.AIR &&
+					b2 !== BLOCKS.WATER &&
+					b2 !== BLOCKS.LEAVES &&
+					b2 !== BLOCKS.SPRUCE_LEAVES &&
+					(b2 !== BLOCKS.ICE || b === BLOCKS.ICE)
+				) {
+					culled &= ~(1 << dir);
+				}
+			}
 
-		// 	let tex = TEXTURES.GRASS;
+			let tex = TEXTURES.GRASS;
 
-		// 	tex = blockTextureMap[b] ?? tex;
+			tex = blockTextureMap[b] ?? tex;
 
-		// 	const c = Cube(x, y, z, tex, culled, biome);
+			const c = Cube(x, y, z, tex, culled, biome);
 
-		// 	if (tex === TEXTURES.ICE) {
-		// 		waterVerts.set(c, waterVi);
-		// 		waterVi += c.length;
-		// 	} else {
-		// 		verts.set(c, vi);
+			if (tex === TEXTURES.ICE) {
+				waterVerts.set(c, waterVi);
+				waterVi += c.length;
+			} else {
+				verts.set(c, vi);
 
-		// 		vi += c.length;
-		// 	}
-		// }
+				vi += c.length;
+			}
+		}
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
 		this.gl.bufferData(

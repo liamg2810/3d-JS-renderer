@@ -155,5 +155,7 @@ export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 3;
 export const WATER_LEVEL = 72;
 export const CONTINENTIAL_NOISE_SCALE = 0.005;
 export const WEIRDNESS_NOISE_SCALE = 0.02;
+export const SPAGHETTI_CAVE_VALUE = 0.5;
+export const SPAGHETTI_CAVE_RANGE = 0.1;
 
 export const MAX_HEIGHT = 256;
