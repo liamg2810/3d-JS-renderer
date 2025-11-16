@@ -1,4 +1,9 @@
-import { enqueueChunk, isQueueing, removeLoadedChunk } from "./Scene.js";
+import {
+	enqueueChunk,
+	enqueueMesh,
+	isQueueing,
+	removeLoadedChunk,
+} from "./Scene.js";
 import { BLOCKS } from "./constants.js";
 
 const worldPosDebug = document.getElementById("world-pos");
@@ -33,7 +38,7 @@ export class Player {
 	jumpPower = 0.1;
 	gravity = 0.05;
 
-	flight = false;
+	flight = true;
 
 	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
 	renderer;
@@ -136,7 +141,7 @@ export class Player {
 			if (b !== BLOCKS.BEDROCK) {
 				chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
 
-				chunk.BuildVerts();
+				enqueueMesh(chunk);
 			}
 		}
 
@@ -165,7 +170,7 @@ export class Player {
 		if (!this.renderer.isTwoD) {
 			for (const c of visibleChunks) {
 				if (!c.builtVerts) {
-					c.BuildVerts();
+					enqueueMesh(c);
 				}
 			}
 		}

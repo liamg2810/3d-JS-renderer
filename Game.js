@@ -1,29 +1,6 @@
 import { Cube, Water } from "./Primitives.js";
 import { BLOCKS, TEXTURES } from "./constants.js";
 
-const neighbors = [
-	[0, 1, 0],
-	[0, -1, 0],
-	[-1, 0, 0],
-	[1, 0, 0],
-	[0, 0, 1],
-	[0, 0, -1],
-];
-
-const blockTextureMap = {
-	[BLOCKS.STONE]: TEXTURES.STONE,
-	[BLOCKS.SAND]: TEXTURES.SAND,
-	[BLOCKS.BEDROCK]: TEXTURES.BEDROCK,
-	[BLOCKS.LOG]: TEXTURES.LOG,
-	[BLOCKS.LEAVES]: TEXTURES.LEAVES,
-	[BLOCKS.DIRT]: TEXTURES.DIRT,
-	[BLOCKS.COAL]: TEXTURES.COAL,
-	[BLOCKS.SPRUCE_LEAVES]: TEXTURES.SPRUCE_LEAVES,
-	[BLOCKS.SPRUCE_LOG]: TEXTURES.SPRUCE_LOG,
-	[BLOCKS.SANDSTONE]: TEXTURES.SANDSTONE,
-	[BLOCKS.ICE]: TEXTURES.ICE,
-};
-
 export class Chunk {
 	vertCount = 0;
 	waterVertCount = 0;
@@ -73,90 +50,29 @@ export class Chunk {
 		}
 	}
 
-	BuildVerts() {
-		const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6 * 2;
-		const verts = new Uint32Array(estimatedMaxVerts);
-		let vi = 0;
-
-		const neighborChunks = {
-			px: this.r.GetChunkAtPos(this.x + 1, this.z),
-			nx: this.r.GetChunkAtPos(this.x - 1, this.z),
-			pz: this.r.GetChunkAtPos(this.x, this.z + 1),
-			nz: this.r.GetChunkAtPos(this.x, this.z - 1),
-		};
-
-		const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
-		let waterVi = 0;
-
-		for (let [i, block] of this.blocks.entries()) {
-			if (block === BLOCKS.AIR) {
-				continue;
-			}
-
-			const biome = block >>> 8;
-			const b = block & 0xff;
-
-			const y = i >> 8;
-			const z = (i >> 4) & 0xf;
-			const x = i & 0xf;
-
-			if (b === BLOCKS.WATER) {
-				const w = Water(x, y, z, TEXTURES.WATER);
-				waterVerts.set(w, waterVi);
-				waterVi += w.length;
-				continue;
-			}
-
-			let culled = 0b111111;
-
-			for (let dir = 0; dir < 6; dir++) {
-				const [dx, dy, dz] = neighbors[dir];
-				const b2 = this.BlockAt(x + dx, y + dy, z + dz, neighborChunks);
-				if (
-					b2 !== BLOCKS.AIR &&
-					b2 !== BLOCKS.WATER &&
-					b2 !== BLOCKS.LEAVES &&
-					b2 !== BLOCKS.SPRUCE_LEAVES &&
-					(b2 !== BLOCKS.ICE || b === BLOCKS.ICE)
-				) {
-					culled &= ~(1 << dir);
-				}
-			}
-
-			let tex = TEXTURES.GRASS;
-
-			tex = blockTextureMap[b] ?? tex;
-
-			const c = Cube(x, y, z, tex, culled, biome);
-
-			if (tex === TEXTURES.ICE) {
-				waterVerts.set(c, waterVi);
-				waterVi += c.length;
-			} else {
-				verts.set(c, vi);
-
-				vi += c.length;
-			}
-		}
-
+	/**
+	 * @param {Uint32Array} blockVerts
+	 * @param {Uint32Array} waterVerts
+	 */
+	PostVerts(blockVerts, waterVerts) {
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
 		this.gl.bufferData(
 			this.gl.ARRAY_BUFFER,
-			verts.subarray(0, vi),
+			blockVerts,
 			this.gl.STATIC_DRAW
 		);
 
-		this.vertCount = vi;
+		this.vertCount = blockVerts.length;
 
-		if (waterVi > 0) {
+		if (waterVerts.length > 0) {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.waterBuffer);
 			this.gl.bufferData(
 				this.gl.ARRAY_BUFFER,
-				waterVerts.subarray(0, waterVi),
+				waterVerts,
 				this.gl.STATIC_DRAW
 			);
 
-			this.waterVertCount = waterVi;
+			this.waterVertCount = waterVerts.length;
 		}
 
 		this.builtVerts = true;

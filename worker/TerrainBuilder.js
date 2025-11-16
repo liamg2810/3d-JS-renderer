@@ -13,10 +13,10 @@ import {
 	TERRAIN_NOISE_SCALE,
 	WATER_LEVEL,
 	WEIRDNESS_NOISE_SCALE,
-} from "./constants.js";
-import noise from "./perlin.js";
+} from "../constants.js";
+import noise from "../perlin.js";
 
-function BuildChunk(chunkX, chunkZ, seed) {
+export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
 	for (let x = 0; x < CHUNKSIZE; x++) {
@@ -497,13 +497,3 @@ function GetCaveNoiseValAtPoint(x, y, z, caveNoise) {
 
 	return nxy0 * (1 - fz) + nxy1 * fz;
 }
-
-self.onmessage = function (event) {
-	const { chunkX, chunkZ, seed } = event.data;
-
-	let blocks = BuildChunk(chunkX, chunkZ, seed);
-
-	self.postMessage({ chunkX, chunkZ, blocks }, [blocks.buffer]);
-
-	blocks = null;
-};
