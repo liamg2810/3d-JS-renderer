@@ -3,6 +3,42 @@ import { BLOCKS } from "./constants.js";
 // [TEXTURE][DIRECTION][CID][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // CID = 0-7 = 3 bits
+// prettier-ignore
+const corners =[
+		// TOP
+		0, 2, 3,
+		3, 1, 0,
+		// BOTTOM
+		4, 5, 7,
+		7, 6, 4,
+		// LEFT
+		4, 6, 2,
+		2, 0, 4,
+		// RIGHT
+		1, 3, 7,
+		7, 5, 1,
+		// FRONT
+		3, 2, 6,
+		6, 7, 3,
+		// BACK
+		4, 0, 1,
+		1, 5, 4,
+	]
+
+const directions = [
+	// TOP face normal
+	0,
+	// BOTTOM face normal
+	1,
+	// LEFT face normal
+	2,
+	// RIGHT face normal
+	3,
+	// FRONT face normal
+	4,
+	// BACK face normal
+	5,
+];
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 6 bits
 // TOTAL BITS = 28
@@ -44,43 +80,6 @@ export function Cube(
 	}
 
 	const position = (x << 12) | (y << 4) | z;
-
-	// prettier-ignore
-	const corners =[
-			// TOP
-			0, 2, 3,
-			3, 1, 0,
-			// BOTTOM
-			4, 5, 7,
-			7, 6, 4,
-			// LEFT
-			4, 6, 2,
-			2, 0, 4,
-			// RIGHT
-			1, 3, 7,
-			7, 5, 1,
-			// FRONT
-			3, 2, 6,
-			6, 7, 3,
-			// BACK
-			4, 0, 1,
-			1, 5, 4,
-		]
-
-	const directions = [
-		// TOP face normal
-		0,
-		// BOTTOM face normal
-		1,
-		// LEFT face normal
-		2,
-		// RIGHT face normal
-		3,
-		// FRONT face normal
-		4,
-		// BACK face normal
-		5,
-	];
 
 	let out = [];
 

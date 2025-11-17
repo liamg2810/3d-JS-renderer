@@ -63,7 +63,7 @@ export function removeLoadedChunk(chunkX, chunkZ) {
  * @param {import('./Renderer.js').Renderer | import('./2D-Renderer.js').TwoDRenderer} renderer
  */
 function processQueue(renderer) {
-	for (let i = 0; i < workers.length / 2; i++) {
+	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && chunkQueue.length > 0) {
 			const task = chunkQueue.shift();
 
@@ -94,7 +94,7 @@ function processQueue(renderer) {
 		}
 	}
 
-	for (let i = workers.length / 2; i < workers.length; i++) {
+	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && meshQueue.length > 0) {
 			const chunk = meshQueue.shift();
 
