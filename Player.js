@@ -38,7 +38,7 @@ export class Player {
 	jumpPower = 0.1;
 	gravity = 0.05;
 
-	flight = true;
+	flight = false;
 
 	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
 	renderer;
