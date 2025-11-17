@@ -30,7 +30,8 @@ export function Cube(
 	tex,
 	culledFaces = 0b111111,
 	biome = 0,
-	blocks = []
+	blocks = [],
+	neighborChunks = []
 ) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
@@ -115,74 +116,121 @@ export function Cube(
 		let AO = 0b0000;
 
 		if (dir === 0) {
-			if (blocks[x - 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z, y + 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0010 << 4);
 			}
-			if (blocks[x + 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x + 1, z, y + 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0001 << 4);
 			}
-			if (blocks[x + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x, z + 1, y + 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0100 << 4);
 			}
-			if (blocks[x + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x, z - 1, y + 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b1000 << 4);
 			}
-			if (blocks[x + 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x + 1, z - 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
 				AO = AO | 0b0001;
 			}
-			if (blocks[x + 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x + 1, z + 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
 				AO = AO | 0b0100;
 			}
-			if (blocks[x - 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z - 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
 				AO = AO | 0b0010;
 			}
-			if (blocks[x - 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z + 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
 				AO = AO | 0b1000;
 			}
 		}
 
 		if (dir === 2) {
-			if (blocks[x - 1 + z * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z, y - 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b1000 << 4);
 			}
-			if (blocks[x - 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z, y + 1, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0100 << 4);
 			}
-			if (blocks[x - 1 + (z - 1) * 16 + y * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z - 1, y, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0001 << 4);
 			}
-			if (blocks[x - 1 + (z + 1) * 16 + y * 256] !== BLOCKS.AIR) {
+			if (
+				BlockAt(x - 1, z + 1, y, neighborChunks, blocks) !== BLOCKS.AIR
+			) {
 				AO = AO | (0b0010 << 4);
 			}
 
-			if (blocks[x - 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b0010 << 4);
+			if (
+				BlockAt(x - 1, z + 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
+				AO = AO | 0b1000;
 			}
-			if (blocks[x - 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b0001 << 4);
+			if (
+				BlockAt(x - 1, z - 1, y + 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
+				AO = AO | 0b0100;
 			}
-			if (blocks[x - 1 + (z + 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b1000 << 4);
+			if (
+				BlockAt(x - 1, z + 1, y - 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
+				AO = AO | 0b0010;
 			}
-			if (blocks[x - 1 + (z - 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b0100 << 4);
-			}
-		}
-		if (dir === 3) {
-			if (blocks[x + 1 + z * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b1000 << 4);
-			}
-		}
-		if (dir === 4) {
-			if (blocks[x + (z + 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b1000 << 4);
-			}
-		}
-		if (dir === 5) {
-			if (blocks[x + (z - 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
-				AO = AO | (0b1000 << 4);
+			if (
+				BlockAt(x - 1, z - 1, y - 1, neighborChunks, blocks) !==
+				BLOCKS.AIR
+			) {
+				AO = AO | 0b0001;
 			}
 		}
+
+		// if (dir === 3) {
+		// 	if (
+		// 		BlockAt(x + 1, z, y - 1, neighborChunks, blocks) !== BLOCKS.AIR
+		// 	) {
+		// 		AO = AO | (0b1000 << 4);
+		// 	}
+		// }
+		// if (dir === 4) {
+		// 	if (
+		// 		BlockAt(x, z + 1, y - 1, neighborChunks, blocks) !== BLOCKS.AIR
+		// 	) {
+		// 		AO = AO | (0b1000 << 4);
+		// 	}
+		// }
+		// if (dir === 5) {
+		// 	if (
+		// 		BlockAt(x, z - 1, y - 1, neighborChunks, blocks) !== BLOCKS.AIR
+		// 	) {
+		// 		AO = AO | (0b1000 << 4);
+		// 	}
+		// }
 
 		out.push(AO >>> 0, vert >>> 0);
 	}
@@ -242,4 +290,40 @@ export function Water(x, y, z, tex) {
 	}
 
 	return new Uint32Array(out);
+}
+
+function BlockAt(nx, nz, ny, neighborChunks, blocks) {
+	if (ny < 0 || ny >= 256) return BLOCKS.AIR;
+
+	const CHUNK = 16;
+	const LAYER = CHUNK * CHUNK;
+
+	const safeGet = (arr, idx) => {
+		if (!arr) return BLOCKS.AIR;
+		const v = arr[idx];
+		return v === undefined ? BLOCKS.AIR : v;
+	};
+
+	if (nx < 0) {
+		const arr = neighborChunks && neighborChunks.nx;
+		const idx = 15 + nz * CHUNK + ny * LAYER;
+		return safeGet(arr, idx);
+	}
+	if (nx >= CHUNK) {
+		const arr = neighborChunks && neighborChunks.px;
+		const idx = 0 + nz * CHUNK + ny * LAYER;
+		return safeGet(arr, idx);
+	}
+	if (nz < 0) {
+		const arr = neighborChunks && neighborChunks.nz;
+		const idx = nx + 15 * CHUNK + ny * LAYER;
+		return safeGet(arr, idx);
+	}
+	if (nz >= CHUNK) {
+		const arr = neighborChunks && neighborChunks.pz;
+		const idx = nx + 0 * CHUNK + ny * LAYER;
+		return safeGet(arr, idx);
+	}
+
+	return blocks[nx + nz * CHUNK + ny * LAYER];
 }

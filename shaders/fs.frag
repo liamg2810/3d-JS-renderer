@@ -113,6 +113,6 @@ void main() {
 
 	texelColor.rgb *= darkness;
 
-    fragColor = vec4(texelColor.rgb * vLighting, texelColor.a);
+    fragColor = vec4(texelColor.rgb, texelColor.a);
 }
   
