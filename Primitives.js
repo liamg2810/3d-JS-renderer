@@ -1,3 +1,5 @@
+import { BLOCKS } from "./constants.js";
+
 // [TEXTURE][DIRECTION][CID][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // CID = 0-7 = 3 bits
@@ -18,9 +20,18 @@
  * @param {{top?: number; base: number; bottom?: number}} tex
  * @param {number} culledFaces
  * @param {number} biome
+ * @param {BLOCKS[]} blocks
  * @returns {Uint32Array}
  */
-export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
+export function Cube(
+	x,
+	y,
+	z,
+	tex,
+	culledFaces = 0b111111,
+	biome = 0,
+	blocks = []
+) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -101,7 +112,79 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
 		let vert =
 			(biome << 28) | (tId << 22) | (dir << 19) | (cID << 16) | position;
 
-		out.push(1 >>> 0, vert >>> 0);
+		let AO = 0b0000;
+
+		if (dir === 0) {
+			if (blocks[x - 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0010 << 4);
+			}
+			if (blocks[x + 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0001 << 4);
+			}
+			if (blocks[x + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0100 << 4);
+			}
+			if (blocks[x + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+			if (blocks[x + 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | 0b0001;
+			}
+			if (blocks[x + 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | 0b0100;
+			}
+			if (blocks[x - 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | 0b0010;
+			}
+			if (blocks[x - 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | 0b1000;
+			}
+		}
+
+		if (dir === 2) {
+			if (blocks[x - 1 + z * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+			if (blocks[x - 1 + z * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0100 << 4);
+			}
+			if (blocks[x - 1 + (z - 1) * 16 + y * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0001 << 4);
+			}
+			if (blocks[x - 1 + (z + 1) * 16 + y * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0010 << 4);
+			}
+
+			if (blocks[x - 1 + (z + 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0010 << 4);
+			}
+			if (blocks[x - 1 + (z - 1) * 16 + (y + 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0001 << 4);
+			}
+			if (blocks[x - 1 + (z + 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+			if (blocks[x - 1 + (z - 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b0100 << 4);
+			}
+		}
+		if (dir === 3) {
+			if (blocks[x + 1 + z * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+		}
+		if (dir === 4) {
+			if (blocks[x + (z + 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+		}
+		if (dir === 5) {
+			if (blocks[x + (z - 1) * 16 + (y - 1) * 256] !== BLOCKS.AIR) {
+				AO = AO | (0b1000 << 4);
+			}
+		}
+
+		out.push(AO >>> 0, vert >>> 0);
 	}
 
 	return new Uint32Array(out);

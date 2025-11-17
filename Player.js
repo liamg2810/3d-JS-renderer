@@ -31,14 +31,14 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 8;
+	renderDistance = 1;
 
 	keyMap = new Set();
 
 	jumpPower = 0.1;
 	gravity = 0.05;
 
-	flight = false;
+	flight = true;
 
 	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
 	renderer;

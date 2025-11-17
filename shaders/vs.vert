@@ -48,6 +48,9 @@ out highp vec3 vLighting;
 out highp vec3 vTint;
 out highp vec2 vTintedTexCoord;
 flat out uint vTintFlag;
+flat out uint vTintedTexIndex;
+flat out uint vTexIndex;
+flat out uint vAO;
 
 vec2 getFaceUV(uint cID, uint dir) {
 	// Base UVs for the corners of a face
@@ -110,6 +113,7 @@ float getWaterY() {
 
 void main() {
 	uint lowBits = aVertex.y;
+	uint highBits = aVertex.x;
 
 	uint vertZ = lowBits & uint(0xF);
 	uint vertY = (lowBits >> 4) & uint(0xFF);
@@ -119,6 +123,8 @@ void main() {
 	uint dir = (lowBits >> 19) & uint(0x7);
 	uint texture = (lowBits >> 22) & uint(0x3F);
 	uint biome = (lowBits >> 28) & uint(0xF);
+
+	vAO = highBits & uint(0xFF);
 
 	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
 	
@@ -141,6 +147,8 @@ void main() {
 
 	if (texture == 6u) {
 		row = uint(getWaterY());
+
+		texture = row * uint(atlasCols) + col;
 	}
 
 	float paddingRatio = 1.0 / 18.0;
@@ -150,6 +158,8 @@ void main() {
 	vec2 tileScale = vec2(1.0 / float(atlasCols), 1.0 / float(atlasRows));
 	vTextureCoord = tileOffset + (paddingRatio + getFaceUV(cID, dir) * innerRatio) * tileScale;
 
+	vTexIndex = texture;
+
 	vTintFlag = (texture == 14u || texture == 1u || texture == 2u || texture == 0u) ? 1u : 0u;
 	vec2 texCoord = vec2(1000.0, 0.0);
 
@@ -158,17 +168,20 @@ void main() {
 	if (texture == 14u) {
 		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
 		texCoord = vTextureCoord;
+		vTintedTexIndex = texture;
 	}
 
 
 	if (texture == 1u || texture == 2u) {
 		tint = vec3(121.0/255.0, 192.0/255.0, 90.0/255.0);
 		texCoord = vTextureCoord;
+		vTintedTexIndex = texture;
 	}
 
 	if (texture == 1u && biome == 4u) {
 		tint = vec3(97.0/255.0, 153.0/255.0, 97.0/255.0);
 		texCoord = vTextureCoord;
+		vTintedTexIndex = texture;
 	}
 
 	if (texture == 0u) {
@@ -179,6 +192,7 @@ void main() {
 		} else {
 			tint = vec3(121.0/255.0, 192.0/255.0, 90.0/255.0);
 		}
+		vTintedTexIndex = 16u;
 	}
 
 	vTintedTexCoord = texCoord;

@@ -70,7 +70,7 @@ export function BuildVerts(blocks, neighborChunks) {
 
 		tex = blockTextureMap[b] ?? tex;
 
-		const c = Cube(x, y, z, tex, culled, biome);
+		const c = Cube(x, y, z, tex, culled, biome, blocks);
 
 		if (tex === TEXTURES.ICE) {
 			waterVerts.set(c, waterVi);
