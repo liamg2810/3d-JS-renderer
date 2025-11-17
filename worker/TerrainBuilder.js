@@ -89,11 +89,7 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 					noise.perlin2(
 						worldX * CONTINENTIAL_NOISE_SCALE,
 						worldZ * CONTINENTIAL_NOISE_SCALE
-					) +
-				noise.perlin2(
-					worldX * CONTINENTIAL_NOISE_SCALE,
-					worldZ * CONTINENTIAL_NOISE_SCALE
-				);
+					);
 
 			continential = continential / (1 + 0.5 + 0.25);
 

@@ -31,7 +31,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 1;
+	renderDistance = 16;
 
 	keyMap = new Set();
 
