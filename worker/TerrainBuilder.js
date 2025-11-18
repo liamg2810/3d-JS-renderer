@@ -19,41 +19,29 @@ import noise from "../perlin.js";
 export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
-	for (let x = 0; x < CHUNKSIZE; x++) {
-		for (let z = 0; z < CHUNKSIZE; z++) {
-			for (let y = 0; y < MAX_HEIGHT; y++) {
-				blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.AIR;
-			}
-		}
-	}
-
-	let water = [];
-
 	noise.seed(seed);
 
-	let caveNoise = new Float32Array((CHUNKSIZE / 4) * (CHUNKSIZE / 4) * 32);
+	const step = 4;
+	const size = CHUNKSIZE / step;
+	const strideXZ = size;
+	const strideY = size * size;
 
-	for (let x = 0; x < CHUNKSIZE; x += 4) {
-		const cx = x / 4;
+	const caveNoise = new Float32Array(size * size * (128 / step));
+
+	for (let cx = 0, x = 0; cx < size; cx++, x += step) {
 		const worldX = x + chunkX * CHUNKSIZE;
-		for (let z = 0; z < CHUNKSIZE; z += 4) {
-			const cz = z / 4;
+		const scaledX = worldX * CAVE_NOISE_SCALE;
+
+		for (let cz = 0, z = 0; cz < size; cz++, z += step) {
 			const worldZ = z + chunkZ * CHUNKSIZE;
-			for (let y = 0; y < 128; y += 4) {
-				const cy = y / 4;
-				let nVal = noise.perlin3(
-					worldX * CAVE_NOISE_SCALE,
-					y * CAVE_NOISE_SCALE,
-					worldZ * CAVE_NOISE_SCALE
-				);
+			const scaledZ = worldZ * CAVE_NOISE_SCALE;
 
-				nVal = Math.abs(nVal);
+			let scaledY = 0;
 
-				caveNoise[
-					cx +
-						cz * (CHUNKSIZE / 4) +
-						cy * (CHUNKSIZE / 4) * (CHUNKSIZE / 4)
-				] = nVal;
+			for (let cy = 0, y = 0; cy < 32; cy++, y += step) {
+				let nVal = noise.perlin3(scaledX, scaledY, scaledZ);
+				caveNoise[cx + cz * strideXZ + cy * strideY] = Math.abs(nVal);
+				scaledY += step * CAVE_NOISE_SCALE;
 			}
 		}
 	}

@@ -1,47 +1,54 @@
 import { BLOCKS, TEXTURES } from "../constants.js";
 import { Cube, Water } from "../Primitives.js";
 
-const neighbors = [
-	[0, 1, 0],
-	[0, -1, 0],
-	[-1, 0, 0],
-	[1, 0, 0],
-	[0, 0, 1],
-	[0, 0, -1],
-];
-const blockTextureMap = {
-	[BLOCKS.STONE]: TEXTURES.STONE,
-	[BLOCKS.SAND]: TEXTURES.SAND,
-	[BLOCKS.BEDROCK]: TEXTURES.BEDROCK,
-	[BLOCKS.LOG]: TEXTURES.LOG,
-	[BLOCKS.LEAVES]: TEXTURES.LEAVES,
-	[BLOCKS.DIRT]: TEXTURES.DIRT,
-	[BLOCKS.COAL]: TEXTURES.COAL,
-	[BLOCKS.SPRUCE_LEAVES]: TEXTURES.SPRUCE_LEAVES,
-	[BLOCKS.SPRUCE_LOG]: TEXTURES.SPRUCE_LOG,
-	[BLOCKS.SANDSTONE]: TEXTURES.SANDSTONE,
-	[BLOCKS.ICE]: TEXTURES.ICE,
-};
+const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
+
+const TEXMAP = new Array(256);
+TEXMAP[BLOCKS.STONE] = TEXTURES.STONE;
+TEXMAP[BLOCKS.SAND] = TEXTURES.SAND;
+TEXMAP[BLOCKS.BEDROCK] = TEXTURES.BEDROCK;
+TEXMAP[BLOCKS.LOG] = TEXTURES.LOG;
+TEXMAP[BLOCKS.LEAVES] = TEXTURES.LEAVES;
+TEXMAP[BLOCKS.DIRT] = TEXTURES.DIRT;
+TEXMAP[BLOCKS.COAL] = TEXTURES.COAL;
+TEXMAP[BLOCKS.SPRUCE_LEAVES] = TEXTURES.SPRUCE_LEAVES;
+TEXMAP[BLOCKS.SPRUCE_LOG] = TEXTURES.SPRUCE_LOG;
+TEXMAP[BLOCKS.SANDSTONE] = TEXTURES.SANDSTONE;
+TEXMAP[BLOCKS.ICE] = TEXTURES.ICE;
+
+const CHUNK = 16;
+const LAYER = CHUNK * CHUNK;
 
 export function BuildVerts(blocks, neighborChunks) {
-	const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6 * 2;
+	const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
 
 	const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
 	let waterVi = 0;
 
-	for (let [i, block] of blocks.entries()) {
+	let x = -1,
+		y = 0,
+		z = 0;
+
+	for (var i = 0, l = blocks.length; i < l; i++) {
+		const block = blocks[i];
+		x++;
+		if (x === 16) {
+			x = 0;
+			z++;
+		}
+		if (z === 16) {
+			z = 0;
+			y++;
+		}
+
 		if (block === BLOCKS.AIR) {
 			continue;
 		}
 
 		const biome = block >>> 8;
 		const b = block & 0xff;
-
-		const y = i >> 8;
-		const z = (i >> 4) & 0xf;
-		const x = i & 0xf;
 
 		if (b === BLOCKS.WATER) {
 			const w = Water(x, y, z, TEXTURES.WATER);
@@ -52,32 +59,56 @@ export function BuildVerts(blocks, neighborChunks) {
 
 		let culled = 0b111111;
 
-		for (let dir = 0; dir < 6; dir++) {
-			const [dx, dy, dz] = neighbors[dir];
-			const b2 = BlockAt(x + dx, y + dy, z + dz, neighborChunks, blocks);
+		for (var dir = 0; dir < 6; dir++) {
+			const dx = NEIGH[dir * 3];
+			const dy = NEIGH[dir * 3 + 1];
+			const dz = NEIGH[dir * 3 + 2];
+
+			const nx = x + dx;
+			const ny = y + dy;
+			const nz = z + dz;
+
+			let nb;
+
+			if (ny < 0 || ny >= 256) {
+				nb = BLOCKS.AIR;
+			} else if (nx < 0) {
+				const arr = neighborChunks?.nx;
+				nb = arr ? arr[15 + nz * CHUNK + ny * LAYER] : BLOCKS.AIR;
+			} else if (nx >= 16) {
+				const arr = neighborChunks?.px;
+				nb = arr ? arr[nz * CHUNK + ny * LAYER] : BLOCKS.AIR;
+			} else if (nz < 0) {
+				const arr = neighborChunks?.nz;
+				nb = arr ? arr[nx + 15 * CHUNK + ny * LAYER] : BLOCKS.AIR;
+			} else if (nz >= 16) {
+				const arr = neighborChunks?.pz;
+				nb = arr ? arr[nx + ny * LAYER] : BLOCKS.AIR;
+			} else {
+				nb = blocks[nx + nz * 16 + ny * 256];
+			}
+
+			// opaque logic (no leaves, water, etc.)
 			if (
-				b2 !== BLOCKS.AIR &&
-				b2 !== BLOCKS.WATER &&
-				b2 !== BLOCKS.LEAVES &&
-				b2 !== BLOCKS.SPRUCE_LEAVES &&
-				(b2 !== BLOCKS.ICE || b === BLOCKS.ICE)
+				nb !== BLOCKS.AIR &&
+				nb !== BLOCKS.WATER &&
+				nb !== BLOCKS.LEAVES &&
+				nb !== BLOCKS.SPRUCE_LEAVES &&
+				(nb !== BLOCKS.ICE || b === BLOCKS.ICE)
 			) {
 				culled &= ~(1 << dir);
 			}
 		}
 
-		let tex = TEXTURES.GRASS;
+		const tex = TEXMAP[b] || TEXTURES.GRASS;
 
-		tex = blockTextureMap[b] ?? tex;
-
-		const c = Cube(x, y, z, tex, culled, biome, blocks, neighborChunks);
+		const c = Cube(x, y, z, tex, culled, biome);
 
 		if (tex === TEXTURES.ICE) {
 			waterVerts.set(c, waterVi);
 			waterVi += c.length;
 		} else {
 			verts.set(c, vi);
-
 			vi += c.length;
 		}
 	}
@@ -86,40 +117,4 @@ export function BuildVerts(blocks, neighborChunks) {
 		blockVerts: verts.subarray(0, vi),
 		waterVerts: waterVerts.subarray(0, waterVi),
 	};
-}
-
-function BlockAt(nx, ny, nz, neighborChunks, blocks) {
-	if (ny < 0 || ny >= 256) return BLOCKS.AIR;
-
-	const CHUNK = 16;
-	const LAYER = CHUNK * CHUNK;
-
-	const safeGet = (arr, idx) => {
-		if (!arr) return BLOCKS.AIR;
-		const v = arr[idx];
-		return v === undefined ? BLOCKS.AIR : v;
-	};
-
-	if (nx < 0) {
-		const arr = neighborChunks && neighborChunks.nx;
-		const idx = 15 + nz * CHUNK + ny * LAYER;
-		return safeGet(arr, idx);
-	}
-	if (nx >= CHUNK) {
-		const arr = neighborChunks && neighborChunks.px;
-		const idx = 0 + nz * CHUNK + ny * LAYER;
-		return safeGet(arr, idx);
-	}
-	if (nz < 0) {
-		const arr = neighborChunks && neighborChunks.nz;
-		const idx = nx + 15 * CHUNK + ny * LAYER;
-		return safeGet(arr, idx);
-	}
-	if (nz >= CHUNK) {
-		const arr = neighborChunks && neighborChunks.pz;
-		const idx = nx + 0 * CHUNK + ny * LAYER;
-		return safeGet(arr, idx);
-	}
-
-	return blocks[nx + nz * CHUNK + ny * LAYER];
 }

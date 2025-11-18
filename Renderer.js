@@ -375,7 +375,7 @@ export class Renderer {
 		let theta = (Math.atan2(dX, dZ) * 180) / Math.PI;
 		theta += 180;
 		const diff = ((this.player.view.yaw - theta + 180 + 360) % 360) - 180;
-		return Math.abs(diff) < this.player.fov / 2;
+		return Math.abs(diff) < this.player.fov;
 	}
 
 	lastLog = 0;
@@ -461,25 +461,17 @@ export class Renderer {
 		let chunksWithWater = [];
 
 		for (let chunk of this.chunks) {
-			const playerChunkX = this.player.position.x >>> 4;
-			const playerChunkZ = this.player.position.z >>> 4;
+			// const dX = chunk.x * 16 - this.player.position.z;
+			// const dZ = chunk.z * 16 - this.player.position.x;
 
-			const dX = chunk.x - playerChunkX;
-			const dZ = chunk.z - playerChunkZ;
-
-			if (this.lastLog < Date.now() - 1000) {
-				console.log(this.player.view.yaw);
-				this.lastLog = Date.now();
-			}
-
-			if (
-				!this.InFOV(dX, dZ) &&
-				!this.InFOV(dX, dZ + 1) &&
-				!this.InFOV(dX + 1, dZ) &&
-				!this.InFOV(dX - 1, dZ + 1)
-			) {
-				continue;
-			}
+			// if (
+			// 	!this.InFOV(dX, dZ) &&
+			// 	!this.InFOV(dX, dZ + 16) &&
+			// 	!this.InFOV(dX + 16, dZ) &&
+			// 	!this.InFOV(dX - 16, dZ + 16)
+			// ) {
+			// 	continue;
+			// }
 
 			this.gl.uniform2f(
 				this.programInfo.default.uniformLocations.uChunkPos,
