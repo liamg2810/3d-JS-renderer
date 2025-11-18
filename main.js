@@ -38,7 +38,7 @@ canvas.addEventListener("mousemove", (ev) => {
 	if (!r.isTwoD) {
 		p.view.yaw -= ev.movementX * 0.3;
 		p.view.pitch -= ev.movementY * 0.2;
-		p.view.pitch = Math.max(Math.min(p.view.pitch, 45), -45);
+		p.view.pitch = Math.max(Math.min(p.view.pitch, 90), -90);
 	}
 });
 
