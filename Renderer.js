@@ -473,10 +473,10 @@ export class Renderer {
 			}
 
 			if (
-				!this.InFOV(dX - 0.5, dZ - 0.5) &&
-				!this.InFOV(dX + 0.5, dZ - 0.5) &&
-				!this.InFOV(dX - 0.5, dZ - 0.5) &&
-				!this.InFOV(dX - 0.5, dZ + 0.5)
+				!this.InFOV(dX, dZ) &&
+				!this.InFOV(dX, dZ + 1) &&
+				!this.InFOV(dX + 1, dZ) &&
+				!this.InFOV(dX - 1, dZ + 1)
 			) {
 				continue;
 			}
