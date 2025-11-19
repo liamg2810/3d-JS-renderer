@@ -15,6 +15,7 @@ TEXMAP[BLOCKS.SPRUCE_LEAVES] = TEXTURES.SPRUCE_LEAVES;
 TEXMAP[BLOCKS.SPRUCE_LOG] = TEXTURES.SPRUCE_LOG;
 TEXMAP[BLOCKS.SANDSTONE] = TEXTURES.SANDSTONE;
 TEXMAP[BLOCKS.ICE] = TEXTURES.ICE;
+TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
 
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
@@ -94,10 +95,15 @@ export function BuildVerts(blocks, neighborChunks) {
 				nb !== BLOCKS.WATER &&
 				nb !== BLOCKS.LEAVES &&
 				nb !== BLOCKS.SPRUCE_LEAVES &&
+				nb !== BLOCKS.POPPY &&
 				(nb !== BLOCKS.ICE || b === BLOCKS.ICE)
 			) {
 				culled &= ~(1 << dir);
 			}
+		}
+
+		if (b === BLOCKS.POPPY) {
+			culled = 0b111100;
 		}
 
 		const tex = TEXMAP[b] || TEXTURES.GRASS;

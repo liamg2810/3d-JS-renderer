@@ -215,6 +215,13 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 					blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] = b.block;
 				});
+			} else if (
+				block === BLOCKS.GRASS &&
+				elevation > 64 &&
+				treeNoise < 0.05
+			) {
+				blocks[x + z * CHUNKSIZE + (elevation + 1) * MAX_HEIGHT] =
+					BLOCKS.POPPY;
 			}
 
 			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);

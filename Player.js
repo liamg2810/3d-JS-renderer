@@ -29,9 +29,12 @@ export class Player {
 	far = 10000;
 	fov = 60;
 
+	chunkX = 0;
+	chunkZ = 0;
+
 	yVel = 0;
 
-	renderDistance = 8;
+	renderDistance = 2;
 
 	keyMap = new Set();
 
@@ -49,6 +52,9 @@ export class Player {
 		this.position.x = x;
 		this.position.y = y;
 		this.position.z = z;
+
+		this.chunkX = (x + 1) >> 4;
+		this.chunkZ = (z + 1) >> 4;
 	}
 
 	SetRenderer(r) {
@@ -112,6 +118,9 @@ export class Player {
 
 		this.position.z = newZ;
 
+		this.chunkX = (this.position.x + 1) >> 4;
+		this.chunkZ = (this.position.z + 1) >> 4;
+
 		if (this.IsColliding() && !this.flight) {
 			this.position.z = oldZ;
 		}
@@ -131,10 +140,7 @@ export class Player {
 			const bx = Math.floor(Math.abs(this.position.x)) % 16;
 			const bz = Math.floor(Math.abs(this.position.z)) % 16;
 
-			const camChunkX = Math.floor(this.position.x / 16);
-			const camChunkZ = Math.floor(this.position.z / 16);
-
-			const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
+			const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 			const b = chunk.blocks[bx + bz * 16 + by * 256];
 
@@ -145,12 +151,9 @@ export class Player {
 			}
 		}
 
-		let camX = Math.floor(this.position.x / 16);
-		let camZ = Math.floor(this.position.z / 16);
-
 		if (this.freezeChunks) {
-			camX = 0;
-			camZ = 0;
+			this.chunkX = 0;
+			this.chunkZ = 0;
 		}
 
 		if (!this.freezeChunks) {
@@ -159,10 +162,10 @@ export class Player {
 
 		const visibleChunks = this.renderer.chunks.filter((c) => {
 			const unload =
-				c.x >= camX - this.renderDistance &&
-				c.x <= camX + this.renderDistance &&
-				c.z >= camZ - this.renderDistance &&
-				c.z <= camZ + this.renderDistance;
+				c.x >= this.chunkX - this.renderDistance &&
+				c.x <= this.chunkX + this.renderDistance &&
+				c.z >= this.chunkZ - this.renderDistance &&
+				c.z <= this.chunkZ + this.renderDistance;
 
 			return unload;
 		});
@@ -204,21 +207,26 @@ export class Player {
 		blockPosDebug.innerText = `Block: ${
 			this.position.x > 0 ? bx : 15 - bx
 		} ${Math.round(this.position.y)} ${this.position.z > 0 ? bz : 15 - bz}`;
-		chunkPosDebug.innerText = `Chunk: ${Math.floor(
-			this.position.x / 16
-		)} ${Math.floor(this.position.z / 16)}`;
+		chunkPosDebug.innerText = `Chunk: ${this.chunkX} ${this.chunkZ}`;
 	}
 
 	LoadChunks() {
-		const camX = Math.floor(this.position.x / 16);
-		const camZ = Math.floor(this.position.z / 16);
-
 		this.renderer.chunks = this.renderer.chunks.filter((c) => {
+			const unloadMesh =
+				c.x >= this.chunkX - this.renderDistance &&
+				c.x <= this.chunkX + this.renderDistance &&
+				c.z >= this.chunkZ - this.renderDistance &&
+				c.z <= this.chunkZ + this.renderDistance;
+
+			if (!unloadMesh) {
+				c.builtVerts = false;
+			}
+
 			const unload =
-				c.x >= camX - this.renderDistance - 2 &&
-				c.x <= camX + this.renderDistance + 2 &&
-				c.z >= camZ - this.renderDistance - 2 &&
-				c.z <= camZ + this.renderDistance + 2;
+				c.x >= this.chunkX - this.renderDistance - 2 &&
+				c.x <= this.chunkX + this.renderDistance + 2 &&
+				c.z >= this.chunkZ - this.renderDistance - 2 &&
+				c.z <= this.chunkZ + this.renderDistance + 2;
 
 			if (unload) {
 				removeLoadedChunk(c.x, c.z);
@@ -228,13 +236,13 @@ export class Player {
 		});
 
 		for (
-			let x = camX - this.renderDistance - 2;
-			x <= camX + this.renderDistance + 2;
+			let x = this.chunkX - this.renderDistance - 2;
+			x <= this.chunkX + this.renderDistance + 2;
 			x++
 		) {
 			for (
-				let z = camZ - this.renderDistance - 2;
-				z <= camZ + this.renderDistance + 2;
+				let z = this.chunkZ - this.renderDistance - 2;
+				z <= this.chunkZ + this.renderDistance + 2;
 				z++
 			) {
 				const chunk = this.renderer.GetChunkAtPos(x, z);
@@ -270,9 +278,6 @@ export class Player {
 	}
 
 	IsGrounded() {
-		// Camera chunk coordinates
-		const camChunkX = Math.floor(this.position.x / 16);
-		const camChunkZ = Math.floor(this.position.z / 16);
 		let camBlockX = Math.round(Math.abs(this.position.x)) % 16;
 		let camBlockZ = Math.round(Math.abs(this.position.z)) % 16;
 
@@ -286,7 +291,7 @@ export class Player {
 
 		const camY = this.position.y - this.HEIGHT;
 
-		const chunk = this.renderer.GetChunkAtPos(camChunkX, camChunkZ);
+		const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
@@ -319,10 +324,7 @@ export class Player {
 	}
 
 	CornerCollision(x, y, z) {
-		const cx = Math.floor(Math.round(x) / 16);
-		const cz = Math.floor(Math.round(z) / 16);
-
-		const chunk = this.renderer.GetChunkAtPos(cx, cz);
+		const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
@@ -330,11 +332,11 @@ export class Player {
 		const fy = Math.round(y);
 		let bz = Math.round(Math.abs(z)) % 16;
 
-		if (cx < 0) {
+		if (this.chunkX < 0) {
 			bx = 16 - bx;
 		}
 
-		if (cz < 0) {
+		if (this.chunkZ < 0) {
 			bz = 16 - bz;
 		}
 

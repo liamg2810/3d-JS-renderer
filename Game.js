@@ -78,6 +78,12 @@ export class Chunk {
 		this.builtVerts = true;
 	}
 
+	ClearMesh() {
+		this.blockBuffer = this.gl.createBuffer();
+		this.waterBuffer = this.gl.createBuffer();
+		this.builtVerts = false;
+	}
+
 	BlockAt(nx, ny, nz, neighborChunks) {
 		if (ny < 0 || ny >= 256) return BLOCKS.AIR;
 		if (nx < 0)

@@ -473,6 +473,10 @@ export class Renderer {
 			// 	continue;
 			// }
 
+			if (!chunk.builtVerts) {
+				continue;
+			}
+
 			this.gl.uniform2f(
 				this.programInfo.default.uniformLocations.uChunkPos,
 				chunk.x * 16,

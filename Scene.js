@@ -47,6 +47,7 @@ export function enqueueMesh(chunk) {
 	activeMeshes.add(key);
 
 	meshQueue.push(chunk);
+
 	processQueue(chunk.r);
 }
 

@@ -33,6 +33,15 @@ const vec3 offsets[8] = vec3[](
 	vec3(-0.5, -0.5, 0.5), 
 	vec3(0.5, -0.5, 0.5));
 
+const vec3 flowerOffsets[6] = vec3[](
+	vec3(0.0, 0.0, 0.0),
+	vec3(0.0, 0.0, 0.0),
+	vec3(0.5, 0.0, 0),
+	vec3(-0.5, 0.0, 0),
+	vec3(0, 0.0, -0.5),
+	vec3(0, 0.0, 0.5)
+);
+
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 const vec3 normals[6] = vec3[](
 	vec3(0.0, 1.0, 0.0),  // UP
@@ -42,6 +51,8 @@ const vec3 normals[6] = vec3[](
 	vec3(0.0, 0.0, 1.0),  // FRONT
 	vec3(0.0, 0.0, -1.0)  // BACK
 );
+
+const float PI = 3.1415926535897932384626433832795;
 
 out highp vec2 vTextureCoord;
 out highp vec3 vLighting;
@@ -108,6 +119,16 @@ float getWaterY() {
 	return mod(uTime / 100.0, 32.0);
 }
 
+vec3 rotate45AroundY(vec3 p) {
+    const float c = 0.70710678;
+    const float s = 0.70710678;
+    return vec3(
+        p.x * c - p.z * s,
+        p.y,
+        p.x * s + p.z * c
+    );
+}
+
 void main() {
 	uint lowBits = aVertex.y;
 	uint highBits = aVertex.x;
@@ -121,8 +142,15 @@ void main() {
 	uint texture = (lowBits >> 22) & uint(0x3F);
 	uint biome = (lowBits >> 28) & uint(0xF);
 
-	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
-	
+	vec3 pos =  offsets[cID];
+
+	if (texture == 23u) {
+		pos += flowerOffsets[dir];
+		pos = rotate45AroundY(pos);
+	}
+
+	pos += vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y);
+
 	// Water
 	if (texture == 6u) {
 		pos = vec3(pos.x, pos.y - 0.2, pos.z);
@@ -191,9 +219,23 @@ void main() {
 
 	vec3 normal = normals[dir];
 
-	highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-	highp vec3 directionalLightColor = vec3(1, 1, 1);
-	highp vec3 directionalVector = normalize(vec3(100, 100, 100));
+	if (texture == 23u) {
+		normal = rotate45AroundY(normal);
+	}
+
+	float seconds = uTime / 1000.0;
+	float dayLength = 120.0;
+	float t = mod(seconds, dayLength) / dayLength; // 0 → 1 over a full day	
+
+	float sun = max(0.0, cos(t * 2.0 * PI));
+
+	vec3 ambientDay = vec3(0.5);
+	vec3 ambientNight = vec3(0.3);
+
+	vec3 ambientLight = mix(ambientNight, ambientDay, sun);
+
+	vec3 directionalLightColor = vec3(1.0) * sun;
+	vec3 directionalVector = normalize(vec3(100, 100, 100));
 
 	vec3 lightDir = normalize((uNormalMatrix * vec4(directionalVector, 0.0)).xyz);
 
