@@ -230,11 +230,11 @@ void main() {
 	float sun = max(0.0, cos(t * 2.0 * PI));
 
 	vec3 ambientDay = vec3(0.5);
-	vec3 ambientNight = vec3(0.3);
+	vec3 ambientNight = vec3(0.5);
 
-	vec3 ambientLight = mix(ambientNight, ambientDay, sun);
+	vec3 ambientLight = mix(ambientNight, ambientDay, 1.0);
 
-	vec3 directionalLightColor = vec3(1.0) * sun;
+	vec3 directionalLightColor = vec3(1.0) * 1.0;
 	vec3 directionalVector = normalize(vec3(100, 100, 100));
 
 	vec3 lightDir = normalize((uNormalMatrix * vec4(directionalVector, 0.0)).xyz);

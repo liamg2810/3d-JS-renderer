@@ -46,6 +46,9 @@ export const TEXTURES = {
 	ICE: {
 		base: 18,
 	},
+	POPPY: {
+		base: 23,
+	},
 };
 
 export const BLOCKS = {
@@ -63,6 +66,7 @@ export const BLOCKS = {
 	SPRUCE_LOG: 11,
 	SANDSTONE: 12,
 	ICE: 13,
+	POPPY: 14,
 };
 
 /**
