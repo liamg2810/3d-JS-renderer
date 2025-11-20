@@ -136,18 +136,31 @@ export class Player {
 		}
 
 		if (this.keyMap.has("f")) {
-			const by = Math.round(this.position.y) - 2;
-			const bx = Math.floor(Math.abs(this.position.x)) % 16;
-			const bz = Math.floor(Math.abs(this.position.z)) % 16;
+			const ray = this.Raycast();
 
-			const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
+			if (ray !== undefined) {
+				const by = Math.floor(ray.y) - 2;
+				const bx = ((ray.x % 16) + 16) % 16;
+				const bz = ((ray.z % 16) + 16) % 16;
 
-			const b = chunk.blocks[bx + bz * 16 + by * 256];
+				console.log(by, bx, bz);
 
-			if (b !== BLOCKS.BEDROCK) {
-				chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
+				const chunk = this.renderer.GetChunkAtPos(
+					ray.x >> 4,
+					ray.z >> 4
+				);
 
-				enqueueMesh(chunk);
+				console.log(chunk);
+
+				const b = chunk.blocks[bx + bz * 16 + by * 256];
+
+				console.log(b);
+
+				if (b !== BLOCKS.BEDROCK) {
+					chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
+
+					enqueueMesh(chunk);
+				}
 			}
 		}
 
@@ -201,12 +214,12 @@ export class Player {
 			Math.round(this.position.z * 10) / 10
 		}`;
 
-		const bx = Math.floor(Math.abs(this.position.x)) % 16;
-		const bz = Math.floor(Math.abs(this.position.z)) % 16;
+		const bx = ((Math.floor(this.position.x) % 16) + 16) % 16;
+		const bz = ((Math.floor(this.position.z) % 16) + 16) % 16;
 
-		blockPosDebug.innerText = `Block: ${
-			this.position.x > 0 ? bx : 15 - bx
-		} ${Math.round(this.position.y)} ${this.position.z > 0 ? bz : 15 - bz}`;
+		blockPosDebug.innerText = `Block: ${bx} ${Math.round(
+			this.position.y
+		)} ${bz}`;
 		chunkPosDebug.innerText = `Chunk: ${this.chunkX} ${this.chunkZ}`;
 	}
 
@@ -343,5 +356,85 @@ export class Player {
 		const block = chunk.blocks[bx + bz * 16 + fy * 256];
 
 		return block !== 0;
+	}
+
+	GetBlockAtPos(x, y, z) {
+		const cx = Math.floor(x / 16);
+		const cz = Math.floor(z / 16);
+
+		const chunk = this.renderer.GetChunkAtPos(cx, cz);
+		if (!chunk) return BLOCKS.AIR;
+
+		let bx = ((Math.floor(x) % 16) + 16) % 16;
+		let by = Math.floor(y);
+		let bz = ((Math.floor(z) % 16) + 16) % 16;
+
+		if (by < 0 || by >= 256) return BLOCKS.AIR;
+
+		return chunk.blocks[bx + bz * 16 + by * 256] & 0xff;
+	}
+
+	ll = 0;
+
+	Raycast(maxDistance = 20) {
+		let yaw = (this.view.yaw * Math.PI) / 180;
+		let pitch = (this.view.pitch * Math.PI) / 180;
+
+		let dx = -Math.cos(pitch) * Math.sin(yaw);
+		let dy = Math.sin(pitch);
+		let dz = -Math.cos(pitch) * Math.cos(yaw);
+
+		if (Math.abs(dx) < 1e-6) dx = 0;
+		if (Math.abs(dy) < 1e-6) dy = 0;
+		if (Math.abs(dz) < 1e-6) dz = 0;
+
+		console.log(dx, dy, dz);
+
+		let x = this.position.x;
+		let y = this.position.y + this.HEIGHT;
+		let z = this.position.z;
+
+		let ix = Math.round(x);
+		let iy = Math.floor(y);
+		let iz = Math.round(z);
+
+		const stepX = dx > 0 ? 1 : -1;
+		const stepY = dy > 0 ? 1 : -1;
+		const stepZ = dz > 0 ? 1 : -1;
+
+		const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
+		const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
+		const tDeltaZ = dz === 0 ? Infinity : Math.abs(1 / dz);
+
+		let tMaxX = dx === 0 ? Infinity : ((stepX > 0 ? ix + 1 : ix) - x) / dx;
+		let tMaxY = dy === 0 ? Infinity : ((stepY > 0 ? iy + 1 : iy) - y) / dy;
+		let tMaxZ = dz === 0 ? Infinity : ((stepZ > 0 ? iz + 1 : iz) - z) / dz;
+
+		let distance = 0;
+
+		while (distance < maxDistance) {
+			const block = this.GetBlockAtPos(ix, iy, iz);
+			if (block !== BLOCKS.AIR) {
+				console.log(`Hit block ${block} at ${ix} ${iy} ${iz}`);
+				return { block, x: ix, y: iy, z: iz };
+			}
+
+			if (tMaxX < tMaxY && tMaxX < tMaxZ) {
+				ix += stepX;
+				distance = tMaxX;
+				tMaxX += tDeltaX;
+			} else if (tMaxY < tMaxZ) {
+				iy += stepY;
+				distance = tMaxY;
+				tMaxY += tDeltaY;
+			} else {
+				iz += stepZ;
+				distance = tMaxZ;
+				tMaxZ += tDeltaZ;
+			}
+		}
+
+		console.log("No block found");
+		return undefined;
 	}
 }
