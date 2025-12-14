@@ -34,7 +34,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 2;
+	renderDistance = 16;
 
 	keyMap = new Set();
 
@@ -374,8 +374,6 @@ export class Player {
 		return chunk.blocks[bx + bz * 16 + by * 256] & 0xff;
 	}
 
-	ll = 0;
-
 	Raycast(maxDistance = 20) {
 		let yaw = (this.view.yaw * Math.PI) / 180;
 		let pitch = (this.view.pitch * Math.PI) / 180;
@@ -395,7 +393,7 @@ export class Player {
 		let z = this.position.z;
 
 		let ix = Math.round(x);
-		let iy = Math.floor(y);
+		let iy = Math.floor(y + 1);
 		let iz = Math.round(z);
 
 		const stepX = dx > 0 ? 1 : -1;

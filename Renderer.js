@@ -461,18 +461,6 @@ export class Renderer {
 		let chunksWithWater = [];
 
 		for (let chunk of this.chunks) {
-			// const dX = chunk.x * 16 - this.player.position.z;
-			// const dZ = chunk.z * 16 - this.player.position.x;
-
-			// if (
-			// 	!this.InFOV(dX, dZ) &&
-			// 	!this.InFOV(dX, dZ + 16) &&
-			// 	!this.InFOV(dX + 16, dZ) &&
-			// 	!this.InFOV(dX - 16, dZ + 16)
-			// ) {
-			// 	continue;
-			// }
-
 			if (!chunk.builtVerts) {
 				continue;
 			}
@@ -495,7 +483,8 @@ export class Renderer {
 				this.programInfo.default.attribLocations.vertexPosition
 			);
 
-			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount);
+			// TODO: Figure out why / 2 fixes my issues
+			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount / 2);
 
 			if (chunk.waterVertCount > 0) {
 				chunksWithWater.push(chunk);
@@ -521,7 +510,7 @@ export class Renderer {
 				this.programInfo.default.attribLocations.vertexPosition
 			);
 
-			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.waterVertCount);
+			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.waterVertCount / 2);
 		}
 
 		this.DrawChunkBorders();

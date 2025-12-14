@@ -4,6 +4,9 @@ import { Renderer } from "./Renderer.js";
 
 const canvas = document.getElementById("canvas");
 
+/** @type {HTMLInputElement} */
+const renderDistanceInput = document.getElementById("render-d");
+
 const p = new Player(0, 90, 0);
 const r = new Renderer(p);
 r.Start();
@@ -44,6 +47,11 @@ canvas.addEventListener("mousemove", (ev) => {
 
 window.addEventListener("resize", () => {
 	ResizeCanvas();
+});
+
+renderDistanceInput.addEventListener("change", (ev) => {
+	console.log(ev.target.value, typeof ev.target.value);
+	p.renderDistance = parseInt(ev.target.value);
 });
 
 function ResizeCanvas() {

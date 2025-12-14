@@ -1,6 +1,7 @@
 import {
 	BIOMES,
 	BLOCKS,
+	CONTINENTIAL_NOISE_SCALE,
 	HUMIDITY_NOISE_SCALE,
 	TEMPERATURE_NOISE_SCALE,
 	WEIRDNESS_NOISE_SCALE,
@@ -20,6 +21,8 @@ const temperatureToggle = document.getElementById("temp");
 const humidityToggle = document.getElementById("humidity");
 /** @type {HTMLInputElement} */
 const weirdnessToggle = document.getElementById("weirdness");
+/** @type {HTMLInputElement} */
+const continentialToggle = document.getElementById("continential");
 
 const surfaceBlocks = [BLOCKS.GRASS, BLOCKS.SAND, BLOCKS.STONE];
 
@@ -250,6 +253,27 @@ export class TwoDRenderer {
 						this.ctx.fillStyle = `rgb(${weirdness * 255},${
 							weirdness * 255
 						},${weirdness * 255})`;
+					} else if (continentialToggle.checked) {
+						let continential =
+							noise.perlin2(
+								globalX * CONTINENTIAL_NOISE_SCALE,
+								globalZ * CONTINENTIAL_NOISE_SCALE
+							) +
+							0.5 *
+								noise.perlin2(
+									globalX * CONTINENTIAL_NOISE_SCALE,
+									globalZ * CONTINENTIAL_NOISE_SCALE
+								) +
+							0.25 *
+								noise.perlin2(
+									globalX * CONTINENTIAL_NOISE_SCALE,
+									globalZ * CONTINENTIAL_NOISE_SCALE
+								);
+
+						continential = continential / (1 + 0.5 + 0.25);
+						this.ctx.fillStyle = `rgb(${continential * 255},${
+							continential * 255
+						},${continential * 255})`;
 					} else {
 						this.ctx.fillStyle = biome.color;
 					}
