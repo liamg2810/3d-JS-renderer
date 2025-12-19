@@ -139,16 +139,16 @@ export class Player {
 			const ray = this.Raycast();
 
 			if (ray !== undefined) {
-				const by = Math.floor(ray.y) - 2;
-				const bx = ((ray.x % 16) + 16) % 16;
-				const bz = ((ray.z % 16) + 16) % 16;
+				const by = Math.floor(ray.y);
+				const bx = ((Math.floor(ray.x) % 16) + 16) % 16;
+				const bz = ((Math.floor(ray.z) % 16) + 16) % 16;
+
+				const cx = Math.floor(ray.x / 16);
+				const cz = Math.floor(ray.z / 16);
 
 				console.log(by, bx, bz);
 
-				const chunk = this.renderer.GetChunkAtPos(
-					ray.x >> 4,
-					ray.z >> 4
-				);
+				const chunk = this.renderer.GetChunkAtPos(cx, cz);
 
 				console.log(chunk);
 
@@ -374,7 +374,7 @@ export class Player {
 		return chunk.blocks[bx + bz * 16 + by * 256] & 0xff;
 	}
 
-	Raycast(maxDistance = 20) {
+	Raycast(maxDistance = 8) {
 		let yaw = (this.view.yaw * Math.PI) / 180;
 		let pitch = (this.view.pitch * Math.PI) / 180;
 
@@ -388,17 +388,17 @@ export class Player {
 
 		console.log(dx, dy, dz);
 
-		let x = this.position.x;
-		let y = this.position.y + this.HEIGHT;
-		let z = this.position.z;
+		let x = this.position.x + 0.5;
+		let y = this.position.y + 0.5;
+		let z = this.position.z + 0.5;
 
-		let ix = Math.round(x);
-		let iy = Math.floor(y + 1);
-		let iz = Math.round(z);
+		let ix = x;
+		let iy = y;
+		let iz = z;
 
-		const stepX = dx > 0 ? 1 : -1;
-		const stepY = dy > 0 ? 1 : -1;
-		const stepZ = dz > 0 ? 1 : -1;
+		const stepX = dx;
+		const stepY = dy;
+		const stepZ = dz;
 
 		const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
 		const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
@@ -412,7 +412,10 @@ export class Player {
 
 		while (distance < maxDistance) {
 			const block = this.GetBlockAtPos(ix, iy, iz);
-			if (block !== BLOCKS.AIR) {
+
+			console.log(`b: ${block}`);
+
+			if (block !== BLOCKS.AIR && block !== BLOCKS.BEDROCK) {
 				console.log(`Hit block ${block} at ${ix} ${iy} ${iz}`);
 				return { block, x: ix, y: iy, z: iz };
 			}

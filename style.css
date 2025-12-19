@@ -33,3 +33,14 @@ body {
 	background-color: white;
 	image-rendering: pixelated;
 }
+
+.crosshair {
+	position: absolute;
+	background-color: rgba(50, 50, 50, 0.5);
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 9999;
+	width: 10px;
+	height: 10px;
+}
