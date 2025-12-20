@@ -154,12 +154,13 @@ export const CHUNKSIZE = 16;
 export const TERRAIN_NOISE_SCALE = 0.025;
 export const TEMPERATURE_NOISE_SCALE = 0.005;
 export const HUMIDITY_NOISE_SCALE = 0.01;
-export const CAVE_NOISE_SCALE = 0.05;
+export const CAVE_NOISE_SCALE = 0.08;
 export const ORE_NOISE_SCALE = TERRAIN_NOISE_SCALE / 3;
 export const WATER_LEVEL = 72;
 export const CONTINENTIAL_NOISE_SCALE = 0.002;
 export const WEIRDNESS_NOISE_SCALE = 0.02;
-export const SPAGHETTI_CAVE_VALUE = 0.8;
-export const SPAGHETTI_CAVE_RANGE = 0.2;
+export const SPAGHETTI_CAVE_VALUE = 0.2;
+export const SPAGHETTI_CAVE_RANGE = 0.05;
+export const SPAGHETTI_CAVE_RADIUS = 6;
 
 export const MAX_HEIGHT = 256;

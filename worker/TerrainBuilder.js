@@ -7,6 +7,7 @@ import {
 	HUMIDITY_NOISE_SCALE,
 	MAX_HEIGHT,
 	ORE_NOISE_SCALE,
+	SPAGHETTI_CAVE_RADIUS,
 	SPAGHETTI_CAVE_RANGE,
 	SPAGHETTI_CAVE_VALUE,
 	TEMPERATURE_NOISE_SCALE,
@@ -40,7 +41,7 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 			for (let cy = 0, y = 0; cy < 32; cy++, y += step) {
 				let nVal = noise.perlin3(scaledX, scaledY, scaledZ);
-				caveNoise[cx + cz * strideXZ + cy * strideY] = Math.abs(nVal);
+				caveNoise[cx + cz * strideXZ + cy * strideY] = nVal;
 				scaledY += step * CAVE_NOISE_SCALE;
 			}
 		}
@@ -268,11 +269,12 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		if (y < elevation - 3) {
 			const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
-			if (
-				nVal < SPAGHETTI_CAVE_VALUE + SPAGHETTI_CAVE_RANGE &&
-				nVal > SPAGHETTI_CAVE_VALUE - SPAGHETTI_CAVE_RANGE
-			) {
-				belowB = BLOCKS.AIR;
+			if (Math.abs(nVal - SPAGHETTI_CAVE_VALUE) < SPAGHETTI_CAVE_RANGE) {
+				const dist = EstimateCaveDistance(x, y, z, caveNoise);
+
+				if (dist < SPAGHETTI_CAVE_RADIUS) {
+					belowB = BLOCKS.AIR;
+				}
 			}
 		}
 
@@ -283,6 +285,57 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		// Bedrock
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.BEDROCK;
 	}
+}
+
+function EstimateCaveDistance(x, y, z, caveNoise) {
+	const eps = 4;
+
+	const f0 =
+		noise.perlin3(
+			x * CAVE_NOISE_SCALE,
+			y * CAVE_NOISE_SCALE,
+			z * CAVE_NOISE_SCALE
+		) - SPAGHETTI_CAVE_VALUE;
+
+	const fx =
+		noise.perlin3(
+			(x + eps) * CAVE_NOISE_SCALE,
+			y * CAVE_NOISE_SCALE,
+			z * CAVE_NOISE_SCALE
+		) -
+		noise.perlin3(
+			(x - eps) * CAVE_NOISE_SCALE,
+			y * CAVE_NOISE_SCALE,
+			z * CAVE_NOISE_SCALE
+		);
+
+	const fy =
+		noise.perlin3(
+			x * CAVE_NOISE_SCALE,
+			(y + eps) * CAVE_NOISE_SCALE,
+			z * CAVE_NOISE_SCALE
+		) -
+		noise.perlin3(
+			x * CAVE_NOISE_SCALE,
+			(y - eps) * CAVE_NOISE_SCALE,
+			z * CAVE_NOISE_SCALE
+		);
+
+	const fz =
+		noise.perlin3(
+			x * CAVE_NOISE_SCALE,
+			y * CAVE_NOISE_SCALE,
+			(z + eps) * CAVE_NOISE_SCALE
+		) -
+		noise.perlin3(
+			x * CAVE_NOISE_SCALE,
+			y * CAVE_NOISE_SCALE,
+			(z - eps) * CAVE_NOISE_SCALE
+		);
+
+	const gradMag = Math.sqrt(fx * fx + fy * fy + fz * fz) + 1e-6;
+
+	return Math.abs(f0) / gradMag;
 }
 
 /**

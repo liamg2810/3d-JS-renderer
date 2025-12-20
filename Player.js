@@ -34,7 +34,7 @@ export class Player {
 
 	yVel = 0;
 
-	renderDistance = 16;
+	renderDistance = 4;
 
 	keyMap = new Set();
 
@@ -374,19 +374,13 @@ export class Player {
 		return chunk.blocks[bx + bz * 16 + by * 256] & 0xff;
 	}
 
-	Raycast(maxDistance = 8) {
+	Raycast(maxDistance = 6) {
 		let yaw = (this.view.yaw * Math.PI) / 180;
 		let pitch = (this.view.pitch * Math.PI) / 180;
 
 		let dx = -Math.cos(pitch) * Math.sin(yaw);
 		let dy = Math.sin(pitch);
 		let dz = -Math.cos(pitch) * Math.cos(yaw);
-
-		if (Math.abs(dx) < 1e-6) dx = 0;
-		if (Math.abs(dy) < 1e-6) dy = 0;
-		if (Math.abs(dz) < 1e-6) dz = 0;
-
-		console.log(dx, dy, dz);
 
 		let x = this.position.x + 0.5;
 		let y = this.position.y + 0.5;
@@ -400,42 +394,17 @@ export class Player {
 		const stepY = dy;
 		const stepZ = dz;
 
-		const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
-		const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
-		const tDeltaZ = dz === 0 ? Infinity : Math.abs(1 / dz);
-
-		let tMaxX = dx === 0 ? Infinity : ((stepX > 0 ? ix + 1 : ix) - x) / dx;
-		let tMaxY = dy === 0 ? Infinity : ((stepY > 0 ? iy + 1 : iy) - y) / dy;
-		let tMaxZ = dz === 0 ? Infinity : ((stepZ > 0 ? iz + 1 : iz) - z) / dz;
-
-		let distance = 0;
-
-		while (distance < maxDistance) {
+		for (let i = 0; i < maxDistance; i++) {
 			const block = this.GetBlockAtPos(ix, iy, iz);
 
-			console.log(`b: ${block}`);
-
-			if (block !== BLOCKS.AIR && block !== BLOCKS.BEDROCK) {
-				console.log(`Hit block ${block} at ${ix} ${iy} ${iz}`);
+			if (block !== BLOCKS.AIR) {
 				return { block, x: ix, y: iy, z: iz };
 			}
-
-			if (tMaxX < tMaxY && tMaxX < tMaxZ) {
-				ix += stepX;
-				distance = tMaxX;
-				tMaxX += tDeltaX;
-			} else if (tMaxY < tMaxZ) {
-				iy += stepY;
-				distance = tMaxY;
-				tMaxY += tDeltaY;
-			} else {
-				iz += stepZ;
-				distance = tMaxZ;
-				tMaxZ += tDeltaZ;
-			}
+			ix += stepX;
+			iy += stepY;
+			iz += stepZ;
 		}
 
-		console.log("No block found");
 		return undefined;
 	}
 }
