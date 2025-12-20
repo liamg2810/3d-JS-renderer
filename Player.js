@@ -146,15 +146,9 @@ export class Player {
 				const cx = Math.floor(ray.x / 16);
 				const cz = Math.floor(ray.z / 16);
 
-				console.log(by, bx, bz);
-
 				const chunk = this.renderer.GetChunkAtPos(cx, cz);
 
-				console.log(chunk);
-
 				const b = chunk.blocks[bx + bz * 16 + by * 256];
-
-				console.log(b);
 
 				if (b !== BLOCKS.BEDROCK) {
 					chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
