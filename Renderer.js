@@ -2,8 +2,7 @@ import { TEXTURES } from "./constants.js";
 import { Chunk } from "./Game.js";
 import { Player } from "./Player.js";
 import { Cube } from "./Primitives.js";
-import { enqueueChunk, isQueueing } from "./Scene.js";
-import { Vector3 } from "./Vectors.js";
+import { isQueueing } from "./Scene.js";
 
 let mat4 =
 	(typeof window !== "undefined" &&
@@ -139,8 +138,6 @@ function isPowerOf2(value) {
 export class Renderer {
 	/** @type {Chunk[]} */
 	chunks = [];
-
-	light = new Vector3(50, 100, 50);
 
 	deltaTime = 0;
 

@@ -1,5 +1,4 @@
-import { Cube, Water } from "./Primitives.js";
-import { BLOCKS, TEXTURES } from "./constants.js";
+import { BLOCKS } from "./constants.js";
 
 export class Chunk {
 	vertCount = 0;

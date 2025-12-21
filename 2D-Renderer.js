@@ -10,7 +10,6 @@ import { Chunk } from "./Game.js";
 import noise from "./perlin.js";
 import { Player } from "./Player.js";
 import { isQueueing } from "./Scene.js";
-import { Vector3 } from "./Vectors.js";
 
 const fpsCounter = document.getElementById("fps-count");
 /** @type {HTMLInputElement} */
@@ -29,8 +28,6 @@ const surfaceBlocks = [BLOCKS.GRASS, BLOCKS.SAND, BLOCKS.STONE];
 export class TwoDRenderer {
 	/** @type {Chunk[]} */
 	chunks = [];
-
-	light = new Vector3(50, 100, 50);
 
 	deltaTime = 0;
 
