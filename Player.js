@@ -48,6 +48,9 @@ export class Player {
 
 	freezeChunks = false;
 
+	/** @type {{block: number; x: number; y: number; z: number} | undefined} */
+	targetedBlock = undefined;
+
 	constructor(x, y, z) {
 		this.position.x = x;
 		this.position.y = y;
@@ -135,16 +138,16 @@ export class Player {
 			}
 		}
 
+		this.targetedBlock = this.Raycast();
+
 		if (this.keyMap.has("f")) {
-			const ray = this.Raycast();
+			if (this.targetedBlock !== undefined) {
+				const by = Math.floor(this.targetedBlock.y);
+				const bx = ((Math.floor(this.targetedBlock.x) % 16) + 16) % 16;
+				const bz = ((Math.floor(this.targetedBlock.z) % 16) + 16) % 16;
 
-			if (ray !== undefined) {
-				const by = Math.floor(ray.y);
-				const bx = ((Math.floor(ray.x) % 16) + 16) % 16;
-				const bz = ((Math.floor(ray.z) % 16) + 16) % 16;
-
-				const cx = Math.floor(ray.x / 16);
-				const cz = Math.floor(ray.z / 16);
+				const cx = Math.floor(this.targetedBlock.x / 16);
+				const cz = Math.floor(this.targetedBlock.z / 16);
 
 				const chunk = this.renderer.GetChunkAtPos(cx, cz);
 

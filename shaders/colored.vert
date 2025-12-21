@@ -13,7 +13,7 @@
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
-in uint aVertex;
+in uvec2 aVertex;
 
 uniform vec2 uChunkPos;
 uniform mat4 uNormalMatrix;
@@ -62,21 +62,27 @@ vec3 GetColor(uint c) {
 	}
 	else if (c == 5u) {
 		return vec3(255, 255, 0);
+	} else if (c == 6u) {
+		return vec3(25, 25, 25);
 	}
 
 	return vec3(255, 255, 255);
 }
 
 void main() {
-	uint vertZ = aVertex & uint(0xF);
-	uint vertY = (aVertex >> 4) & uint(0xFF);
-	uint vertX = (aVertex >> 12) & uint(0xF);
+	uint lowBits = aVertex.y;
 
-	uint cID = (aVertex >> 16) & uint(0x7);
-	uint dir = (aVertex >> 19) & uint(0x7);
-	uint color = (aVertex >> 22) & uint(0xF);
+	uint vertZ = lowBits & uint(0xF);
+	uint vertY = (lowBits >> 4) & uint(0xFF);
+	uint vertX = (lowBits >> 12) & uint(0xF);
 
-	vec3 pos = vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y) + offsets[cID];
+	uint cID = (lowBits >> 16) & uint(0x7);
+	uint dir = (lowBits >> 19) & uint(0x7);
+	uint color = (lowBits >> 22) & uint(0xF);
+
+	vec3 pos =  offsets[cID];
+
+	pos += vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y);
 
 	vec4 vertexPos = vec4(pos, 1.0);
 

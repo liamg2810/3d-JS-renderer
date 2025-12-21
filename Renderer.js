@@ -1,5 +1,7 @@
+import { TEXTURES } from "./constants.js";
 import { Chunk } from "./Game.js";
 import { Player } from "./Player.js";
+import { Cube } from "./Primitives.js";
 import { enqueueChunk, isQueueing } from "./Scene.js";
 import { Vector3 } from "./Vectors.js";
 
@@ -514,6 +516,7 @@ export class Renderer {
 		}
 
 		this.DrawChunkBorders();
+		this.DrawTargetedBlock();
 	}
 
 	DrawChunkBorders() {
@@ -612,16 +615,24 @@ export class Renderer {
 			// Draw horizontal rectangle at this Y level
 			// Back edge (z=0): left to right
 			const v = [
+				0,
 				C_YELLOW + TLB + (0 << 12) + Y + 0,
+				0,
 				C_YELLOW + TRB + (15 << 12) + Y + 0,
 				// Right edge (x=15): back to front
+				0,
 				C_YELLOW + TRB + (15 << 12) + Y + 0,
+				0,
 				C_YELLOW + TRF + (15 << 12) + Y + 15,
 				// Front edge (z=15): right to left
+				0,
 				C_YELLOW + TRF + (15 << 12) + Y + 15,
+				0,
 				C_YELLOW + TLF + (0 << 12) + Y + 15,
 				// Left edge (x=0): front to back
+				0,
 				C_YELLOW + TLF + (0 << 12) + Y + 15,
+				0,
 				C_YELLOW + TLB + (0 << 12) + Y + 0,
 			];
 
@@ -639,7 +650,9 @@ export class Renderer {
 					// Use TLB for x=0, TRB for x=15, interpolate corner between them
 					let corner = xPos === 0 ? TLB : TRB;
 					verts.push(
+						0,
 						col + corner + (xPos << 12) + Y + 0,
+						0,
 						col + corner + (xPos << 12) + nextY + 0
 					);
 				}
@@ -650,7 +663,9 @@ export class Renderer {
 					// Use TRB for z=0, TRF for z=15
 					let corner = zPos === 0 ? TRB : TRF;
 					verts.push(
+						0,
 						col + corner + (15 << 12) + Y + zPos,
+						0,
 						col + corner + (15 << 12) + nextY + zPos
 					);
 				}
@@ -661,7 +676,9 @@ export class Renderer {
 					// Use TLF for x=0, TRF for x=15
 					let corner = xPos === 0 ? TLF : TRF;
 					verts.push(
+						0,
 						col + corner + (xPos << 12) + Y + 15,
+						0,
 						col + corner + (xPos << 12) + nextY + 15
 					);
 				}
@@ -672,7 +689,9 @@ export class Renderer {
 					// Use TLB for z=0, TLF for z=15
 					let corner = zPos === 0 ? TLB : TLF;
 					verts.push(
+						0,
 						col + corner + (0 << 12) + Y + zPos,
+						0,
 						col + corner + (0 << 12) + nextY + zPos
 					);
 				}
@@ -687,7 +706,7 @@ export class Renderer {
 
 		this.gl.vertexAttribIPointer(
 			this.programInfo.color.attribLocations.vertexPosition,
-			1,
+			2,
 			this.gl.UNSIGNED_INT,
 			0,
 			0
@@ -696,7 +715,7 @@ export class Renderer {
 			this.programInfo.color.attribLocations.vertexPosition
 		);
 
-		this.gl.drawArrays(this.gl.LINES, 0, verts.length);
+		this.gl.drawArrays(this.gl.LINES, 0, verts.length / 2);
 
 		for (let x = -1; x <= 1; x++) {
 			if (x == 0) continue;
@@ -727,9 +746,9 @@ export class Renderer {
 							}
 
 							verts.push(
-								C_RED + c.code + (c.lx << 12) + Y + c.lz
-							);
-							verts.push(
+								0,
+								C_RED + c.code + (c.lx << 12) + Y + c.lz,
+								0,
 								C_RED + c.code + (c.lx << 12) + nextY + c.lz
 							);
 						}
@@ -763,5 +782,102 @@ export class Renderer {
 				this.gl.drawArrays(this.gl.LINES, 0, verts.length);
 			}
 		}
+	}
+
+	DrawTargetedBlock() {
+		if (this.player.targetedBlock === undefined) return; // Projection matrix
+		// Projection matrix
+		const projectionMatrix = mat4.create();
+		mat4.perspective(
+			projectionMatrix,
+			(this.player.fov * Math.PI) / 180,
+			this.canvas.width / this.canvas.height,
+			this.player.near,
+			this.player.far
+		);
+
+		// View matrix (camera)
+		const viewMatrix = mat4.create();
+		mat4.rotateX(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.view.pitch * Math.PI) / 180
+		);
+		mat4.rotateY(
+			viewMatrix,
+			viewMatrix,
+			(-this.player.view.yaw * Math.PI) / 180
+		);
+		mat4.translate(viewMatrix, viewMatrix, [
+			-this.player.position.x,
+			-this.player.position.y,
+			-this.player.position.z,
+		]);
+
+		const modelMatrix = mat4.create();
+
+		// Model-view matrix
+		const modelViewMatrix = mat4.create();
+		mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+
+		const normalMatrix = mat4.create();
+		mat4.invert(normalMatrix, modelViewMatrix);
+		mat4.transpose(normalMatrix, normalMatrix);
+
+		// --- Use program & uniforms ---
+		this.gl.useProgram(this.colorShaderProgram);
+
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.projectionMatrix,
+			false,
+			projectionMatrix
+		);
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.modelViewMatrix,
+			false,
+			modelViewMatrix
+		);
+
+		this.gl.uniformMatrix4fv(
+			this.programInfo.color.uniformLocations.normalMatrix,
+			false,
+			normalMatrix
+		);
+
+		const by = Math.floor(this.player.targetedBlock.y);
+		const bx = ((Math.floor(this.player.targetedBlock.x) % 16) + 16) % 16;
+		const bz = ((Math.floor(this.player.targetedBlock.z) % 16) + 16) % 16;
+
+		// console.log(this.player.targetedBlock);
+
+		const cx = Math.floor(this.player.targetedBlock.x / 16);
+		const cz = Math.floor(this.player.targetedBlock.z / 16);
+
+		let cube = Cube(bx, by, bz, TEXTURES.BEDROCK);
+
+		cube = cube.map((v) => {
+			const a = (6 << 22) | (v & 0x3fffff);
+			return a;
+		});
+
+		this.gl.uniform2f(
+			this.programInfo.color.uniformLocations.uChunkPos,
+			cx * 16,
+			cz * 16
+		);
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, cube, this.gl.STATIC_DRAW);
+
+		this.gl.vertexAttribIPointer(
+			this.programInfo.color.attribLocations.vertexPosition,
+			2,
+			this.gl.UNSIGNED_INT,
+			0,
+			0
+		);
+		this.gl.enableVertexAttribArray(
+			this.programInfo.color.attribLocations.vertexPosition
+		);
+
+		this.gl.drawArrays(this.gl.LINES, 0, cube.length / 2);
 	}
 }
