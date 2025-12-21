@@ -7,7 +7,7 @@ const canvas = document.getElementById("canvas");
 /** @type {HTMLInputElement} */
 const renderDistanceInput = document.getElementById("render-d");
 
-const p = new Player(0, 90, 0);
+const p = new Player(8, 90, 8);
 const r = new Renderer(p);
 r.Start();
 

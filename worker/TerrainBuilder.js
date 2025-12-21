@@ -16,6 +16,7 @@ import {
 	WEIRDNESS_NOISE_SCALE,
 } from "../constants.js";
 import noise from "../perlin.js";
+import { voronoi } from "../voronoi.js";
 
 export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
@@ -40,8 +41,8 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 			let scaledY = 0;
 
 			for (let cy = 0, y = 0; cy < 32; cy++, y += step) {
-				let nVal = noise.perlin3(scaledX, scaledY, scaledZ);
-				caveNoise[cx + cz * strideXZ + cy * strideY] = nVal;
+				let nVal = voronoi({ x: scaledX, y: scaledY, z: scaledZ });
+				caveNoise[cx + cz * strideXZ + cy * strideY] = nVal[0];
 				scaledY += step * CAVE_NOISE_SCALE;
 			}
 		}
@@ -181,6 +182,12 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 				block = BLOCKS.SAND;
 			}
 
+			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
+
+			if (CarveCave(x, elevation, z, caveNoise, SPAGHETTI_CAVE_VALUE)) {
+				continue;
+			}
+
 			const b = block;
 
 			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] =
@@ -224,8 +231,6 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 				blocks[x + z * CHUNKSIZE + (elevation + 1) * MAX_HEIGHT] =
 					BLOCKS.POPPY;
 			}
-
-			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
 		}
 	}
 
@@ -256,9 +261,7 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 			z * ORE_NOISE_SCALE
 		);
 
-		oreNoise = (oreNoise + 1) / 2;
-
-		if (oreNoise < 0.2) {
+		if (oreNoise < -0.4) {
 			belowB = BLOCKS.COAL;
 		}
 
@@ -266,16 +269,8 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 			belowB = chosenBiome.subSurfaceBlock;
 		}
 
-		if (y < elevation - 3) {
-			const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
-
-			if (Math.abs(nVal - SPAGHETTI_CAVE_VALUE) < SPAGHETTI_CAVE_RANGE) {
-				const dist = EstimateCaveDistance(x, y, z, caveNoise);
-
-				if (dist < SPAGHETTI_CAVE_RADIUS) {
-					belowB = BLOCKS.AIR;
-				}
-			}
+		if (CarveCave(x, y, z, caveNoise)) {
+			belowB = BLOCKS.AIR;
 		}
 
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
@@ -287,55 +282,10 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 	}
 }
 
-function EstimateCaveDistance(x, y, z, caveNoise) {
-	const eps = 4;
+function CarveCave(x, y, z, caveNoise, caveVal = SPAGHETTI_CAVE_VALUE) {
+	const nVal = GetCaveNoiseValAtPoint(x, y, z, caveNoise);
 
-	const f0 =
-		noise.perlin3(
-			x * CAVE_NOISE_SCALE,
-			y * CAVE_NOISE_SCALE,
-			z * CAVE_NOISE_SCALE
-		) - SPAGHETTI_CAVE_VALUE;
-
-	const fx =
-		noise.perlin3(
-			(x + eps) * CAVE_NOISE_SCALE,
-			y * CAVE_NOISE_SCALE,
-			z * CAVE_NOISE_SCALE
-		) -
-		noise.perlin3(
-			(x - eps) * CAVE_NOISE_SCALE,
-			y * CAVE_NOISE_SCALE,
-			z * CAVE_NOISE_SCALE
-		);
-
-	const fy =
-		noise.perlin3(
-			x * CAVE_NOISE_SCALE,
-			(y + eps) * CAVE_NOISE_SCALE,
-			z * CAVE_NOISE_SCALE
-		) -
-		noise.perlin3(
-			x * CAVE_NOISE_SCALE,
-			(y - eps) * CAVE_NOISE_SCALE,
-			z * CAVE_NOISE_SCALE
-		);
-
-	const fz =
-		noise.perlin3(
-			x * CAVE_NOISE_SCALE,
-			y * CAVE_NOISE_SCALE,
-			(z + eps) * CAVE_NOISE_SCALE
-		) -
-		noise.perlin3(
-			x * CAVE_NOISE_SCALE,
-			y * CAVE_NOISE_SCALE,
-			(z - eps) * CAVE_NOISE_SCALE
-		);
-
-	const gradMag = Math.sqrt(fx * fx + fy * fy + fz * fz) + 1e-6;
-
-	return Math.abs(f0) / gradMag;
+	return Math.abs(nVal - caveVal) < SPAGHETTI_CAVE_RANGE;
 }
 
 /**
