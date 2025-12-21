@@ -157,6 +157,25 @@ export class Player {
 					chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
 
 					enqueueMesh(chunk);
+
+					if (bx === 0) {
+						const c = this.renderer.GetChunkAtPos(cx - 1, cz);
+
+						c && enqueueMesh(c);
+					} else if (bx === 15) {
+						const c = this.renderer.GetChunkAtPos(cx + 1, cz);
+
+						c && enqueueMesh(c);
+					}
+					if (bz === 0) {
+						const c = this.renderer.GetChunkAtPos(cx, cz - 1);
+
+						c && enqueueMesh(c);
+					} else if (bz === 15) {
+						const c = this.renderer.GetChunkAtPos(cx, cz + 1);
+
+						c && enqueueMesh(c);
+					}
 				}
 			}
 		}
