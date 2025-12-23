@@ -1,31 +1,27 @@
-import { TwoDRenderer } from "./2D-Renderer.js";
-import { Player } from "./Player.js";
-import { Renderer } from "./Renderer.js";
-
-const canvas = document.getElementById("canvas");
+import { ActiveRenderer } from "./Globals/ActiveRenderer.js";
+import { canvas } from "./Globals/Canvas.js";
+import Player from "./Player/Player.js";
 
 /** @type {HTMLInputElement} */
 const renderDistanceInput = document.getElementById("render-d");
 
-const p = new Player(8, 90, 8);
-const r = new Renderer(p);
-r.Start();
+ActiveRenderer.Start();
 
 document.addEventListener("keydown", (ev) => {
 	ev.preventDefault();
 
-	p.keyMap.add(ev.key.toLowerCase());
+	Player.keyMap.add(ev.key.toLowerCase());
 });
 
 document.addEventListener("keyup", (ev) => {
 	ev.preventDefault();
 
-	if (p.keyMap.has(ev.key.toLowerCase())) {
-		p.keyMap.delete(ev.key.toLowerCase());
+	if (Player.keyMap.has(ev.key.toLowerCase())) {
+		Player.keyMap.delete(ev.key.toLowerCase());
 	}
 
 	if (ev.key === "g" && ev.altKey) {
-		r.showChunkBorders = !r.showChunkBorders;
+		ActiveRenderer.showChunkBorders = !ActiveRenderer.showChunkBorders;
 	}
 });
 
@@ -38,10 +34,10 @@ canvas.addEventListener("mousemove", (ev) => {
 		return;
 	}
 
-	if (!r.isTwoD) {
-		p.view.yaw -= ev.movementX * 0.3;
-		p.view.pitch -= ev.movementY * 0.2;
-		p.view.pitch = Math.max(Math.min(p.view.pitch, 90), -90);
+	if (!ActiveRenderer.isTwoD) {
+		Player.view.yaw -= ev.movementX * 0.3;
+		Player.view.pitch -= ev.movementY * 0.2;
+		Player.view.pitch = Math.max(Math.min(Player.view.pitch, 90), -90);
 	}
 });
 
@@ -51,7 +47,7 @@ window.addEventListener("resize", () => {
 
 renderDistanceInput.addEventListener("change", (ev) => {
 	console.log(ev.target.value, typeof ev.target.value);
-	p.renderDistance = parseInt(ev.target.value);
+	Player.renderDistance = parseInt(ev.target.value);
 });
 
 function ResizeCanvas() {

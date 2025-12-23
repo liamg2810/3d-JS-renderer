@@ -16,7 +16,6 @@
 in uvec2 aVertex;
 
 uniform vec2 uChunkPos;
-uniform mat4 uNormalMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
@@ -42,7 +41,6 @@ const vec3 normals[6] = vec3[](
 );
 
 out highp vec3 vColor;
-out highp vec3 vLighting;
 
 vec3 GetColor(uint c) {
 	if (c == 0u) {
@@ -90,15 +88,4 @@ void main() {
 	gl_Position = uProjectionMatrix * mvPosition;
 
 	vColor = GetColor(color);
-
-	vec3 normal = normals[dir];
-
-	highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-	highp vec3 directionalLightColor = vec3(1, 1, 1);
-	highp vec3 directionalVector = normalize(vec3(100, 100, 100));
-
-	highp vec4 transformedNormal = uNormalMatrix * vec4(normal, 1.0);
-
-	highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-	vLighting = ambientLight + (directionalLightColor * directional);
 }

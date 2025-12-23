@@ -1,4 +1,7 @@
-import { Chunk } from "./Game.js";
+import { Chunk } from "./Chunks/Chunk.js";
+import ChunkManager from "./Chunks/ChunkManager.js";
+import { ActiveRenderer } from "./Globals/ActiveRenderer.js";
+import { gl } from "./Globals/Canvas.js";
 
 const poolSize = navigator.hardwareConcurrency || 4;
 
@@ -22,18 +25,21 @@ const completedChunks = new Set();
 /**
  * @param {number} chunkX
  * @param {number} chunkZ
- * @param {import('Renderer.js').Renderer} renderer
  */
-export function enqueueChunk(chunkX, chunkZ, renderer) {
+export function enqueueChunk(chunkX, chunkZ) {
 	const key = `${chunkX}, ${chunkZ}`;
 
-	if (activeChunks.has(key) || completedChunks.has(key)) {
+	if (
+		activeChunks.has(key) ||
+		completedChunks.has(key) ||
+		ActiveRenderer === undefined
+	) {
 		return;
 	}
 
 	activeChunks.add(key);
-	chunkQueue.push({ chunkX, chunkZ, seed: renderer.seed });
-	processQueue(renderer);
+	chunkQueue.push({ chunkX, chunkZ, seed: ActiveRenderer.seed });
+	processQueue();
 }
 
 /** @param {Chunk} chunk  */
@@ -59,11 +65,7 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 	completedChunks.delete(`${chunkX}, ${chunkZ}`);
 }
 
-/**
- *
- * @param {import('./Renderer.js').Renderer | import('./2D-Renderer.js').TwoDRenderer} renderer
- */
-function processQueue(renderer) {
+function processQueue() {
 	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && chunkQueue.length > 0) {
 			const task = chunkQueue.shift();
@@ -73,14 +75,14 @@ function processQueue(renderer) {
 			workers[i].onmessage = (ev) => {
 				const { chunkX, chunkZ, blocks } = ev.data;
 				const key = `${chunkX}, ${chunkZ}`;
-				renderer.chunks.push(
+				ChunkManager.chunks.push(
 					new Chunk(
-						renderer.gl,
-						renderer,
+						gl,
+						ActiveRenderer,
 						chunkX,
 						chunkZ,
 						blocks,
-						renderer.isTwoD
+						ActiveRenderer.isTwoD
 					)
 				);
 
@@ -88,7 +90,7 @@ function processQueue(renderer) {
 				completedChunks.add(key);
 
 				busy[i] = false;
-				processQueue(renderer); // check for next task
+				processQueue(); // check for next task
 			};
 
 			workers[i].postMessage({ type: "Terrain", data: task });
@@ -100,10 +102,10 @@ function processQueue(renderer) {
 			const chunk = meshQueue.shift();
 
 			const neighborChunks = {
-				px: renderer.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
-				nx: renderer.GetChunkAtPos(chunk.x - 1, chunk.z)?.blocks,
-				pz: renderer.GetChunkAtPos(chunk.x, chunk.z + 1)?.blocks,
-				nz: renderer.GetChunkAtPos(chunk.x, chunk.z - 1)?.blocks,
+				px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
+				nx: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.blocks,
+				pz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.blocks,
+				nz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.blocks,
 			};
 
 			busy[i] = true;
@@ -117,7 +119,7 @@ function processQueue(renderer) {
 				busy[i] = false;
 
 				activeMeshes.delete(key);
-				processQueue(renderer); // check for next task
+				processQueue(); // check for next task
 			};
 
 			workers[i].postMessage({
@@ -127,22 +129,6 @@ function processQueue(renderer) {
 					neighborChunks: neighborChunks,
 				},
 			});
-		}
-	}
-}
-
-/**
- *
- * @param {import('./Renderer.js').Renderer} renderer
- */
-export function VoxelTerrainScene(renderer) {
-	renderer.chunks = [];
-
-	const chunks = 4;
-
-	for (let x = 0; x < chunks; x++) {
-		for (let z = 0; z < chunks; z++) {
-			enqueueChunk(x, z, renderer);
 		}
 	}
 }

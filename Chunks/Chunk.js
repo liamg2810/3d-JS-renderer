@@ -1,4 +1,4 @@
-import { BLOCKS } from "./constants.js";
+import { BLOCKS } from "../Globals/Constants.js";
 
 export class Chunk {
 	vertCount = 0;

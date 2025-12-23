@@ -1,4 +1,4 @@
-import { BLOCKS } from "./constants.js";
+import { BLOCKS } from "./Globals/Constants.js";
 
 // prettier-ignore
 const corners =[

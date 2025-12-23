@@ -1,3 +1,4 @@
+import { Chunk } from "./Chunks/Chunk.js";
 import {
 	BIOMES,
 	BLOCKS,
@@ -5,10 +6,9 @@ import {
 	HUMIDITY_NOISE_SCALE,
 	TEMPERATURE_NOISE_SCALE,
 	WEIRDNESS_NOISE_SCALE,
-} from "./constants.js";
-import { Chunk } from "./Game.js";
-import noise from "./perlin.js";
-import { Player } from "./Player.js";
+} from "./Globals/Constants.js";
+import noise from "./Noise/perlin.js";
+import { Player } from "./Player/Player.js";
 import { isQueueing } from "./Scene.js";
 
 const fpsCounter = document.getElementById("fps-count");
@@ -44,12 +44,12 @@ export class TwoDRenderer {
 
 	isTwoD = true;
 
-	/**  @type {import("./Player.js").Player}*/
+	/**  @type {import("./Player/Player.js").Player}*/
 	player;
 
 	/**
 	 *
-	 * @param {import("./Player.js").Player} player
+	 * @param {import("./Player/Player.js").Player} player
 	 */
 	constructor(player) {
 		if (!(player instanceof Player)) {

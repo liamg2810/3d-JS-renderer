@@ -14,9 +14,9 @@ import {
 	TERRAIN_NOISE_SCALE,
 	WATER_LEVEL,
 	WEIRDNESS_NOISE_SCALE,
-} from "../constants.js";
-import noise from "../perlin.js";
-import { voronoi } from "../voronoi.js";
+} from "../Globals/Constants.js";
+import noise from "../Noise/perlin.js";
+import { voronoi } from "../Noise/voronoi.js";
 
 export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);

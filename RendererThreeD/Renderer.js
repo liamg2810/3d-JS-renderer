@@ -1,8 +1,11 @@
-import { TEXTURES } from "./constants.js";
-import { Chunk } from "./Game.js";
-import { Player } from "./Player.js";
-import { Cube } from "./Primitives.js";
-import { isQueueing } from "./Scene.js";
+import { Chunk } from "../Chunks/Chunk.js";
+import ChunkManager from "../Chunks/ChunkManager.js";
+import { canvas, gl } from "../Globals/Canvas.js";
+import { TEXTURES } from "../Globals/Constants.js";
+import Player from "../Player/Player.js";
+import { Cube } from "../Primitives.js";
+import { isQueueing } from "../Scene.js";
+import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 
 let mat4 =
 	(typeof window !== "undefined" &&
@@ -16,64 +19,6 @@ if (!mat4) {
 }
 
 const fpsCounter = document.getElementById("fps-count");
-
-//
-// Initialize a shader program, so WebGL knows how to draw our data
-//
-function initShaderProgram(gl, vsSource, fsSource) {
-	const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-	const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-	// Create the shader program
-
-	const shaderProgram = gl.createProgram();
-	gl.attachShader(shaderProgram, vertexShader);
-	gl.attachShader(shaderProgram, fragmentShader);
-	gl.linkProgram(shaderProgram);
-
-	// If creating the shader program failed, alert
-
-	if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-		alert(
-			`Unable to initialize the shader program: ${gl.getProgramInfoLog(
-				shaderProgram
-			)}`
-		);
-		return null;
-	}
-
-	return shaderProgram;
-}
-
-//
-// creates a shader of the given type, uploads the source and
-// compiles it.
-//
-function loadShader(gl, type, source) {
-	const shader = gl.createShader(type);
-
-	// Send the source to the shader object
-
-	gl.shaderSource(shader, source);
-
-	// Compile the shader program
-
-	gl.compileShader(shader);
-
-	// See if it compiled successfully
-
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-		alert(
-			`An error occurred compiling the shaders: ${gl.getShaderInfoLog(
-				shader
-			)}`
-		);
-		gl.deleteShader(shader);
-		return null;
-	}
-
-	return shader;
-}
 
 /**
  * @param {WebGL2RenderingContext} gl
@@ -136,12 +81,10 @@ function isPowerOf2(value) {
 }
 
 export class Renderer {
-	/** @type {Chunk[]} */
-	chunks = [];
-
 	deltaTime = 0;
 
-	shaderProgram;
+	/** @type {import('./ShaderProgram.js').ShaderProgram} */
+	blockProgram;
 
 	/** @type {number[]} */
 	frameTimes = [];
@@ -152,10 +95,6 @@ export class Renderer {
 
 	showChunkBorders = true;
 
-	canvas;
-	/** @type {WebGL2RenderingContext} */
-	gl;
-
 	vertexBuffer;
 	indexBuffer;
 	normalBuffer;
@@ -164,41 +103,14 @@ export class Renderer {
 
 	isTwoD = false;
 
-	/**  @type {import("./Player.js").Player}*/
-	player;
+	constructor() {
+		Player.SetRenderer(this);
 
-	/**
-	 *
-	 * @param {import("./Player.js").Player} player
-	 */
-	constructor(player) {
-		if (!(player instanceof Player)) {
-			throw new Error("Cannot initialize renderer without a player");
-		}
+		gl.enable(gl.CULL_FACE);
+		gl.cullFace(gl.BACK);
 
-		this.player = player;
-		player.SetRenderer(this);
-
-		/** @type {HTMLCanvasElement} */
-		this.canvas = document.getElementById("canvas");
-
-		if (this.canvas === null) {
-			alert("Canvas not found.");
-			return;
-		}
-
-		this.gl = this.canvas.getContext("webgl2");
-
-		if (this.gl === null) {
-			alert("Unable to initialize WebGL.");
-			return;
-		}
-
-		this.gl.enable(this.gl.CULL_FACE);
-		this.gl.cullFace(this.gl.BACK);
-
-		this.gl.enable(this.gl.BLEND);
-		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 		console.log("Starting engine");
 
@@ -222,7 +134,7 @@ export class Renderer {
 			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
 		);
 
-		this.texture = loadTexture(this.gl, "textures.png");
+		this.texture = loadTexture(gl, "textures.png");
 	}
 
 	Start() {
@@ -237,93 +149,32 @@ export class Renderer {
 		const colVSource = await (await fetch("./shaders/colored.vert")).text();
 		const colFSource = await (await fetch("./shaders/colored.frag")).text();
 
-		this.shaderProgram = initShaderProgram(this.gl, vsSource, fsSource);
-		this.colorShaderProgram = initShaderProgram(
-			this.gl,
-			colVSource,
-			colFSource
-		);
+		this.blockProgram = new ShaderProgram(vsSource, fsSource, [
+			// Attributes
+			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+			// Uniforms
+			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uNormalMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uSampler", type: INFO_TYPES.UNIFORM },
+			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
+			{ name: "uTime", type: INFO_TYPES.UNIFORM },
+		]);
 
-		this.programInfo = {
-			default: {
-				program: this.shaderProgram,
-				attribLocations: {
-					vertexPosition: this.gl.getAttribLocation(
-						this.shaderProgram,
-						"aVertex"
-					),
-				},
-				uniformLocations: {
-					projectionMatrix: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uProjectionMatrix"
-					),
-					modelViewMatrix: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uModelViewMatrix"
-					),
-
-					normalMatrix: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uNormalMatrix"
-					),
-					uSampler: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uSampler"
-					),
-					uChunkPos: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uChunkPos"
-					),
-					uTimePos: this.gl.getUniformLocation(
-						this.shaderProgram,
-						"uTime"
-					),
-				},
-			},
-			color: {
-				program: this.colorShaderProgram,
-				attribLocations: {
-					vertexPosition: this.gl.getAttribLocation(
-						this.colorShaderProgram,
-						"aVertex"
-					),
-				},
-				uniformLocations: {
-					projectionMatrix: this.gl.getUniformLocation(
-						this.colorShaderProgram,
-						"uProjectionMatrix"
-					),
-					modelViewMatrix: this.gl.getUniformLocation(
-						this.colorShaderProgram,
-						"uModelViewMatrix"
-					),
-
-					normalMatrix: this.gl.getUniformLocation(
-						this.colorShaderProgram,
-						"uNormalMatrix"
-					),
-					uSampler: this.gl.getUniformLocation(
-						this.colorShaderProgram,
-						"uSampler"
-					),
-					uChunkPos: this.gl.getUniformLocation(
-						this.colorShaderProgram,
-						"uChunkPos"
-					),
-				},
-			},
-		};
+		this.colorShaderProgram = new ShaderProgram(colVSource, colFSource, [
+			// Attributes
+			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+			// Uniforms
+			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
+		]);
 
 		this.shadersInit = true;
 	}
 
-	GetChunkAtPos(x, z) {
-		return this.chunks.find((c) => c.x === x && c.z === z);
-	}
-
 	InitScene() {
-		this.player.LoadChunks();
+		ChunkManager.LoadChunks();
 	}
 
 	Update() {
@@ -339,7 +190,7 @@ export class Renderer {
 
 		const frameStart = performance.now();
 
-		this.player.Update();
+		Player.Update();
 
 		this.Draw();
 
@@ -373,8 +224,8 @@ export class Renderer {
 	InFOV(dX, dZ) {
 		let theta = (Math.atan2(dX, dZ) * 180) / Math.PI;
 		theta += 180;
-		const diff = ((this.player.view.yaw - theta + 180 + 360) % 360) - 180;
-		return Math.abs(diff) < this.player.fov;
+		const diff = ((Player.view.yaw - theta + 180 + 360) % 360) - 180;
+		return Math.abs(diff) < Player.fov;
 	}
 
 	lastLog = 0;
@@ -382,19 +233,19 @@ export class Renderer {
 	Draw() {
 		if (!this.shadersInit) return;
 
-		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-		this.gl.clearColor(0.3, 0.5, 0.8, 1);
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-		this.gl.enable(this.gl.DEPTH_TEST);
+		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl.clearColor(0.3, 0.5, 0.8, 1);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.enable(gl.DEPTH_TEST);
 
 		// Projection matrix
 		const projectionMatrix = mat4.create();
 		mat4.perspective(
 			projectionMatrix,
-			(this.player.fov * Math.PI) / 180,
-			this.canvas.width / this.canvas.height,
-			this.player.near,
-			this.player.far
+			(Player.fov * Math.PI) / 180,
+			canvas.width / canvas.height,
+			Player.near,
+			Player.far
 		);
 
 		// View matrix (camera)
@@ -402,17 +253,17 @@ export class Renderer {
 		mat4.rotateX(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.pitch * Math.PI) / 180
+			(-Player.view.pitch * Math.PI) / 180
 		);
 		mat4.rotateY(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.yaw * Math.PI) / 180
+			(-Player.view.yaw * Math.PI) / 180
 		);
 		mat4.translate(viewMatrix, viewMatrix, [
-			-this.player.position.x,
-			-this.player.position.y,
-			-this.player.position.z,
+			-Player.position.x,
+			-Player.position.y,
+			-Player.position.z,
 		]);
 
 		const modelMatrix = mat4.create();
@@ -426,64 +277,70 @@ export class Renderer {
 		mat4.transpose(normalMatrix, normalMatrix);
 
 		// --- Use program & uniforms ---
-		this.gl.useProgram(this.shaderProgram);
+		gl.useProgram(this.blockProgram.shaderProgram);
 
-		this.gl.uniformMatrix4fv(
-			this.programInfo.default.uniformLocations.projectionMatrix,
+		gl.uniformMatrix4fv(
+			this.blockProgram.GetLocation(
+				"uProjectionMatrix",
+				INFO_TYPES.UNIFORM
+			),
 			false,
 			projectionMatrix
 		);
-		this.gl.uniformMatrix4fv(
-			this.programInfo.default.uniformLocations.modelViewMatrix,
+		gl.uniformMatrix4fv(
+			this.blockProgram.GetLocation(
+				"uModelViewMatrix",
+				INFO_TYPES.UNIFORM
+			),
 			false,
 			modelViewMatrix
 		);
 
-		this.gl.uniformMatrix4fv(
-			this.programInfo.default.uniformLocations.normalMatrix,
+		gl.uniformMatrix4fv(
+			this.blockProgram.GetLocation("uNormalMatrix", INFO_TYPES.UNIFORM),
 			false,
 			normalMatrix
 		);
 
-		this.gl.uniform1f(
-			this.programInfo.default.uniformLocations.uTimePos,
+		gl.uniform1f(
+			this.blockProgram.GetLocation("uTime", INFO_TYPES.UNIFORM),
 			performance.now()
 		);
 
-		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		this.gl.uniform1i(
-			this.programInfo.default.uniformLocations.uSampler,
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.uniform1i(
+			this.blockProgram.GetLocation("uSampler", INFO_TYPES.UNIFORM),
 			0
 		);
 
 		let chunksWithWater = [];
 
-		for (let chunk of this.chunks) {
+		for (let chunk of ChunkManager.chunks) {
 			if (!chunk.builtVerts) {
 				continue;
 			}
 
-			this.gl.uniform2f(
-				this.programInfo.default.uniformLocations.uChunkPos,
+			gl.uniform2f(
+				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				chunk.x * 16,
 				chunk.z * 16
 			);
 
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.blockBuffer);
-			this.gl.vertexAttribIPointer(
-				this.programInfo.default.attribLocations.vertexPosition,
+			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.blockBuffer);
+			gl.vertexAttribIPointer(
+				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 				2,
-				this.gl.UNSIGNED_INT,
+				gl.UNSIGNED_INT,
 				0,
 				0
 			);
-			this.gl.enableVertexAttribArray(
-				this.programInfo.default.attribLocations.vertexPosition
+			gl.enableVertexAttribArray(
+				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
 			);
 
 			// TODO: Figure out why / 2 fixes my issues
-			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.vertCount / 2);
+			gl.drawArrays(gl.TRIANGLES, 0, chunk.vertCount / 2);
 
 			if (chunk.waterVertCount > 0) {
 				chunksWithWater.push(chunk);
@@ -491,29 +348,29 @@ export class Renderer {
 		}
 
 		for (const chunk of chunksWithWater) {
-			this.gl.uniform2f(
-				this.programInfo.default.uniformLocations.uChunkPos,
+			gl.uniform2f(
+				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				chunk.x * 16,
 				chunk.z * 16
 			);
 
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, chunk.waterBuffer);
-			this.gl.vertexAttribIPointer(
-				this.programInfo.default.attribLocations.vertexPosition,
+			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.waterBuffer);
+			gl.vertexAttribIPointer(
+				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 				2,
-				this.gl.UNSIGNED_INT,
+				gl.UNSIGNED_INT,
 				0,
 				0
 			);
-			this.gl.enableVertexAttribArray(
-				this.programInfo.default.attribLocations.vertexPosition
+			gl.enableVertexAttribArray(
+				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
 			);
 
-			this.gl.drawArrays(this.gl.TRIANGLES, 0, chunk.waterVertCount / 2);
+			gl.drawArrays(gl.TRIANGLES, 0, chunk.waterVertCount / 2);
 		}
 
-		this.DrawChunkBorders();
-		this.DrawTargetedBlock();
+		// this.DrawChunkBorders();
+		// this.DrawTargetedBlock();
 	}
 
 	DrawChunkBorders() {
@@ -521,10 +378,10 @@ export class Renderer {
 		const projectionMatrix = mat4.create();
 		mat4.perspective(
 			projectionMatrix,
-			(this.player.fov * Math.PI) / 180,
-			this.canvas.width / this.canvas.height,
-			this.player.near,
-			this.player.far
+			(Player.fov * Math.PI) / 180,
+			canvas.width / canvas.height,
+			Player.near,
+			Player.far
 		);
 
 		// View matrix (camera)
@@ -532,17 +389,17 @@ export class Renderer {
 		mat4.rotateX(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.pitch * Math.PI) / 180
+			(-Player.view.pitch * Math.PI) / 180
 		);
 		mat4.rotateY(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.yaw * Math.PI) / 180
+			(-Player.view.yaw * Math.PI) / 180
 		);
 		mat4.translate(viewMatrix, viewMatrix, [
-			-this.player.position.x,
-			-this.player.position.y,
-			-this.player.position.z,
+			-Player.position.x,
+			-Player.position.y,
+			-Player.position.z,
 		]);
 
 		const modelMatrix = mat4.create();
@@ -555,45 +412,45 @@ export class Renderer {
 		mat4.invert(normalMatrix, modelViewMatrix);
 		mat4.transpose(normalMatrix, normalMatrix);
 
-		const camX = Math.floor(this.player.position.x / 16);
-		const camZ = Math.floor(this.player.position.z / 16);
+		const camX = Math.floor(Player.position.x / 16);
+		const camZ = Math.floor(Player.position.z / 16);
 
 		const chunk = this.GetChunkAtPos(camX, camZ);
 
 		if (chunk === undefined || !this.showChunkBorders) {
 			return;
 		}
-		this.gl.useProgram(this.colorShaderProgram);
+		gl.useProgram(this.colorShaderProgram);
 
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.projectionMatrix,
 			false,
 			projectionMatrix
 		);
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.modelViewMatrix,
 			false,
 			modelViewMatrix
 		);
 
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.normalMatrix,
 			false,
 			normalMatrix
 		);
 
-		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		this.gl.uniform1i(this.programInfo.color.uniformLocations.uSampler, 0);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.texture);
+		gl.uniform1i(this.programInfo.color.uniformLocations.uSampler, 0);
 
-		this.gl.uniform2f(
+		gl.uniform2f(
 			this.programInfo.color.uniformLocations.uChunkPos,
 			chunk.x * 16,
 			chunk.z * 16
 		);
 
-		const borderBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, borderBuffer);
+		const borderBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, borderBuffer);
 
 		const C_RED = 1 << 22;
 		const C_BLUE = 3 << 22;
@@ -695,24 +552,20 @@ export class Renderer {
 			}
 		}
 
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			new Uint32Array(verts),
-			this.gl.STATIC_DRAW
-		);
+		gl.bufferData(gl.ARRAY_BUFFER, new Uint32Array(verts), gl.STATIC_DRAW);
 
-		this.gl.vertexAttribIPointer(
+		gl.vertexAttribIPointer(
 			this.programInfo.color.attribLocations.vertexPosition,
 			2,
-			this.gl.UNSIGNED_INT,
+			gl.UNSIGNED_INT,
 			0,
 			0
 		);
-		this.gl.enableVertexAttribArray(
+		gl.enableVertexAttribArray(
 			this.programInfo.color.attribLocations.vertexPosition
 		);
 
-		this.gl.drawArrays(this.gl.LINES, 0, verts.length / 2);
+		gl.drawArrays(gl.LINES, 0, verts.length / 2);
 
 		for (let x = -1; x <= 1; x++) {
 			if (x == 0) continue;
@@ -754,43 +607,43 @@ export class Renderer {
 
 				if (verts.length === 0) continue;
 
-				this.gl.uniform2f(
+				gl.uniform2f(
 					this.programInfo.color.uniformLocations.uChunkPos,
 					(chunk.x + x) * 16,
 					(chunk.z + z) * 16
 				);
-				this.gl.bufferData(
-					this.gl.ARRAY_BUFFER,
+				gl.bufferData(
+					gl.ARRAY_BUFFER,
 					new Uint32Array(verts),
-					this.gl.STATIC_DRAW
+					gl.STATIC_DRAW
 				);
 
-				this.gl.vertexAttribIPointer(
+				gl.vertexAttribIPointer(
 					this.programInfo.color.attribLocations.vertexPosition,
 					1,
-					this.gl.UNSIGNED_INT,
+					gl.UNSIGNED_INT,
 					0,
 					0
 				);
-				this.gl.enableVertexAttribArray(
+				gl.enableVertexAttribArray(
 					this.programInfo.color.attribLocations.vertexPosition
 				);
 
-				this.gl.drawArrays(this.gl.LINES, 0, verts.length);
+				gl.drawArrays(gl.LINES, 0, verts.length);
 			}
 		}
 	}
 
 	DrawTargetedBlock() {
-		if (this.player.targetedBlock === undefined) return; // Projection matrix
+		if (Player.targetedBlock === undefined) return; // Projection matrix
 		// Projection matrix
 		const projectionMatrix = mat4.create();
 		mat4.perspective(
 			projectionMatrix,
-			(this.player.fov * Math.PI) / 180,
-			this.canvas.width / this.canvas.height,
-			this.player.near,
-			this.player.far
+			(Player.fov * Math.PI) / 180,
+			canvas.width / canvas.height,
+			Player.near,
+			Player.far
 		);
 
 		// View matrix (camera)
@@ -798,17 +651,17 @@ export class Renderer {
 		mat4.rotateX(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.pitch * Math.PI) / 180
+			(-Player.view.pitch * Math.PI) / 180
 		);
 		mat4.rotateY(
 			viewMatrix,
 			viewMatrix,
-			(-this.player.view.yaw * Math.PI) / 180
+			(-Player.view.yaw * Math.PI) / 180
 		);
 		mat4.translate(viewMatrix, viewMatrix, [
-			-this.player.position.x,
-			-this.player.position.y,
-			-this.player.position.z,
+			-Player.position.x,
+			-Player.position.y,
+			-Player.position.z,
 		]);
 
 		const modelMatrix = mat4.create();
@@ -822,33 +675,33 @@ export class Renderer {
 		mat4.transpose(normalMatrix, normalMatrix);
 
 		// --- Use program & uniforms ---
-		this.gl.useProgram(this.colorShaderProgram);
+		gl.useProgram(this.colorShaderProgram);
 
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.projectionMatrix,
 			false,
 			projectionMatrix
 		);
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.modelViewMatrix,
 			false,
 			modelViewMatrix
 		);
 
-		this.gl.uniformMatrix4fv(
+		gl.uniformMatrix4fv(
 			this.programInfo.color.uniformLocations.normalMatrix,
 			false,
 			normalMatrix
 		);
 
-		const by = Math.floor(this.player.targetedBlock.y);
-		const bx = ((Math.floor(this.player.targetedBlock.x) % 16) + 16) % 16;
-		const bz = ((Math.floor(this.player.targetedBlock.z) % 16) + 16) % 16;
+		const by = Math.floor(Player.targetedBlock.y);
+		const bx = ((Math.floor(Player.targetedBlock.x) % 16) + 16) % 16;
+		const bz = ((Math.floor(Player.targetedBlock.z) % 16) + 16) % 16;
 
-		// console.log(this.player.targetedBlock);
+		// console.log(Player.targetedBlock);
 
-		const cx = Math.floor(this.player.targetedBlock.x / 16);
-		const cz = Math.floor(this.player.targetedBlock.z / 16);
+		const cx = Math.floor(Player.targetedBlock.x / 16);
+		const cz = Math.floor(Player.targetedBlock.z / 16);
 
 		let cube = Cube(bx, by, bz, TEXTURES.BEDROCK);
 
@@ -857,24 +710,24 @@ export class Renderer {
 			return a;
 		});
 
-		this.gl.uniform2f(
+		gl.uniform2f(
 			this.programInfo.color.uniformLocations.uChunkPos,
 			cx * 16,
 			cz * 16
 		);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, cube, this.gl.STATIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, cube, gl.STATIC_DRAW);
 
-		this.gl.vertexAttribIPointer(
+		gl.vertexAttribIPointer(
 			this.programInfo.color.attribLocations.vertexPosition,
 			2,
-			this.gl.UNSIGNED_INT,
+			gl.UNSIGNED_INT,
 			0,
 			0
 		);
-		this.gl.enableVertexAttribArray(
+		gl.enableVertexAttribArray(
 			this.programInfo.color.attribLocations.vertexPosition
 		);
 
-		this.gl.drawArrays(this.gl.LINES, 0, cube.length / 2);
+		gl.drawArrays(gl.LINES, 0, cube.length / 2);
 	}
 }

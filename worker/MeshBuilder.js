@@ -1,4 +1,4 @@
-import { BLOCKS, TEXTURES } from "../constants.js";
+import { BLOCKS, TEXTURES } from "../Globals/Constants.js";
 import { Cube, Water } from "../Primitives.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];

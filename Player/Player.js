@@ -1,16 +1,12 @@
-import {
-	enqueueChunk,
-	enqueueMesh,
-	isQueueing,
-	removeLoadedChunk,
-} from "./Scene.js";
-import { BLOCKS } from "./constants.js";
+import ChunkManager from "../Chunks/ChunkManager.js";
+import { BLOCKS } from "../Globals/Constants.js";
+import { enqueueMesh } from "../Scene.js";
 
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
 const chunkPosDebug = document.getElementById("chunk-pos");
 
-export class Player {
+class Player {
 	HEIGHT = 1.8;
 
 	position = {
@@ -43,7 +39,7 @@ export class Player {
 
 	flight = true;
 
-	/** @type {import("./Renderer.js").Renderer | import('./2D-Renderer.js').TwoDRenderer} */
+	/** @type {import("../RendererThreeD/Renderer.js").Renderer | import('../2D-Renderer.js').TwoDRenderer} */
 	renderer;
 
 	freezeChunks = false;
@@ -63,7 +59,7 @@ export class Player {
 	SetRenderer(r) {
 		this.renderer = r;
 
-		this.LoadChunks();
+		ChunkManager.LoadChunks();
 	}
 
 	Update() {
@@ -186,10 +182,10 @@ export class Player {
 		}
 
 		if (!this.freezeChunks) {
-			this.LoadChunks();
+			ChunkManager.LoadChunks();
 		}
 
-		const visibleChunks = this.renderer.chunks.filter((c) => {
+		const visibleChunks = ChunkManager.chunks.filter((c) => {
 			const unload =
 				c.x >= this.chunkX - this.renderDistance &&
 				c.x <= this.chunkX + this.renderDistance &&
@@ -237,50 +233,6 @@ export class Player {
 			this.position.y
 		)} ${bz}`;
 		chunkPosDebug.innerText = `Chunk: ${this.chunkX} ${this.chunkZ}`;
-	}
-
-	LoadChunks() {
-		this.renderer.chunks = this.renderer.chunks.filter((c) => {
-			const unloadMesh =
-				c.x >= this.chunkX - this.renderDistance &&
-				c.x <= this.chunkX + this.renderDistance &&
-				c.z >= this.chunkZ - this.renderDistance &&
-				c.z <= this.chunkZ + this.renderDistance;
-
-			if (!unloadMesh) {
-				c.builtVerts = false;
-			}
-
-			const unload =
-				c.x >= this.chunkX - this.renderDistance - 2 &&
-				c.x <= this.chunkX + this.renderDistance + 2 &&
-				c.z >= this.chunkZ - this.renderDistance - 2 &&
-				c.z <= this.chunkZ + this.renderDistance + 2;
-
-			if (unload) {
-				removeLoadedChunk(c.x, c.z);
-			}
-
-			return unload;
-		});
-
-		for (
-			let x = this.chunkX - this.renderDistance - 2;
-			x <= this.chunkX + this.renderDistance + 2;
-			x++
-		) {
-			for (
-				let z = this.chunkZ - this.renderDistance - 2;
-				z <= this.chunkZ + this.renderDistance + 2;
-				z++
-			) {
-				const chunk = this.renderer.GetChunkAtPos(x, z);
-
-				if (chunk === undefined) {
-					enqueueChunk(x, z, this.renderer);
-				}
-			}
-		}
 	}
 
 	DoGravity() {
@@ -353,7 +305,7 @@ export class Player {
 	}
 
 	CornerCollision(x, y, z) {
-		const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
+		const chunk = ChunkManager.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
@@ -378,7 +330,7 @@ export class Player {
 		const cx = Math.floor(x / 16);
 		const cz = Math.floor(z / 16);
 
-		const chunk = this.renderer.GetChunkAtPos(cx, cz);
+		const chunk = ChunkManager.GetChunkAtPos(cx, cz);
 		if (!chunk) return BLOCKS.AIR;
 
 		let bx = ((Math.floor(x) % 16) + 16) % 16;
@@ -424,3 +376,5 @@ export class Player {
 		return undefined;
 	}
 }
+
+export default new Player(8, 8, 80);
