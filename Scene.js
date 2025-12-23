@@ -29,11 +29,7 @@ const completedChunks = new Set();
 export function enqueueChunk(chunkX, chunkZ) {
 	const key = `${chunkX}, ${chunkZ}`;
 
-	if (
-		activeChunks.has(key) ||
-		completedChunks.has(key) ||
-		ActiveRenderer === undefined
-	) {
+	if (activeChunks.has(key) || completedChunks.has(key)) {
 		return;
 	}
 

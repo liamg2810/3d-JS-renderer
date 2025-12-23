@@ -104,40 +104,19 @@ export class Renderer {
 	isTwoD = false;
 
 	constructor() {
-		Player.SetRenderer(this);
-
 		gl.enable(gl.CULL_FACE);
 		gl.cullFace(gl.BACK);
 
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-		console.log("Starting engine");
-
-		let start = Date.now();
-
 		this.InitShaders();
-
-		let end = Date.now();
-
-		console.log(
-			`Took ${Math.round((end - start) / 10) / 100}s to init shaders`
-		);
-
-		start = Date.now();
-
-		this.InitScene();
-
-		end = Date.now();
-
-		console.log(
-			`Took ${Math.round((end - start) / 10) / 100}s to initialize scene`
-		);
 
 		this.texture = loadTexture(gl, "textures.png");
 	}
 
 	Start() {
+		this.InitScene();
 		requestAnimationFrame(() => {
 			this.Update();
 		});

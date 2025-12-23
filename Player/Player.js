@@ -1,4 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
+import { ActiveRenderer } from "../Globals/ActiveRenderer.js";
 import { BLOCKS } from "../Globals/Constants.js";
 import { enqueueMesh } from "../Scene.js";
 
@@ -39,9 +40,6 @@ class Player {
 
 	flight = true;
 
-	/** @type {import("../RendererThreeD/Renderer.js").Renderer | import('../2D-Renderer.js').TwoDRenderer} */
-	renderer;
-
 	freezeChunks = false;
 
 	/** @type {{block: number; x: number; y: number; z: number} | undefined} */
@@ -54,12 +52,6 @@ class Player {
 
 		this.chunkX = (x + 1) >> 4;
 		this.chunkZ = (z + 1) >> 4;
-	}
-
-	SetRenderer(r) {
-		this.renderer = r;
-
-		ChunkManager.LoadChunks();
 	}
 
 	Update() {
@@ -145,7 +137,7 @@ class Player {
 				const cx = Math.floor(this.targetedBlock.x / 16);
 				const cz = Math.floor(this.targetedBlock.z / 16);
 
-				const chunk = this.renderer.GetChunkAtPos(cx, cz);
+				const chunk = ActiveRenderer.GetChunkAtPos(cx, cz);
 
 				const b = chunk.blocks[bx + bz * 16 + by * 256];
 
@@ -155,20 +147,20 @@ class Player {
 					enqueueMesh(chunk);
 
 					if (bx === 0) {
-						const c = this.renderer.GetChunkAtPos(cx - 1, cz);
+						const c = ActiveRenderer.GetChunkAtPos(cx - 1, cz);
 
 						c && enqueueMesh(c);
 					} else if (bx === 15) {
-						const c = this.renderer.GetChunkAtPos(cx + 1, cz);
+						const c = ActiveRenderer.GetChunkAtPos(cx + 1, cz);
 
 						c && enqueueMesh(c);
 					}
 					if (bz === 0) {
-						const c = this.renderer.GetChunkAtPos(cx, cz - 1);
+						const c = ActiveRenderer.GetChunkAtPos(cx, cz - 1);
 
 						c && enqueueMesh(c);
 					} else if (bz === 15) {
-						const c = this.renderer.GetChunkAtPos(cx, cz + 1);
+						const c = ActiveRenderer.GetChunkAtPos(cx, cz + 1);
 
 						c && enqueueMesh(c);
 					}
@@ -195,7 +187,7 @@ class Player {
 			return unload;
 		});
 
-		if (!this.renderer.isTwoD) {
+		if (!ActiveRenderer.isTwoD) {
 			for (const c of visibleChunks) {
 				if (!c.builtVerts) {
 					enqueueMesh(c);
@@ -238,7 +230,7 @@ class Player {
 	DoGravity() {
 		const g =
 			this.gravity *
-			Math.min(Math.max(this.renderer.deltaTime, 0.05), 0.2);
+			Math.min(Math.max(ActiveRenderer.deltaTime, 0.05), 0.2);
 
 		if (this.IsGrounded()) {
 			if (this.keyMap.has(" ") && this.yVel <= 0) {
@@ -272,7 +264,7 @@ class Player {
 
 		const camY = this.position.y - this.HEIGHT;
 
-		const chunk = this.renderer.GetChunkAtPos(this.chunkX, this.chunkZ);
+		const chunk = ActiveRenderer.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
