@@ -1,11 +1,11 @@
-import { ActiveRenderer } from "./Globals/ActiveRenderer.js";
 import { canvas } from "./Globals/Canvas.js";
 import Player from "./Player/Player.js";
+import Renderer from "./RendererThreeD/Renderer.js";
 
 /** @type {HTMLInputElement} */
 const renderDistanceInput = document.getElementById("render-d");
 
-ActiveRenderer.Start();
+Renderer.Start();
 
 document.addEventListener("keydown", (ev) => {
 	ev.preventDefault();
@@ -21,7 +21,7 @@ document.addEventListener("keyup", (ev) => {
 	}
 
 	if (ev.key === "g" && ev.altKey) {
-		ActiveRenderer.showChunkBorders = !ActiveRenderer.showChunkBorders;
+		Renderer.showChunkBorders = !Renderer.showChunkBorders;
 	}
 });
 
@@ -34,7 +34,7 @@ canvas.addEventListener("mousemove", (ev) => {
 		return;
 	}
 
-	if (!ActiveRenderer.isTwoD) {
+	if (!Renderer.isTwoD) {
 		Player.view.yaw -= ev.movementX * 0.3;
 		Player.view.pitch -= ev.movementY * 0.2;
 		Player.view.pitch = Math.max(Math.min(Player.view.pitch, 90), -90);

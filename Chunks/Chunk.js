@@ -1,3 +1,4 @@
+import { gl } from "../Globals/Canvas.js";
 import { BLOCKS } from "../Globals/Constants.js";
 
 export class Chunk {
@@ -13,40 +14,22 @@ export class Chunk {
 	/** @type {Uint16Array} */
 	blocks;
 
-	/** @type {import('./Renderer.js').Renderer} */
-	r;
-
-	/** @type {WebGL2RenderingContext} */
-	gl;
-
-	/** @type {boolean} */
-	twoDRenderer = false;
-
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
-	 * @param {import('./Renderer.js').Renderer} r
 	 * @param {number} x
 	 * @param {number} z
 	 * @param {Uint16Array} blocks
 	 */
-	constructor(gl, r, x, z, blocks, twoD) {
-		this.r = r;
-
-		this.twoDRenderer = twoD;
-
+	constructor(gl, x, z, blocks) {
 		this.x = x;
 		this.z = z;
 		this.blocks = blocks;
 
 		this.builtVerts = false;
 
-		if (!twoD) {
-			this.gl = gl;
-
-			this.blockBuffer = gl.createBuffer();
-			this.waterBuffer = gl.createBuffer();
-		}
+		this.blockBuffer = gl.createBuffer();
+		this.waterBuffer = gl.createBuffer();
 	}
 
 	/**
@@ -54,22 +37,14 @@ export class Chunk {
 	 * @param {Uint32Array} waterVerts
 	 */
 	PostVerts(blockVerts, waterVerts) {
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.blockBuffer);
-		this.gl.bufferData(
-			this.gl.ARRAY_BUFFER,
-			blockVerts,
-			this.gl.STATIC_DRAW
-		);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.blockBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, blockVerts, gl.STATIC_DRAW);
 
 		this.vertCount = blockVerts.length;
 
 		if (waterVerts.length > 0) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.waterBuffer);
-			this.gl.bufferData(
-				this.gl.ARRAY_BUFFER,
-				waterVerts,
-				this.gl.STATIC_DRAW
-			);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.waterBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, waterVerts, gl.STATIC_DRAW);
 
 			this.waterVertCount = waterVerts.length;
 		}
@@ -78,8 +53,8 @@ export class Chunk {
 	}
 
 	ClearMesh() {
-		this.blockBuffer = this.gl.createBuffer();
-		this.waterBuffer = this.gl.createBuffer();
+		this.blockBuffer = gl.createBuffer();
+		this.waterBuffer = gl.createBuffer();
 		this.builtVerts = false;
 	}
 

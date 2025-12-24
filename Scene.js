@@ -1,7 +1,7 @@
 import { Chunk } from "./Chunks/Chunk.js";
 import ChunkManager from "./Chunks/ChunkManager.js";
-import { ActiveRenderer } from "./Globals/ActiveRenderer.js";
 import { gl } from "./Globals/Canvas.js";
+import Renderer from "./RendererThreeD/Renderer.js";
 
 const poolSize = navigator.hardwareConcurrency || 4;
 
@@ -34,7 +34,7 @@ export function enqueueChunk(chunkX, chunkZ) {
 	}
 
 	activeChunks.add(key);
-	chunkQueue.push({ chunkX, chunkZ, seed: ActiveRenderer.seed });
+	chunkQueue.push({ chunkX, chunkZ, seed: Renderer.seed });
 	processQueue();
 }
 
@@ -71,16 +71,7 @@ function processQueue() {
 			workers[i].onmessage = (ev) => {
 				const { chunkX, chunkZ, blocks } = ev.data;
 				const key = `${chunkX}, ${chunkZ}`;
-				ChunkManager.chunks.push(
-					new Chunk(
-						gl,
-						ActiveRenderer,
-						chunkX,
-						chunkZ,
-						blocks,
-						ActiveRenderer.isTwoD
-					)
-				);
+				ChunkManager.chunks.push(new Chunk(gl, chunkX, chunkZ, blocks));
 
 				activeChunks.delete(key);
 				completedChunks.add(key);

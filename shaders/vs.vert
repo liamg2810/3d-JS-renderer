@@ -24,22 +24,22 @@ uniform mat4 uProjectionMatrix;
 uniform float uTime;
 
 const vec3 offsets[8] = vec3[](
-	vec3(-0.5,0.5,-0.5), 
-	vec3(0.5,0.5,-0.5), 
-	vec3(-0.5, 0.5, 0.5), 
-	vec3(0.5, 0.5, 0.5),
-	vec3(-0.5,-0.5,-0.5), 
-	vec3(0.5,-0.5,-0.5), 
-	vec3(-0.5, -0.5, 0.5), 
-	vec3(0.5, -0.5, 0.5));
+	vec3(-1,0,-1), 
+	vec3(0,0,-1), 
+	vec3(-1, 0, 0), 
+	vec3(0, 0, 0),
+	vec3(-1,-1,-1), 
+	vec3(0,-1,-1), 
+	vec3(-1, -1, 0), 
+	vec3(0, -1, 0));
 
 const vec3 flowerOffsets[6] = vec3[](
-	vec3(0.0, 0.0, 0.0),
-	vec3(0.0, 0.0, 0.0),
-	vec3(0.5, 0.0, 0),
-	vec3(-0.5, 0.0, 0),
-	vec3(0, 0.0, -0.5),
-	vec3(0, 0.0, 0.5)
+	vec3(0, 0, 0),
+	vec3(0, 0, 0),
+	vec3(0.5, 0, 0.5),
+	vec3(-0.5, 0, 0.5),
+	vec3(0, 0, 0),
+	vec3(0, 0, 1)
 );
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]

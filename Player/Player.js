@@ -1,6 +1,6 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { ActiveRenderer } from "../Globals/ActiveRenderer.js";
 import { BLOCKS } from "../Globals/Constants.js";
+import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueMesh } from "../Scene.js";
 
 const worldPosDebug = document.getElementById("world-pos");
@@ -137,7 +137,7 @@ class Player {
 				const cx = Math.floor(this.targetedBlock.x / 16);
 				const cz = Math.floor(this.targetedBlock.z / 16);
 
-				const chunk = ActiveRenderer.GetChunkAtPos(cx, cz);
+				const chunk = ChunkManager.GetChunkAtPos(cx, cz);
 
 				const b = chunk.blocks[bx + bz * 16 + by * 256];
 
@@ -147,20 +147,20 @@ class Player {
 					enqueueMesh(chunk);
 
 					if (bx === 0) {
-						const c = ActiveRenderer.GetChunkAtPos(cx - 1, cz);
+						const c = ChunkManager.GetChunkAtPos(cx - 1, cz);
 
 						c && enqueueMesh(c);
 					} else if (bx === 15) {
-						const c = ActiveRenderer.GetChunkAtPos(cx + 1, cz);
+						const c = ChunkManager.GetChunkAtPos(cx + 1, cz);
 
 						c && enqueueMesh(c);
 					}
 					if (bz === 0) {
-						const c = ActiveRenderer.GetChunkAtPos(cx, cz - 1);
+						const c = ChunkManager.GetChunkAtPos(cx, cz - 1);
 
 						c && enqueueMesh(c);
 					} else if (bz === 15) {
-						const c = ActiveRenderer.GetChunkAtPos(cx, cz + 1);
+						const c = ChunkManager.GetChunkAtPos(cx, cz + 1);
 
 						c && enqueueMesh(c);
 					}
@@ -187,7 +187,7 @@ class Player {
 			return unload;
 		});
 
-		if (!ActiveRenderer.isTwoD) {
+		if (!Renderer.isTwoD) {
 			for (const c of visibleChunks) {
 				if (!c.builtVerts) {
 					enqueueMesh(c);
@@ -229,8 +229,7 @@ class Player {
 
 	DoGravity() {
 		const g =
-			this.gravity *
-			Math.min(Math.max(ActiveRenderer.deltaTime, 0.05), 0.2);
+			this.gravity * Math.min(Math.max(Renderer.deltaTime, 0.05), 0.2);
 
 		if (this.IsGrounded()) {
 			if (this.keyMap.has(" ") && this.yVel <= 0) {
@@ -264,7 +263,7 @@ class Player {
 
 		const camY = this.position.y - this.HEIGHT;
 
-		const chunk = ActiveRenderer.GetChunkAtPos(this.chunkX, this.chunkZ);
+		const chunk = ChunkManager.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
@@ -342,9 +341,9 @@ class Player {
 		let dy = Math.sin(pitch);
 		let dz = -Math.cos(pitch) * Math.cos(yaw);
 
-		let x = this.position.x + 0.5;
-		let y = this.position.y + 0.5;
-		let z = this.position.z + 0.5;
+		let x = this.position.x + 1;
+		let y = this.position.y + 1;
+		let z = this.position.z + 1;
 
 		let ix = x;
 		let iy = y;
@@ -369,4 +368,4 @@ class Player {
 	}
 }
 
-export default new Player(8, 8, 80);
+export default new Player(8, 80, 8);
