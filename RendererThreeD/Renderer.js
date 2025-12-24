@@ -1,5 +1,6 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { canvas, gl } from "../Globals/Canvas.js";
+import { BLOCKS } from "../Globals/Constants.js";
 import Player from "../Player/Player.js";
 import { isQueueing } from "../Scene.js";
 import { DebugRenderer } from "./Debug.js";
@@ -36,6 +37,9 @@ class Renderer {
 	FrameTexture;
 	RenderBuffer;
 
+	FrameWidth = 1920;
+	FrameHeight = 1080;
+
 	constructor() {
 		this.FrameBuffer = gl.createFramebuffer();
 
@@ -45,8 +49,8 @@ class Renderer {
 			gl.TEXTURE_2D,
 			1,
 			gl.RGBA8,
-			canvas.width,
-			canvas.height
+			this.FrameWidth,
+			this.FrameHeight
 		);
 
 		this.RenderBuffer = gl.createRenderbuffer();
@@ -54,8 +58,8 @@ class Renderer {
 		gl.renderbufferStorage(
 			gl.RENDERBUFFER,
 			gl.DEPTH_COMPONENT16,
-			canvas.width,
-			canvas.height
+			this.FrameWidth,
+			this.FrameHeight
 		);
 		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
 
@@ -112,6 +116,7 @@ class Renderer {
 				{ name: "aTextureCoord", type: INFO_TYPES.ATTRIBUTE },
 				// Uniforms
 				{ name: "uSampler", type: INFO_TYPES.UNIFORM },
+				{ name: "uUnderWater", type: INFO_TYPES.UNIFORM },
 			]
 		);
 
@@ -191,18 +196,9 @@ class Renderer {
 			this.RenderBuffer
 		);
 
-		gl.bindTexture(gl.TEXTURE_2D, this.FrameTexture);
-		gl.texStorage2D(
-			gl.TEXTURE_2D,
-			1,
-			gl.RGBA8,
-			canvas.width,
-			canvas.height
-		);
-
 		gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
 
-		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl.viewport(0, 0, this.FrameWidth, this.FrameHeight);
 		gl.clearColor(0.3, 0.5, 0.8, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.DEPTH_TEST);
@@ -274,22 +270,22 @@ class Renderer {
 		gl.clearColor(0.3, 0.5, 0.8, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.disable(gl.DEPTH_TEST);
-		gl.disable(gl.CULL_FACE);
+		// gl.disable(gl.CULL_FACE);
 
 		// prettier-ignore
 		const verts = [
-			-1, -1, 0, 
+			1, -1, 0,
+			1, 1, 0,
 			-1, 1, 0,
-		 	1, 1, 0,
-			1, -1, 0
+			-1, -1, 0, 
 		];
 
 		// prettier-ignore
 		const texCoords = [
-			0,0,
-			0,1,
+			1,0,
 			1,1,
-			1,0
+			0,1,
+			0,0,
 		]
 
 		const indices = [0, 1, 2, 2, 3, 0];
@@ -353,6 +349,25 @@ class Renderer {
 			gl.STATIC_DRAW
 		);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+
+		const cx = Math.floor(Player.position.x / 16);
+		const cz = Math.floor(Player.position.z / 16);
+
+		const chunk = ChunkManager.GetChunkAtPos(cx, cz);
+
+		const by = Math.floor(Player.position.y);
+		const bx = ((Math.floor(Player.position.x) % 16) + 16) % 16;
+		const bz = ((Math.floor(Player.position.z) % 16) + 16) % 16;
+
+		const block = chunk.BlockAt(bx, by, bz, {});
+
+		gl.uniform1ui(
+			this.frameBufferProgram.GetLocation(
+				"uUnderWater",
+				INFO_TYPES.UNIFORM
+			),
+			block === BLOCKS.WATER ? 1 : 0
+		);
 
 		gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 	}

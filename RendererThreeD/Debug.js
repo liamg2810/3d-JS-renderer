@@ -1,6 +1,7 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { gl } from "../Globals/Canvas.js";
 import Player from "../Player/Player.js";
+import Renderer from "./Renderer.js";
 import { SetDebugProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 
@@ -302,7 +303,9 @@ export class DebugRenderer {
 
 		SetDebugProgramUniforms(this.DebugProgram);
 
-		this.DrawChunkBorders();
+		if (Renderer.showChunkBorders) {
+			this.DrawChunkBorders();
+		}
 		this.DrawTargetedBlock();
 	}
 }

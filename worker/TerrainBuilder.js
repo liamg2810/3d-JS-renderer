@@ -179,6 +179,10 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
+				for (let y = WATER_LEVEL - 1; y > elevation + 1; y--) {
+					blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.WATER;
+				}
+
 				block = BLOCKS.SAND;
 			}
 

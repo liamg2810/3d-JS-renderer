@@ -25,7 +25,7 @@ export function BuildVerts(blocks, neighborChunks) {
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
 
-	const waterVerts = new Uint32Array(estimatedMaxVerts / (6 * 6));
+	const waterVerts = new Uint32Array(estimatedMaxVerts / 6);
 	let waterVi = 0;
 
 	let x = -1,
