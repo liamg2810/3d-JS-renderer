@@ -14,6 +14,8 @@ class Renderer {
 
 	/** @type {import('./ShaderProgram.js').ShaderProgram} */
 	blockProgram;
+	/** @type {import('./ShaderProgram.js').ShaderProgram} */
+	frameBufferProgram;
 
 	/** @type {number[]} */
 	frameTimes = [];
@@ -30,7 +32,35 @@ class Renderer {
 
 	DebugRenderer;
 
+	FrameBuffer;
+	FrameTexture;
+	RenderBuffer;
+
 	constructor() {
+		this.FrameBuffer = gl.createFramebuffer();
+
+		this.FrameTexture = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, this.FrameTexture);
+		gl.texStorage2D(
+			gl.TEXTURE_2D,
+			1,
+			gl.RGBA8,
+			canvas.width,
+			canvas.height
+		);
+
+		this.RenderBuffer = gl.createRenderbuffer();
+		gl.bindRenderbuffer(gl.RENDERBUFFER, this.RenderBuffer);
+		gl.renderbufferStorage(
+			gl.RENDERBUFFER,
+			gl.DEPTH_COMPONENT16,
+			canvas.width,
+			canvas.height
+		);
+		gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+		gl.bindTexture(gl.TEXTURE_2D, null);
+
 		gl.enable(gl.CULL_FACE);
 		gl.cullFace(gl.BACK);
 
@@ -54,8 +84,12 @@ class Renderer {
 	async InitShaders() {
 		const vsSource = await (await fetch("./shaders/vs.vert")).text();
 		const fsSource = await (await fetch("./shaders/fs.frag")).text();
-		const debugVSource = await (await fetch("./shaders/debug.vert")).text();
-		const debugFSource = await (await fetch("./shaders/debug.frag")).text();
+		const frameBufferVSource = await (
+			await fetch("./shaders/frameBuffer.vert")
+		).text();
+		const frameBufferFSource = await (
+			await fetch("./shaders/frameBuffer.frag")
+		).text();
 
 		this.blockProgram = new ShaderProgram(vsSource, fsSource, [
 			// Attributes
@@ -69,14 +103,17 @@ class Renderer {
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
 		]);
 
-		this.debugProgram = new ShaderProgram(debugVSource, debugFSource, [
-			// Attributes
-			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
-			{ name: "aColor", type: INFO_TYPES.ATTRIBUTE },
-			// Uniforms
-			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
-			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
-		]);
+		this.frameBufferProgram = new ShaderProgram(
+			frameBufferVSource,
+			frameBufferFSource,
+			[
+				// Attributes
+				{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+				{ name: "aTextureCoord", type: INFO_TYPES.ATTRIBUTE },
+				// Uniforms
+				{ name: "uSampler", type: INFO_TYPES.UNIFORM },
+			]
+		);
 
 		this.shadersInit = true;
 	}
@@ -138,6 +175,32 @@ class Renderer {
 
 	Draw() {
 		if (!this.shadersInit) return;
+
+		gl.bindFramebuffer(gl.FRAMEBUFFER, this.FrameBuffer);
+		gl.framebufferTexture2D(
+			gl.FRAMEBUFFER,
+			gl.COLOR_ATTACHMENT0,
+			gl.TEXTURE_2D,
+			this.FrameTexture,
+			0
+		);
+		gl.framebufferRenderbuffer(
+			gl.FRAMEBUFFER,
+			gl.DEPTH_ATTACHMENT,
+			gl.RENDERBUFFER,
+			this.RenderBuffer
+		);
+
+		gl.bindTexture(gl.TEXTURE_2D, this.FrameTexture);
+		gl.texStorage2D(
+			gl.TEXTURE_2D,
+			1,
+			gl.RGBA8,
+			canvas.width,
+			canvas.height
+		);
+
+		gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
 
 		gl.viewport(0, 0, canvas.width, canvas.height);
 		gl.clearColor(0.3, 0.5, 0.8, 1);
@@ -203,6 +266,95 @@ class Renderer {
 		}
 
 		this.DebugRenderer.draw();
+		gl.useProgram(this.frameBufferProgram.shaderProgram);
+
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+		gl.viewport(0, 0, canvas.width, canvas.height);
+		gl.clearColor(0.3, 0.5, 0.8, 1);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.disable(gl.DEPTH_TEST);
+		gl.disable(gl.CULL_FACE);
+
+		// prettier-ignore
+		const verts = [
+			-1, -1, 0, 
+			-1, 1, 0,
+		 	1, 1, 0,
+			1, -1, 0
+		];
+
+		// prettier-ignore
+		const texCoords = [
+			0,0,
+			0,1,
+			1,1,
+			1,0
+		]
+
+		const indices = [0, 1, 2, 2, 3, 0];
+
+		const vBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+		gl.vertexAttribPointer(
+			this.frameBufferProgram.GetLocation(
+				"aVertex",
+				INFO_TYPES.ATTRIBUTE
+			),
+			3,
+			gl.FLOAT,
+			false,
+			0,
+			0
+		);
+		gl.enableVertexAttribArray(
+			this.frameBufferProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+		);
+
+		const tBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+		gl.bufferData(
+			gl.ARRAY_BUFFER,
+			new Float32Array(texCoords),
+			gl.STATIC_DRAW
+		);
+		gl.vertexAttribPointer(
+			this.frameBufferProgram.GetLocation(
+				"aTextureCoord",
+				INFO_TYPES.ATTRIBUTE
+			),
+			2,
+			gl.FLOAT,
+			false,
+			0,
+			0
+		);
+		gl.enableVertexAttribArray(
+			this.frameBufferProgram.GetLocation(
+				"aTextureCoord",
+				INFO_TYPES.ATTRIBUTE
+			)
+		);
+
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, this.FrameTexture);
+		gl.uniform1i(
+			this.frameBufferProgram.GetLocation("uSampler", INFO_TYPES.UNIFORM),
+			0
+		);
+
+		const iBuffer = gl.createBuffer();
+
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+		gl.bufferData(
+			gl.ELEMENT_ARRAY_BUFFER,
+			new Uint16Array(indices),
+			gl.STATIC_DRAW
+		);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+
+		gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 	}
 }
 
