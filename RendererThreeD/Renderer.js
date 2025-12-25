@@ -142,6 +142,12 @@ class Renderer {
 
 		let chunksWithWater = [];
 
+		const xOff = Player.position.x < 0 ? 16 : 0;
+		const zOff = Player.position.z < 0 ? 16 : 0;
+
+		const cx = Math.floor((Player.position.x + xOff) / 16);
+		const cz = Math.floor((Player.position.z + zOff) / 16);
+
 		for (let chunk of ChunkManager.chunks) {
 			if (!chunk.builtVerts) {
 				continue;
@@ -149,8 +155,8 @@ class Renderer {
 
 			gl.uniform2f(
 				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
-				chunk.x * 16,
-				chunk.z * 16
+				(chunk.x - cx) * 16,
+				(chunk.z - cz) * 16
 			);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.blockBuffer);
@@ -175,8 +181,8 @@ class Renderer {
 		for (const chunk of chunksWithWater) {
 			gl.uniform2f(
 				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
-				chunk.x * 16,
-				chunk.z * 16
+				(chunk.x - cx) * 16,
+				(chunk.z - cz) * 16
 			);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.waterBuffer);

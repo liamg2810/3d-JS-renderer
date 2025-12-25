@@ -122,8 +122,14 @@ export class DebugRenderer {
 		this.LastChunkPos.x = chunk.x;
 		this.LastChunkPos.z = chunk.z;
 
-		const baseX = chunk.x * 16;
-		const baseZ = chunk.z * 16;
+		const xOff = Player.position.x < 0 ? 16 : 0;
+		const zOff = Player.position.z < 0 ? 16 : 0;
+
+		const cx = Math.floor((Player.position.x + xOff) / 16);
+		const cz = Math.floor((Player.position.z + zOff) / 16);
+
+		const baseX = (chunk.x - cx) * 16;
+		const baseZ = (chunk.z - cz) * 16;
 
 		for (let x = baseX; x <= baseX + 16; x += 4) {
 			this.ChunkBorderVerts.push(x, 0, baseZ, x, 255, baseZ);
@@ -229,11 +235,19 @@ export class DebugRenderer {
 		const cx = Math.floor(Player.targetedBlock.x / 16);
 		const cz = Math.floor(Player.targetedBlock.z / 16);
 
+		const xOff = Player.position.x < 0 ? 16 : 0;
+		const zOff = Player.position.z < 0 ? 16 : 0;
+
+		const pcx = Math.floor((Player.position.x + xOff) / 16);
+		const pcz = Math.floor((Player.position.z + zOff) / 16);
+
 		const by = Math.floor(Player.targetedBlock.y);
 		const bx =
-			(((Math.floor(Player.targetedBlock.x) % 16) + 16) % 16) + cx * 16;
+			(((Math.floor(Player.targetedBlock.x) % 16) + 16) % 16) +
+			(cx - pcx) * 16;
 		const bz =
-			(((Math.floor(Player.targetedBlock.z) % 16) + 16) % 16) + cz * 16;
+			(((Math.floor(Player.targetedBlock.z) % 16) + 16) % 16) +
+			(cz - pcz) * 16;
 
 		if (
 			this.LastTargetedBlock.x === bx &&

@@ -30,9 +30,9 @@ export function CreateViewMatrix() {
 	mat4.rotateX(viewMatrix, viewMatrix, (-Player.view.pitch * Math.PI) / 180);
 	mat4.rotateY(viewMatrix, viewMatrix, (-Player.view.yaw * Math.PI) / 180);
 	mat4.translate(viewMatrix, viewMatrix, [
-		-Player.position.x,
+		-Player.position.x % 16,
 		-Player.position.y,
-		-Player.position.z,
+		-Player.position.z % 16,
 	]);
 
 	return viewMatrix;

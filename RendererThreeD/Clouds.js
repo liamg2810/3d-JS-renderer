@@ -42,25 +42,29 @@ class Clouds {
 	Draw() {
 		gl.useProgram(this.Shader.shaderProgram);
 
-		const planeScale = 2000;
+		const planeScale = 4096;
 		const planeY = 300;
+
+		const px = Player.position.x % 16;
+
+		const pz = Player.position.z % 16;
 
 		// prettier-ignore
 		const verts = [
-				Player.position.x + planeScale, planeY, Player.position.z + planeScale,
-				Player.position.x + planeScale, planeY, Player.position.z - planeScale,
-				Player.position.x - planeScale, planeY, Player.position.z + planeScale,
-				Player.position.x - planeScale, planeY, Player.position.z - planeScale, 
-			];
+			px + planeScale, planeY, pz+planeScale,
+			px + planeScale, planeY, pz-planeScale,
+			px-planeScale, planeY, pz + planeScale,
+			px-planeScale, planeY, pz-planeScale, 
+		];
 
 		const t = (performance.now() / 800000) % 1;
 
 		// prettier-ignore
 		const texCoords = [
-				1, t + 1,
-				1,t,
-				0,t + 1,
-				0,t,
+				t / 2 + 1, t + 1,
+				t / 2 + 1,t,
+				t / 2,t + 1,
+				t / 2,t,
 			]
 
 		const indices = [3, 1, 2, 2, 1, 0];
