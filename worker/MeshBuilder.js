@@ -52,9 +52,13 @@ export function BuildVerts(blocks, neighborChunks) {
 		const b = block & 0xff;
 
 		if (b === BLOCKS.WATER) {
-			const w = Water(x, y, z, TEXTURES.WATER);
-			waterVerts.set(w, waterVi);
-			waterVi += w.length;
+			const above = blocks[x + z * 16 + (y + 1) * 256];
+
+			if (above !== BLOCKS.WATER && above !== BLOCKS.ICE) {
+				const w = Water(x, y, z, TEXTURES.WATER);
+				waterVerts.set(w, waterVi);
+				waterVi += w.length;
+			}
 			continue;
 		}
 
