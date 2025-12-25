@@ -128,46 +128,6 @@ class Player {
 
 		this.targetedBlock = this.Raycast();
 
-		if (this.keyMap.has("f")) {
-			if (this.targetedBlock !== undefined) {
-				const by = Math.floor(this.targetedBlock.y);
-				const bx = ((Math.floor(this.targetedBlock.x) % 16) + 16) % 16;
-				const bz = ((Math.floor(this.targetedBlock.z) % 16) + 16) % 16;
-
-				const cx = Math.floor(this.targetedBlock.x / 16);
-				const cz = Math.floor(this.targetedBlock.z / 16);
-
-				const chunk = ChunkManager.GetChunkAtPos(cx, cz);
-
-				const b = chunk.blocks[bx + bz * 16 + by * 256];
-
-				if (b !== BLOCKS.BEDROCK) {
-					chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
-
-					enqueueMesh(chunk);
-
-					if (bx === 0) {
-						const c = ChunkManager.GetChunkAtPos(cx - 1, cz);
-
-						c && enqueueMesh(c);
-					} else if (bx === 15) {
-						const c = ChunkManager.GetChunkAtPos(cx + 1, cz);
-
-						c && enqueueMesh(c);
-					}
-					if (bz === 0) {
-						const c = ChunkManager.GetChunkAtPos(cx, cz - 1);
-
-						c && enqueueMesh(c);
-					} else if (bz === 15) {
-						const c = ChunkManager.GetChunkAtPos(cx, cz + 1);
-
-						c && enqueueMesh(c);
-					}
-				}
-			}
-		}
-
 		if (this.freezeChunks) {
 			this.chunkX = 0;
 			this.chunkZ = 0;
@@ -209,6 +169,46 @@ class Player {
 		this.yVel = Math.min(2, Math.max(-10, this.yVel));
 
 		this.SetDebugs();
+	}
+
+	Break() {
+		if (this.targetedBlock !== undefined) {
+			const by = Math.floor(this.targetedBlock.y);
+			const bx = ((Math.floor(this.targetedBlock.x) % 16) + 16) % 16;
+			const bz = ((Math.floor(this.targetedBlock.z) % 16) + 16) % 16;
+
+			const cx = Math.floor(this.targetedBlock.x / 16);
+			const cz = Math.floor(this.targetedBlock.z / 16);
+
+			const chunk = ChunkManager.GetChunkAtPos(cx, cz);
+
+			const b = chunk.blocks[bx + bz * 16 + by * 256];
+
+			if (b !== BLOCKS.BEDROCK) {
+				chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
+
+				enqueueMesh(chunk);
+
+				if (bx === 0) {
+					const c = ChunkManager.GetChunkAtPos(cx - 1, cz);
+
+					c && enqueueMesh(c);
+				} else if (bx === 15) {
+					const c = ChunkManager.GetChunkAtPos(cx + 1, cz);
+
+					c && enqueueMesh(c);
+				}
+				if (bz === 0) {
+					const c = ChunkManager.GetChunkAtPos(cx, cz - 1);
+
+					c && enqueueMesh(c);
+				} else if (bz === 15) {
+					const c = ChunkManager.GetChunkAtPos(cx, cz + 1);
+
+					c && enqueueMesh(c);
+				}
+			}
+		}
 	}
 
 	SetDebugs() {

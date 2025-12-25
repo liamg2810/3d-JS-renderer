@@ -7,6 +7,7 @@ import { DebugRenderer } from "./Debug.js";
 import { FrameBuffer } from "./FrameBuffer.js";
 import { SetBlockProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
+import { TextThreeD } from "./Text.js";
 import { TextureManager } from "./TextureManager.js";
 
 const fpsCounter = document.getElementById("fps-count");
@@ -35,6 +36,8 @@ class Renderer {
 	/** @type {import("./FrameBuffer.js").FrameBuffer} */
 	frameBuffer;
 
+	Text;
+
 	constructor() {
 		this.frameBuffer = new FrameBuffer();
 
@@ -43,7 +46,13 @@ class Renderer {
 
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
+		this.Text = new TextThreeD(
+			"Hello world this is some text being rendered\nin the little project im working on for fun\n\nAs you can see the text also supports multi-line functionality.\nFun fact this text is in 3d space and you will\nalways be able to see the characters.\n\ndinnerbone",
+			8,
+			100,
+			1,
+			100
+		);
 		this.InitShaders();
 
 		this.DebugRenderer = new DebugRenderer();
@@ -201,6 +210,7 @@ class Renderer {
 		}
 
 		Clouds.Draw();
+		this.Text.Draw();
 
 		this.DebugRenderer.draw();
 

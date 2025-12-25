@@ -67,7 +67,7 @@ class Clouds {
 				t / 2,t,
 			]
 
-		const indices = [3, 1, 2, 2, 1, 0];
+		const indices = [3, 1, 2, 0];
 
 		const projectionMatrix = CreateProjectectionMatrix();
 		const modelViewMatrix = CreateModelViewMatrix();
@@ -132,9 +132,13 @@ class Clouds {
 			new Uint16Array(indices),
 			gl.STATIC_DRAW
 		);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
 
-		gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(
+			gl.TRIANGLE_STRIP,
+			indices.length,
+			gl.UNSIGNED_SHORT,
+			0
+		);
 	}
 }
 

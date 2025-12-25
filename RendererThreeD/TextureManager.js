@@ -2,8 +2,9 @@ import { gl } from "../Globals/Canvas.js";
 
 /**
  * @param {WebGL2RenderingContext} gl
+ * @param {boolean} mipmaps
  */
-function loadTexture(url) {
+function loadTexture(url, mipmaps) {
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -44,8 +45,23 @@ function loadTexture(url) {
 			image
 		);
 
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		if (mipmaps) {
+			gl.generateMipmap(gl.TEXTURE_2D);
+
+			gl.texParameteri(
+				gl.TEXTURE_2D,
+				gl.TEXTURE_MIN_FILTER,
+				gl.NEAREST_MIPMAP_NEAREST
+			);
+			gl.texParameteri(
+				gl.TEXTURE_2D,
+				gl.TEXTURE_MAG_FILTER,
+				gl.NEAREST_MIPMAP_NEAREST
+			);
+		} else {
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		}
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 	};
@@ -58,7 +74,7 @@ export class TextureManager {
 	/** @type {WebGLTexture} */
 	texture;
 
-	constructor(src) {
-		this.texture = loadTexture(src);
+	constructor(src, mipmaps = false) {
+		this.texture = loadTexture(src, mipmaps);
 	}
 }

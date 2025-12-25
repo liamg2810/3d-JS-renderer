@@ -30,6 +30,10 @@ document.addEventListener("keyup", (ev) => {
 });
 
 canvas.addEventListener("click", (ev) => {
+	if (document.pointerLockElement) {
+		Player.Break();
+	}
+
 	canvas.requestPointerLock();
 });
 
