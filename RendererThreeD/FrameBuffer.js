@@ -17,6 +17,10 @@ export class FrameBuffer {
 
 	ShadersInit = false;
 
+	vBuffer;
+	tBuffer;
+	iBuffer;
+
 	constructor() {
 		this.FrameBuffer = gl.createFramebuffer();
 
@@ -43,6 +47,10 @@ export class FrameBuffer {
 		gl.bindTexture(gl.TEXTURE_2D, null);
 
 		this.InitShaders();
+
+		this.vBuffer = gl.createBuffer();
+		this.tBuffer = gl.createBuffer();
+		this.iBuffer = gl.createBuffer();
 	}
 
 	async InitShaders() {
@@ -128,8 +136,7 @@ export class FrameBuffer {
 
 		const indices = [0, 1, 2, 2, 3, 0];
 
-		const vBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.vBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
 		gl.vertexAttribPointer(
 			this.frameBufferProgram.GetLocation(
@@ -146,8 +153,7 @@ export class FrameBuffer {
 			this.frameBufferProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
 		);
 
-		const tBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.tBuffer);
 		gl.bufferData(
 			gl.ARRAY_BUFFER,
 			new Float32Array(texCoords),
@@ -178,15 +184,13 @@ export class FrameBuffer {
 			0
 		);
 
-		const iBuffer = gl.createBuffer();
-
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.iBuffer);
 		gl.bufferData(
 			gl.ELEMENT_ARRAY_BUFFER,
 			new Uint16Array(indices),
 			gl.STATIC_DRAW
 		);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.iBuffer);
 
 		const cx = Math.floor(Player.position.x / 16);
 		const cz = Math.floor(Player.position.z / 16);

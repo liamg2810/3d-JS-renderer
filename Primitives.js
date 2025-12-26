@@ -1,27 +1,5 @@
 import { BLOCKS } from "./Globals/Constants.js";
 
-// prettier-ignore
-const corners =[
-	// TOP
-	0, 2, 3,
-	3, 1, 0,
-		// BOTTOM
-		4, 5, 7,
-		7, 6, 4,
-		// LEFT
-		4, 6, 2,
-		2, 0, 4,
-		// RIGHT
-		1, 3, 7,
-		7, 5, 1,
-		// FRONT
-		3, 2, 6,
-		6, 7, 3,
-		// BACK
-		4, 0, 1,
-		1, 5, 4,
-	]
-
 const directions = [
 	// TOP face normal
 	0,
@@ -75,8 +53,7 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
 
 	let out = [];
 
-	for (let [ix, cID] of corners.entries()) {
-		const dir = directions[Math.floor(ix / 6)];
+	for (let [ix, dir] of directions.entries()) {
 		if (!((culledFaces >> dir) & 0b1)) continue;
 		let tId;
 
@@ -102,7 +79,7 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
 		}
 
 		let vert =
-			(biome << 28) | (tId << 22) | (dir << 19) | (cID << 16) | position;
+			(biome << 28) | (tId << 22) | (dir << 19) | (0 << 16) | position;
 
 		out.push(0 >>> 0, vert >>> 0);
 	}
@@ -145,9 +122,7 @@ export function Water(x, y, z, tex) {
 
 	let out = [];
 
-	for (let [ix, cID] of corners.entries()) {
-		const dir = directions[Math.floor(ix / 6)];
-
+	for (let [ix, dir] of directions.entries()) {
 		let tId;
 
 		switch (dir) {
@@ -156,7 +131,7 @@ export function Water(x, y, z, tex) {
 				break;
 		}
 
-		let vert = (tId << 22) | (dir << 19) | (cID << 16) | position;
+		let vert = (tId << 22) | (dir << 19) | (0 << 16) | position;
 
 		out.push(0 >>> 0, vert);
 	}

@@ -36,6 +36,8 @@ class Renderer {
 	/** @type {import("./FrameBuffer.js").FrameBuffer} */
 	frameBuffer;
 
+	vao;
+
 	Text;
 
 	constructor() {
@@ -74,6 +76,7 @@ class Renderer {
 		this.blockProgram = new ShaderProgram(vsSource, fsSource, [
 			// Attributes
 			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+			{ name: "aVertexInstance", type: INFO_TYPES.ATTRIBUTE },
 			// Uniforms
 			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
 			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
@@ -83,6 +86,40 @@ class Renderer {
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
 		]);
 		this.shadersInit = true;
+		//prettier-ignore
+		const verts = [
+			-1, 0, -1,
+			-1, 0, 0,
+			0, 0, -1,
+			-1, 0, 0,
+			0, 0, 0,
+			0, 0, -1,
+		];
+
+		this.vao = gl.createVertexArray();
+
+		gl.bindVertexArray(this.vao);
+
+		const InstanceVertexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, InstanceVertexBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+
+		gl.enableVertexAttribArray(
+			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+		);
+		gl.vertexAttribPointer(
+			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE), // location
+			3, // size (num values to pull from buffer per iteration)
+			gl.FLOAT, // type of data in buffer
+			false, // normalize
+			0, // stride (0 = compute from size and type above)
+			0 // offset in buffer
+		);
+		gl.vertexAttribDivisor(
+			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
+			0
+		);
+		gl.bindVertexArray(null);
 	}
 
 	InitScene() {
@@ -156,6 +193,7 @@ class Renderer {
 
 		const cx = Math.floor((Player.position.x + xOff) / 16);
 		const cz = Math.floor((Player.position.z + zOff) / 16);
+		gl.bindVertexArray(this.vao);
 
 		for (let chunk of ChunkManager.chunks) {
 			if (!chunk.builtVerts) {
@@ -170,17 +208,31 @@ class Renderer {
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.blockBuffer);
 			gl.vertexAttribIPointer(
-				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				),
 				2,
 				gl.UNSIGNED_INT,
 				0,
 				0
 			);
 			gl.enableVertexAttribArray(
-				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				)
+			);
+			gl.vertexAttribDivisor(
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				),
+				1
 			);
 
-			gl.drawArrays(gl.TRIANGLES, 0, chunk.vertCount / 2);
+			// 4 is a placeholder for the amount of verts in a face
+			gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, chunk.vertCount / 2);
 
 			if (chunk.waterVertCount > 0) {
 				chunksWithWater.push(chunk);
@@ -196,18 +248,38 @@ class Renderer {
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.waterBuffer);
 			gl.vertexAttribIPointer(
-				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				),
 				2,
 				gl.UNSIGNED_INT,
 				0,
 				0
 			);
 			gl.enableVertexAttribArray(
-				this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				)
+			);
+			gl.vertexAttribDivisor(
+				this.blockProgram.GetLocation(
+					"aVertexInstance",
+					INFO_TYPES.ATTRIBUTE
+				),
+				1
 			);
 
-			gl.drawArrays(gl.TRIANGLES, 0, chunk.waterVertCount / 2);
+			gl.drawArraysInstanced(
+				gl.TRIANGLES,
+				0,
+				6,
+				chunk.waterVertCount / 2
+			);
 		}
+
+		gl.bindVertexArray(null);
 
 		Clouds.Draw();
 		this.Text.Draw();

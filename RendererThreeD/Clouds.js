@@ -16,10 +16,18 @@ class Clouds {
 
 	ShadersInit = false;
 
+	vBuffer;
+	tBuffer;
+	iBuffer;
+
 	constructor() {
 		this.CloudTexture = new TextureManager("/clouds.png");
 
 		this.InitShaders();
+
+		this.vBuffer = gl.createBuffer();
+		this.tBuffer = gl.createBuffer();
+		this.iBuffer = gl.createBuffer();
 	}
 
 	async InitShaders() {
@@ -83,8 +91,7 @@ class Clouds {
 			modelViewMatrix
 		);
 
-		const vBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.vBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
 		gl.vertexAttribPointer(
 			this.Shader.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
@@ -98,8 +105,7 @@ class Clouds {
 			this.Shader.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
 		);
 
-		const tBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.tBuffer);
 		gl.bufferData(
 			gl.ARRAY_BUFFER,
 			new Float32Array(texCoords),
@@ -124,9 +130,7 @@ class Clouds {
 			0
 		);
 
-		const iBuffer = gl.createBuffer();
-
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.iBuffer);
 		gl.bufferData(
 			gl.ELEMENT_ARRAY_BUFFER,
 			new Uint16Array(indices),

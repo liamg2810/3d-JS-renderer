@@ -14,7 +14,8 @@
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
-in uvec2 aVertex;
+in uvec2 aVertexInstance;
+in vec3 aVertex;
 
 uniform vec2 uChunkPos;
 uniform mat4 uNormalMatrix;
@@ -22,16 +23,6 @@ uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
 uniform float uTime;
-
-const vec3 offsets[8] = vec3[](
-	vec3(-1,0,-1), 
-	vec3(0,0,-1), 
-	vec3(-1, 0, 0), 
-	vec3(0, 0, 0),
-	vec3(-1,-1,-1), 
-	vec3(0,-1,-1), 
-	vec3(-1, -1, 0), 
-	vec3(0, -1, 0));
 
 const vec3 flowerOffsets[6] = vec3[](
 	vec3(0, 0, 0),
@@ -60,7 +51,7 @@ out highp vec3 vTint;
 out highp vec2 vTintedTexCoord;
 flat out uint vTintFlag;
 
-vec2 getFaceUV(uint cID, uint dir) {
+vec2 getFaceUV(int cID, uint dir) {
 	// Base UVs for the corners of a face
 	vec2 baseUVs[4];
 	baseUVs[0] = vec2(0.0, 0.0); // bottom-left
@@ -68,48 +59,29 @@ vec2 getFaceUV(uint cID, uint dir) {
 	baseUVs[2] = vec2(0.0, 1.0); // top-left
 	baseUVs[3] = vec2(1.0, 1.0); // top-right
 
-	// Map corner ID to the face's UV index
-	// Corner IDs: [0..7] = [TLB, TRB, TLF, TRF, BLB, BRB, BLF, BRF]
-	// Each face uses 4 corners:
-	// UP(0): 0,1,2,3
-	// DOWN(1): 4,5,6,7
-	// LEFT(2): 0,2,4,6
-	// RIGHT(3): 1,3,5,7
-	// FRONT(4): 2,3,6,7
-	// BACK(5): 0,1,4,5
-
 	uint idx = 0u;
 
 	if (dir == 0u) { // UP
-		if (cID == 0u) idx = 2u;
-		else if (cID == 1u) idx = 3u;
-		else if (cID == 2u) idx = 0u;
-		else if (cID == 3u) idx = 1u;
-	} else if (dir == 1u) { // DOWN
-		if (cID == 4u) idx = 2u;
-		else if (cID == 5u) idx = 3u;
-		else if (cID == 6u) idx = 0u;
-		else if (cID == 7u) idx = 1u;
-	} else if (dir == 2u) { // LEFT
-		if (cID == 0u) idx = 1u;
-		else if (cID == 2u) idx = 0u;
-		else if (cID == 4u) idx = 3u;
-		else if (cID == 6u) idx = 2u;
-	} else if (dir == 3u) { // RIGHT
-		if (cID == 1u) idx = 1u;
-		else if (cID == 3u) idx = 0u;
-		else if (cID == 5u) idx = 3u;
-		else if (cID == 7u) idx = 2u;
-	} else if (dir == 4u) { // FRONT
-		if (cID == 2u) idx = 1u;
-		else if (cID == 3u) idx = 0u;
-		else if (cID == 6u) idx = 3u;
-		else if (cID == 7u) idx = 2u;
-	} else if (dir == 5u) { // BACK
-		if (cID == 0u) idx = 1u;
-		else if (cID == 1u) idx = 0u;
-		else if (cID == 4u) idx = 3u;
-		else if (cID == 5u) idx = 2u;
+		if (cID == 0) idx = 0u;
+		else if (cID == 1) idx = 2u;
+		else if (cID == 2) idx = 1u;
+		else if (cID == 3) idx = 2u;
+		else if (cID == 4) idx = 3u;
+		else if (cID == 5) idx = 1u;
+	} else if (dir == 1u || dir == 2u || dir == 4u) { // DOWN | LEFT | FRONT
+		if (cID == 0) idx = 2u;
+		else if (cID == 1) idx = 3u;
+		else if (cID == 2) idx = 0u;
+		else if (cID == 3) idx = 3u;
+		else if (cID == 4) idx = 1u;
+		else if (cID == 5) idx = 0u;
+	} else if (dir == 3u || dir == 5u) { // RIGHT | BACK
+		if (cID == 0) idx = 3u;
+		else if (cID == 1) idx = 1u;
+		else if (cID == 2) idx = 2u;
+		else if (cID == 3) idx = 1u;
+		else if (cID == 4) idx = 0u;
+		else if (cID == 5) idx = 2u;
 	}
 
 	return baseUVs[idx];
@@ -129,20 +101,52 @@ vec3 rotate45AroundY(vec3 p) {
     );
 }
 
+vec3 rotateFromDir(uint dir, vec3 pos) {
+	// Down
+	if (dir == 1u) {
+		return vec3(pos.z, pos.y - 1.0, pos.x);
+	}
+
+	// Left
+	if (dir == 2u) {
+		return vec3(pos.y - 1.0, pos.x, pos.z);
+	}
+
+	// Right
+	if (dir == 3u) {
+		return vec3(pos.y, pos.z, pos.x);
+	}
+
+	// Front
+	if (dir == 4u) {
+		return vec3(pos.z, pos.x, pos.y);
+	}
+
+	// Back
+	if (dir == 5u) {
+		return vec3(pos.x, pos.z, pos.y - 1.0);
+	}
+
+	// Up
+	return pos;
+}
+
 void main() {
-	uint lowBits = aVertex.y;
-	uint highBits = aVertex.x;
+	uint lowBits = aVertexInstance.y;
+	uint highBits = aVertexInstance.x;
 
 	uint vertZ = lowBits & uint(0xF);
 	uint vertY = (lowBits >> 4) & uint(0xFF);
 	uint vertX = (lowBits >> 12) & uint(0xF);
 
-	uint cID = (lowBits >> 16) & uint(0x7);
+	// uint cID = (lowBits >> 16) & uint(0x7);
 	uint dir = (lowBits >> 19) & uint(0x7);
 	uint texture = (lowBits >> 22) & uint(0x3F);
 	uint biome = (lowBits >> 28) & uint(0xF);
+	int cID = gl_VertexID;
 
-	vec3 pos =  offsets[cID];
+	vec3 pos = aVertex;
+	pos = rotateFromDir(dir, pos);
 
 	if (texture == 23u) {
 		pos += flowerOffsets[dir];
@@ -150,6 +154,7 @@ void main() {
 	}
 
 	pos += vec3(float(vertX) + uChunkPos.x, float(vertY), float(vertZ) + uChunkPos.y);
+
 
 	// Water
 	if (texture == 6u) {

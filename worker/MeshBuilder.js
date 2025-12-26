@@ -21,7 +21,7 @@ const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
 
 export function BuildVerts(blocks, neighborChunks) {
-	const estimatedMaxVerts = 16 * 16 * 256 * 6 * 6;
+	const estimatedMaxVerts = 16 * 16 * 256;
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
 
@@ -124,7 +124,7 @@ export function BuildVerts(blocks, neighborChunks) {
 	}
 
 	return {
-		blockVerts: verts.subarray(0, vi),
-		waterVerts: waterVerts.subarray(0, waterVi),
+		blockVerts: verts.slice(0, vi),
+		waterVerts: waterVerts.slice(0, waterVi),
 	};
 }

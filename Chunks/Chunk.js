@@ -53,6 +53,8 @@ export class Chunk {
 	}
 
 	ClearMesh() {
+		gl.deleteBuffer(this.blockBuffer);
+		gl.deleteBuffer(this.waterBuffer);
 		this.blockBuffer = gl.createBuffer();
 		this.waterBuffer = gl.createBuffer();
 		this.builtVerts = false;
