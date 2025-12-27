@@ -1,3 +1,4 @@
+import { DecodeRLE, GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { BLOCKS, TEXTURES } from "../Globals/Constants.js";
 import { Cube, Water } from "../Primitives.js";
 
@@ -20,7 +21,9 @@ TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
 
-export function BuildVerts(blocks, neighborChunks) {
+export function BuildVerts(b, neighborChunks) {
+	const blocks = DecodeRLE(b);
+
 	const estimatedMaxVerts = 16 * 16 * 256;
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
@@ -79,16 +82,16 @@ export function BuildVerts(blocks, neighborChunks) {
 				nb = BLOCKS.AIR;
 			} else if (nx < 0) {
 				const arr = neighborChunks?.nx;
-				nb = arr ? arr[15 + nz * CHUNK + ny * LAYER] : BLOCKS.AIR;
+				nb = arr ? GetFromPositionInRLE(15, ny, nz, arr) : BLOCKS.AIR;
 			} else if (nx >= 16) {
 				const arr = neighborChunks?.px;
-				nb = arr ? arr[nz * CHUNK + ny * LAYER] : BLOCKS.AIR;
+				nb = arr ? GetFromPositionInRLE(0, ny, nz, arr) : BLOCKS.AIR;
 			} else if (nz < 0) {
 				const arr = neighborChunks?.nz;
-				nb = arr ? arr[nx + 15 * CHUNK + ny * LAYER] : BLOCKS.AIR;
+				nb = arr ? GetFromPositionInRLE(nx, ny, 15, arr) : BLOCKS.AIR;
 			} else if (nz >= 16) {
 				const arr = neighborChunks?.pz;
-				nb = arr ? arr[nx + ny * LAYER] : BLOCKS.AIR;
+				nb = arr ? GetFromPositionInRLE(nx, ny, 0, arr) : BLOCKS.AIR;
 			} else {
 				nb = blocks[nx + nz * 16 + ny * 256];
 			}

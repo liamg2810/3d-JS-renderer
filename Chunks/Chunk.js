@@ -1,5 +1,6 @@
 import { gl } from "../Globals/Canvas.js";
 import { BLOCKS } from "../Globals/Constants.js";
+import { DecodeRLE, RLE } from "./RLE.js";
 
 export class Chunk {
 	vertCount = 0;
@@ -75,5 +76,13 @@ export class Chunk {
 		if (nz >= 16)
 			return neighborChunks.pz?.blocks[nx + ny * 256] ?? BLOCKS.AIR;
 		return this.blocks[nx + nz * 16 + ny * 256];
+	}
+
+	SetBlock(x, y, z, block) {
+		const decoded = DecodeRLE(this.blocks);
+
+		decoded[x + z * 16 + y * 256] = block;
+
+		this.blocks = RLE(decoded);
 	}
 }

@@ -9,7 +9,7 @@ self.onmessage = function (event) {
 
 		let blocks = BuildChunk(chunkX, chunkZ, seed);
 
-		self.postMessage({ chunkX, chunkZ, blocks }, [blocks.buffer]);
+		self.postMessage({ chunkX, chunkZ, blocks });
 		blocks = null;
 	} else if (type === "Mesh") {
 		const { chunk, neighborChunks } = data;

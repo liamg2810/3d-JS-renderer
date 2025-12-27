@@ -1,4 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
+import { GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { BLOCKS } from "../Globals/Constants.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueMesh } from "../Scene.js";
@@ -182,10 +183,10 @@ class Player {
 
 			const chunk = ChunkManager.GetChunkAtPos(cx, cz);
 
-			const b = chunk.blocks[bx + bz * 16 + by * 256];
+			const b = GetFromPositionInRLE(bx, by, bz, chunk.blocks);
 
 			if (b !== BLOCKS.BEDROCK) {
-				chunk.blocks[bx + bz * 16 + by * 256] = BLOCKS.AIR;
+				chunk.SetBlock(bx, by, bz, BLOCKS.AIR);
 
 				enqueueMesh(chunk);
 
@@ -330,7 +331,7 @@ class Player {
 
 		if (by < 0 || by >= 256) return BLOCKS.AIR;
 
-		return chunk.blocks[bx + bz * 16 + by * 256] & 0xff;
+		return GetFromPositionInRLE(bx, by, bz, chunk.blocks) & 0xff;
 	}
 
 	Raycast(maxDistance = 6) {

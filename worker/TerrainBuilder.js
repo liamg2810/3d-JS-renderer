@@ -1,3 +1,4 @@
+import { RLE } from "../Chunks/RLE.js";
 import {
 	BIOMES,
 	BLOCKS,
@@ -238,7 +239,7 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 		}
 	}
 
-	return blocks;
+	return RLE(blocks);
 }
 
 function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
