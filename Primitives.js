@@ -1,34 +1,17 @@
 import { BLOCKS } from "./Globals/Constants.js";
 
-const directions = [
-	// TOP face normal
-	0,
-	// BOTTOM face normal
-	1,
-	// LEFT face normal
-	2,
-	// RIGHT face normal
-	3,
-	// FRONT face normal
-	4,
-	// BACK face normal
-	5,
-];
-
-// [TEXTURE][DIRECTION][CID][POSITION]
+// [TEXTURE][DIRECTION][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
-// CID = 0-7 = 3 bits
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 6 bits
-// TOTAL BITS = 28
-
-// CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
-// 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
+// TOTAL BITS = 25
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
 /**
  *
+ * @param {Uint32Array} out
+ * @param {number} offset
  * @param {number} x
  * @param {number} y
  * @param {number} z
@@ -36,9 +19,18 @@ const directions = [
  * @param {number} culledFaces
  * @param {number} biome
  * @param {BLOCKS[]} blocks
- * @returns {Uint32Array}
+ * @returns {number}
  */
-export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
+export function Cube(
+	out,
+	offset,
+	x,
+	y,
+	z,
+	tex,
+	culledFaces = 0b111111,
+	biome = 0
+) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -51,9 +43,9 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
 
 	const position = (x << 12) | (y << 4) | z;
 
-	let out = [];
+	let v = 0;
 
-	for (let [ix, dir] of directions.entries()) {
+	for (let dir = 0; dir < 6; dir++) {
 		if (!((culledFaces >> dir) & 0b1)) continue;
 		let tId;
 
@@ -78,24 +70,26 @@ export function Cube(x, y, z, tex, culledFaces = 0b111111, biome = 0) {
 				break;
 		}
 
-		let vert =
-			(biome << 28) | (tId << 22) | (dir << 19) | (0 << 16) | position;
+		let vert = (biome << 25) | (tId << 19) | (dir << 16) | position;
 
-		out.push(0 >>> 0, vert >>> 0);
+		out.set([0 >>> 0, vert >>> 0], offset + v);
+		v += 2;
 	}
 
-	return new Uint32Array(out);
+	return v;
 }
 
 /**
  *
+ * @param {Uint32Array} out
+ * @param {number} offset
  * @param {number} x
  * @param {number} y
  * @param {number} z
  * @param {number} tex
  * @returns {Uint32Array}
  */
-export function Water(x, y, z, tex) {
+export function Water(out, offset, x, y, z, tex) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -108,33 +102,24 @@ export function Water(x, y, z, tex) {
 
 	const position = (x << 12) | (y << 4) | z;
 
-	// prettier-ignore
-	const corners =[
-			// TOP
-			0, 2, 3,
-			3, 1, 0,
-		]
+	// const directions = [
+	// 	// TOP face normal
+	// 	0,
+	// ];
 
-	const directions = [
-		// TOP face normal
-		0,
-	];
+	// for (let [ix, dir] of directions.entries()) {
+	// 	let tId;
 
-	let out = [];
+	// switch (dir) {
+	// 	case 0:
+	let tId = tex.top ? tex.top : tex.base;
+	// break;
+	// }
 
-	for (let [ix, dir] of directions.entries()) {
-		let tId;
+	let vert = (tId << 19) | position;
 
-		switch (dir) {
-			case 0:
-				tId = tex.top ? tex.top : tex.base;
-				break;
-		}
+	out.set([0 >>> 0, vert], offset);
+	// }
 
-		let vert = (tId << 22) | (dir << 19) | (0 << 16) | position;
-
-		out.push(0 >>> 0, vert);
-	}
-
-	return new Uint32Array(out);
+	return 2;
 }

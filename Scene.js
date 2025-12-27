@@ -1,6 +1,7 @@
 import { Chunk } from "./Chunks/Chunk.js";
 import ChunkManager from "./Chunks/ChunkManager.js";
 import { gl } from "./Globals/Canvas.js";
+import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 
 const poolSize = navigator.hardwareConcurrency || 4;
@@ -11,6 +12,12 @@ const busy = [];
 for (let i = 0; i < poolSize; i++) {
 	const worker = new Worker("./worker/WorkerHandler.js", { type: "module" });
 	workers.push(worker);
+
+	worker.onmessage = (ev) => {
+		if (ev.data.type === "Mesh") ProcessMeshFinish(i, ev);
+		else if (ev.data.type === "Terrain") ProcessTerrainFinish(i, ev);
+	};
+
 	busy.push(false);
 }
 
@@ -35,6 +42,7 @@ export function enqueueChunk(chunkX, chunkZ) {
 
 	activeChunks.add(key);
 	chunkQueue.push({ chunkX, chunkZ, seed: Renderer.seed });
+
 	processQueue();
 }
 
@@ -61,6 +69,32 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 	completedChunks.delete(`${chunkX}, ${chunkZ}`);
 }
 
+function ProcessTerrainFinish(i, ev) {
+	const { chunkX, chunkZ, blocks } = ev.data;
+	const key = `${chunkX}, ${chunkZ}`;
+	ChunkManager.chunks.push(new Chunk(gl, chunkX, chunkZ, blocks));
+
+	activeChunks.delete(key);
+	completedChunks.add(key);
+
+	busy[i] = false;
+	processQueue();
+}
+
+function ProcessMeshFinish(i, ev) {
+	const { chunkX, chunkZ, blockVerts, waterVerts } = ev.data;
+	const key = `${chunkX}, ${chunkZ}`;
+
+	const chunk = ChunkManager.GetChunkAtPos(chunkX, chunkZ);
+
+	chunk.PostVerts(blockVerts, waterVerts);
+
+	busy[i] = false;
+
+	activeMeshes.delete(key);
+	processQueue();
+}
+
 function processQueue() {
 	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && chunkQueue.length > 0) {
@@ -68,23 +102,9 @@ function processQueue() {
 
 			busy[i] = true;
 
-			workers[i].onmessage = (ev) => {
-				const { chunkX, chunkZ, blocks } = ev.data;
-				const key = `${chunkX}, ${chunkZ}`;
-				ChunkManager.chunks.push(new Chunk(gl, chunkX, chunkZ, blocks));
-
-				activeChunks.delete(key);
-				completedChunks.add(key);
-
-				busy[i] = false;
-				processQueue(); // check for next task
-			};
-
 			workers[i].postMessage({ type: "Terrain", data: task });
 		}
-	}
 
-	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && meshQueue.length > 0) {
 			const chunk = meshQueue.shift();
 
@@ -97,21 +117,11 @@ function processQueue() {
 
 			busy[i] = true;
 
-			workers[i].onmessage = (ev) => {
-				const { blockVerts, waterVerts } = ev.data;
-				const key = `${chunk.x}, ${chunk.z}`;
-
-				chunk.PostVerts(blockVerts, waterVerts);
-
-				busy[i] = false;
-
-				activeMeshes.delete(key);
-				processQueue(); // check for next task
-			};
-
 			workers[i].postMessage({
 				type: "Mesh",
 				data: {
+					chunkX: chunk.x,
+					chunkZ: chunk.z,
 					chunk: chunk.blocks,
 					neighborChunks: neighborChunks,
 				},

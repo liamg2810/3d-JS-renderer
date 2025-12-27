@@ -195,7 +195,8 @@ class Renderer {
 		const cz = Math.floor((Player.position.z + zOff) / 16);
 		gl.bindVertexArray(this.vao);
 
-		for (let chunk of ChunkManager.chunks) {
+		for (let i = 0; i < ChunkManager.chunks.length; i++) {
+			let chunk = ChunkManager.chunks[i];
 			if (!chunk.builtVerts) {
 				continue;
 			}
@@ -237,9 +238,13 @@ class Renderer {
 			if (chunk.waterVertCount > 0) {
 				chunksWithWater.push(chunk);
 			}
+
+			// chunk = null;
 		}
 
-		for (const chunk of chunksWithWater) {
+		for (let i = 0; i < chunksWithWater.length; i++) {
+			let chunk = chunksWithWater[i];
+
 			gl.uniform2f(
 				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				(chunk.x - cx) * 16,

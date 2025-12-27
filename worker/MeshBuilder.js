@@ -1,4 +1,8 @@
-import { DecodeRLE, GetFromPositionInRLE } from "../Chunks/RLE.js";
+import {
+	DecodeRLE,
+	GetFromPositionInRLE,
+	LastNonAirIndex,
+} from "../Chunks/RLE.js";
 import { BLOCKS, TEXTURES } from "../Globals/Constants.js";
 import { Cube, Water } from "../Primitives.js";
 
@@ -21,10 +25,26 @@ TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
 
+const TRANSPARENT = new Set([
+	BLOCKS.WATER,
+	BLOCKS.LEAVES,
+	BLOCKS.SPRUCE_LEAVES,
+	BLOCKS.ICE,
+	BLOCKS.POPPY,
+	BLOCKS.AIR,
+]);
+
 export function BuildVerts(b, neighborChunks) {
 	const blocks = DecodeRLE(b);
 
-	const estimatedMaxVerts = 16 * 16 * 256;
+	const lastNonAirIndex = LastNonAirIndex(b);
+
+	const nxBlocks = neighborChunks.nx ? DecodeRLE(neighborChunks.nx) : null;
+	const pxBlocks = neighborChunks.px ? DecodeRLE(neighborChunks.px) : null;
+	const nzBlocks = neighborChunks.nz ? DecodeRLE(neighborChunks.nz) : null;
+	const pzBlocks = neighborChunks.pz ? DecodeRLE(neighborChunks.pz) : null;
+
+	const estimatedMaxVerts = 16 * 16 * 256 * 3;
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
 
@@ -35,7 +55,7 @@ export function BuildVerts(b, neighborChunks) {
 		y = 0,
 		z = 0;
 
-	for (var i = 0, l = blocks.length; i < l; i++) {
+	for (let i = 0; i <= lastNonAirIndex; i++) {
 		const block = blocks[i];
 		x++;
 		if (x === 16) {
@@ -51,23 +71,21 @@ export function BuildVerts(b, neighborChunks) {
 			continue;
 		}
 
-		const biome = block >>> 8;
 		const b = block & 0xff;
 
 		if (b === BLOCKS.WATER) {
 			const above = blocks[x + z * 16 + (y + 1) * 256];
 
 			if (above !== BLOCKS.WATER && above !== BLOCKS.ICE) {
-				const w = Water(x, y, z, TEXTURES.WATER);
-				waterVerts.set(w, waterVi);
-				waterVi += w.length;
+				waterVi += Water(waterVerts, waterVi, x, y, z, TEXTURES.WATER);
 			}
 			continue;
 		}
 
+		const biome = block >>> 8;
 		let culled = 0b111111;
 
-		for (var dir = 0; dir < 6; dir++) {
+		for (let dir = 0; dir < 6 && block !== BLOCKS.POPPY; dir++) {
 			const dx = NEIGH[dir * 3];
 			const dy = NEIGH[dir * 3 + 1];
 			const dz = NEIGH[dir * 3 + 2];
@@ -81,30 +99,19 @@ export function BuildVerts(b, neighborChunks) {
 			if (ny < 0 || ny >= 256) {
 				nb = BLOCKS.AIR;
 			} else if (nx < 0) {
-				const arr = neighborChunks?.nx;
-				nb = arr ? GetFromPositionInRLE(15, ny, nz, arr) : BLOCKS.AIR;
+				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] : BLOCKS.AIR;
 			} else if (nx >= 16) {
-				const arr = neighborChunks?.px;
-				nb = arr ? GetFromPositionInRLE(0, ny, nz, arr) : BLOCKS.AIR;
+				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] : BLOCKS.AIR;
 			} else if (nz < 0) {
-				const arr = neighborChunks?.nz;
-				nb = arr ? GetFromPositionInRLE(nx, ny, 15, arr) : BLOCKS.AIR;
+				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] : BLOCKS.AIR;
 			} else if (nz >= 16) {
-				const arr = neighborChunks?.pz;
-				nb = arr ? GetFromPositionInRLE(nx, ny, 0, arr) : BLOCKS.AIR;
+				nb = pzBlocks ? pzBlocks[nx + ny * 256] : BLOCKS.AIR;
 			} else {
 				nb = blocks[nx + nz * 16 + ny * 256];
 			}
 
 			// opaque logic (no leaves, water, etc.)
-			if (
-				nb !== BLOCKS.AIR &&
-				nb !== BLOCKS.WATER &&
-				nb !== BLOCKS.LEAVES &&
-				nb !== BLOCKS.SPRUCE_LEAVES &&
-				nb !== BLOCKS.POPPY &&
-				(nb !== BLOCKS.ICE || b === BLOCKS.ICE)
-			) {
+			if (!TRANSPARENT.has(nb)) {
 				culled &= ~(1 << dir);
 			}
 		}
@@ -115,19 +122,15 @@ export function BuildVerts(b, neighborChunks) {
 
 		const tex = TEXMAP[b] || TEXTURES.GRASS;
 
-		const c = Cube(x, y, z, tex, culled, biome);
-
 		if (tex === TEXTURES.ICE) {
-			waterVerts.set(c, waterVi);
-			waterVi += c.length;
+			waterVi += Cube(waterVerts, waterVi, x, y, z, tex, culled, biome);
 		} else {
-			verts.set(c, vi);
-			vi += c.length;
+			vi += Cube(verts, vi, x, y, z, tex, culled, biome);
 		}
 	}
 
 	return {
-		blockVerts: verts.slice(0, vi),
-		waterVerts: waterVerts.slice(0, waterVi),
+		blockVerts: verts.subarray(0, vi),
+		waterVerts: waterVerts.subarray(0, waterVi),
 	};
 }

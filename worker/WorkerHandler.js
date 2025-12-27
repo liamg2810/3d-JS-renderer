@@ -9,14 +9,14 @@ self.onmessage = function (event) {
 
 		let blocks = BuildChunk(chunkX, chunkZ, seed);
 
-		self.postMessage({ chunkX, chunkZ, blocks });
+		self.postMessage({ type, chunkX, chunkZ, blocks });
 		blocks = null;
 	} else if (type === "Mesh") {
-		const { chunk, neighborChunks } = data;
+		const { chunk, chunkX, chunkZ, neighborChunks } = data;
 
 		let { blockVerts, waterVerts } = BuildVerts(chunk, neighborChunks);
 
-		self.postMessage({ blockVerts, waterVerts }, [
+		self.postMessage({ type, chunkX, chunkZ, blockVerts, waterVerts }, [
 			blockVerts.buffer,
 			waterVerts.buffer,
 		]);

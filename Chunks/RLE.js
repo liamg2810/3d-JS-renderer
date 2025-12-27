@@ -1,4 +1,4 @@
-import { CHUNKSIZE, MAX_HEIGHT } from "../Globals/Constants.js";
+import { BLOCKS, CHUNKSIZE, MAX_HEIGHT } from "../Globals/Constants.js";
 
 const RLE_DATA = 0x7fff;
 const RLE_FLAG = 0x8000;
@@ -89,4 +89,22 @@ export function GetFromPositionInRLE(x, y, z, rle) {
 	}
 
 	throw new Error("Position not found");
+}
+
+export function LastNonAirIndex(rle) {
+	let lastNonAir = 0;
+	let currentPos = 0;
+
+	for (let i = 0; i < rle.length; i++) {
+		if ((rle[i] & RLE_FLAG) >>> 15) {
+			currentPos += (rle[i] & RLE_DATA) - 1;
+
+			continue;
+		}
+
+		currentPos++;
+		if ((rle[i] & RLE_DATA) !== BLOCKS.AIR) lastNonAir = currentPos - 1;
+	}
+
+	return lastNonAir;
 }

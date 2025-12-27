@@ -1,16 +1,11 @@
 #version 300 es
 
 
-// [BOIME][TEXTURE][DIRECTION][CID][POSITION]
+// [TEXTURE][DIRECTION][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
-// CID = 0-7 = 3 bits
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 6 bits
-// BIOME = 0-15 = 4 bits
-// TOTAL BITS = 32
-
-// CORNER IDS = [TOP LEFT BACK, TOP RIGHT BACK, TOP LEFT FRONT, TOP RIGHT FRONT,
-// 				BOTTOM LEFT BACK, BOTTOM RIGHT BACK, BOTTOM LEFT FRONT, BOTTOM RIGHT FRONT]
+// TOTAL BITS = 25
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
@@ -140,9 +135,9 @@ void main() {
 	uint vertX = (lowBits >> 12) & uint(0xF);
 
 	// uint cID = (lowBits >> 16) & uint(0x7);
-	uint dir = (lowBits >> 19) & uint(0x7);
-	uint texture = (lowBits >> 22) & uint(0x3F);
-	uint biome = (lowBits >> 28) & uint(0xF);
+	uint dir = (lowBits >> 16) & uint(0x7);
+	uint texture = (lowBits >> 19) & uint(0x3F);
+	uint biome = (lowBits >> 25) & uint(0xF);
 	int cID = gl_VertexID;
 
 	vec3 pos = aVertex;
