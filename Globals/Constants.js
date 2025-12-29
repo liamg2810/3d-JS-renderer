@@ -173,3 +173,5 @@ export const SPAGHETTI_CAVE_RANGE = 0.2;
 export const SPAGHETTI_CAVE_RADIUS = 12;
 
 export const MAX_HEIGHT = 256;
+
+export const ROOT = () => window.location.href;

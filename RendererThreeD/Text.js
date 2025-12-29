@@ -1,4 +1,5 @@
 import { gl } from "../Globals/Canvas.js";
+import { ROOT } from "../Globals/Constants.js";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,
@@ -56,7 +57,7 @@ export class TextThreeD {
 	IndicesLength;
 
 	constructor(text, x, y, z, maxWidth = 100) {
-		this.Texture = new TextureManager("./../text.png", true);
+		this.Texture = new TextureManager(ROOT() + "text.png", true);
 		this.InitShaders();
 
 		this.text = text;

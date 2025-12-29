@@ -1,4 +1,5 @@
 import { gl } from "../Globals/Canvas.js";
+import { ROOT } from "../Globals/Constants.js";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,
@@ -21,7 +22,7 @@ class Clouds {
 	iBuffer;
 
 	constructor() {
-		this.CloudTexture = new TextureManager("./../clouds.png");
+		this.CloudTexture = new TextureManager(ROOT() + "clouds.png");
 
 		this.InitShaders();
 
