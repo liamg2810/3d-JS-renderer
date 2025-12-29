@@ -1,4 +1,4 @@
-import { canvas } from "./Globals/Canvas.js";
+import { canvas } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 
@@ -33,6 +33,18 @@ canvas.addEventListener("click", (ev) => {
 	}
 
 	canvas.requestPointerLock();
+});
+
+canvas.addEventListener("mousedown", (ev) => {
+	if (!document.pointerLockElement) {
+		return;
+	}
+
+	if (ev.button === 2) {
+		ev.preventDefault();
+
+		Player.Place();
+	}
 });
 
 canvas.addEventListener("mousemove", (ev) => {

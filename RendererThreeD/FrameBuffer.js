@@ -1,6 +1,7 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { canvas, gl } from "../Globals/Canvas.js";
+import { GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { BLOCKS } from "../Globals/Constants.js";
+import { canvas, gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 
@@ -199,12 +200,12 @@ export class FrameBuffer {
 
 		let underwater = false;
 
-		if (chunk) {
+		if (chunk && Player.position.y < 256 && Player.position.y >= 0) {
 			const by = Math.floor(Player.position.y);
 			const bx = ((Math.floor(Player.position.x) % 16) + 16) % 16;
 			const bz = ((Math.floor(Player.position.z) % 16) + 16) % 16;
 
-			const block = chunk.BlockAt(bx, by, bz, {});
+			const block = GetFromPositionInRLE(bx, by, bz, chunk.blocks);
 
 			underwater = block === BLOCKS.WATER;
 		}

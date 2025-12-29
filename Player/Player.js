@@ -1,5 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { GetFromPositionInRLE } from "../Chunks/RLE.js";
+import { DecodeRLE, GetFromPositionInRLE, RLE } from "../Chunks/RLE.js";
 import { BLOCKS } from "../Globals/Constants.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
@@ -41,9 +41,9 @@ class Player {
 
 	flight = true;
 
-	freezeChunks = true;
+	freezeChunks = false;
 
-	/** @type {{block: number; x: number; y: number; z: number} | undefined} */
+	/** @type {{block: number; x: number; y: number; z: number; normal: number} | undefined} */
 	targetedBlock = undefined;
 
 	constructor(x, y, z) {
@@ -192,6 +192,40 @@ class Player {
 		}
 	}
 
+	Place() {
+		if (this.targetedBlock === undefined) return;
+
+		let y = Math.floor(this.targetedBlock.y);
+		let x = Math.floor(this.targetedBlock.x);
+		let z = Math.floor(this.targetedBlock.z);
+
+		if (this.targetedBlock.normal === 0) y += 1;
+		if (this.targetedBlock.normal === 1) y -= 1;
+		if (this.targetedBlock.normal === 2) x -= 1;
+		if (this.targetedBlock.normal === 3) x += 1;
+		if (this.targetedBlock.normal === 4) z -= 1;
+		if (this.targetedBlock.normal === 5) z += 1;
+
+		let by = Math.floor(y);
+		let bx = ((Math.floor(x) % 16) + 16) % 16;
+		let bz = ((Math.floor(z) % 16) + 16) % 16;
+
+		const cx = Math.floor(x / 16);
+		const cz = Math.floor(z / 16);
+
+		const chunk = ChunkManager.GetChunkAtPos(cx, cz);
+
+		const blocks = DecodeRLE(chunk.blocks);
+
+		if (blocks[bx + bz * 16 + by * 256] !== BLOCKS.AIR) return;
+
+		blocks[bx + bz * 16 + by * 256] = BLOCKS.GLOWSTONE;
+
+		chunk.blocks = RLE(blocks);
+
+		enqueueLight(chunk);
+	}
+
 	SetDebugs() {
 		worldPosDebug.innerText = `Position: ${
 			Math.round(this.position.x * 10) / 10
@@ -334,15 +368,40 @@ class Player {
 		const stepY = dy;
 		const stepZ = dz;
 
+		let pcx = Math.floor(ix);
+		let pcy = Math.floor(iy);
+		let pcz = Math.floor(iz);
+		let icx = Math.floor(ix);
+		let icy = Math.floor(iy);
+		let icz = Math.floor(iz);
+
 		for (let i = 0; i < maxDistance; i++) {
 			const block = this.GetBlockAtPos(ix, iy, iz);
 
 			if (block !== BLOCKS.AIR) {
-				return { block, x: ix, y: iy, z: iz };
+				let normal = 0;
+
+				if (icx > pcx) normal = 2;
+				else if (icx < pcx) normal = 3;
+				else if (icy > pcy) normal = 1;
+				else if (icy < pcy) normal = 0;
+				else if (icz > pcz) normal = 4;
+				else if (icz < pcz) normal = 5;
+
+				return { block, x: ix, y: iy, z: iz, normal };
 			}
+
+			pcx = Math.floor(ix);
+			pcy = Math.floor(iy);
+			pcz = Math.floor(iz);
+
 			ix += stepX;
 			iy += stepY;
 			iz += stepZ;
+
+			icx = Math.floor(ix);
+			icy = Math.floor(iy);
+			icz = Math.floor(iz);
 		}
 
 		return undefined;

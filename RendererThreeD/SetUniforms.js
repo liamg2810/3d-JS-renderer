@@ -1,4 +1,4 @@
-import { gl } from "../Globals/Canvas.js";
+import { gl } from "../Globals/Window.js";
 import {
 	CreateModelViewMatrix,
 	CreateNormalMatrix,

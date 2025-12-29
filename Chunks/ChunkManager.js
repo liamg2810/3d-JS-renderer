@@ -1,5 +1,10 @@
 import Player from "../Player/Player.js";
-import { enqueueChunk, enqueueLight, removeLoadedChunk } from "../Scene.js";
+import {
+	enqueueChunk,
+	enqueueLight,
+	enqueueMesh,
+	removeLoadedChunk,
+} from "../Scene.js";
 import { Chunk } from "./Chunk.js";
 
 class ChunkManager {
@@ -35,22 +40,23 @@ class ChunkManager {
 			return unload;
 		});
 
-		for (
-			let x = Player.chunkX - Player.renderDistance - 2;
-			x <= Player.chunkX + Player.renderDistance + 2;
-			x++
-		) {
-			for (
-				let z = Player.chunkZ - Player.renderDistance - 2;
-				z <= Player.chunkZ + Player.renderDistance + 2;
-				z++
-			) {
-				const chunk = this.GetChunkAtPos(x, z);
+		for (let r = 0; r < Player.renderDistance + 2; r++) {
+			for (let x = -r; x <= r; x++) {
+				for (let z = -r; z <= r; z++) {
+					if (Math.max(Math.abs(x), Math.abs(z)) !== r) continue;
 
-				if (chunk === undefined) {
-					enqueueChunk(x, z);
-				} else if (!chunk.calculatedLight) {
-					enqueueLight(chunk);
+					const cx = Player.chunkX + x;
+					const cz = Player.chunkZ + z;
+
+					const chunk = this.GetChunkAtPos(cx, cz);
+
+					if (chunk === undefined) {
+						enqueueChunk(cx, cz);
+					} else if (!chunk.calculatedLight) {
+						enqueueLight(chunk);
+					} else if (!chunk.builtVerts) {
+						enqueueMesh(chunk);
+					}
 				}
 			}
 		}

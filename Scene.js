@@ -1,6 +1,6 @@
 import { Chunk } from "./Chunks/Chunk.js";
 import ChunkManager from "./Chunks/ChunkManager.js";
-import { gl } from "./Globals/Canvas.js";
+import { gl } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 
@@ -56,11 +56,6 @@ export function enqueueChunk(chunkX, chunkZ) {
 
 /** @param {Chunk} chunk  */
 export function enqueueMesh(chunk) {
-	if (!chunk.calculatedLight) {
-		console.log("Need the chunk to have a lightmap to build mesh");
-		return;
-	}
-
 	const key = `${chunk.x}, ${chunk.z}`;
 
 	if (activeMeshes.has(key)) {
@@ -146,6 +141,8 @@ function ProcessLightFinish(i, ev) {
 		return;
 	}
 
+	chunk.PostLight(lightMap);
+
 	if (recalculates[0] === true) {
 		const c = ChunkManager.GetChunkAtPos(chunkX - 1, chunkZ);
 
@@ -166,8 +163,6 @@ function ProcessLightFinish(i, ev) {
 
 		c && enqueueLight(c);
 	}
-
-	chunk.PostLight(lightMap);
 
 	enqueueMesh(chunk);
 

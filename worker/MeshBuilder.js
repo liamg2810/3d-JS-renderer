@@ -21,13 +21,19 @@ TEXMAP[BLOCKS.SPRUCE_LOG] = TEXTURES.SPRUCE_LOG;
 TEXMAP[BLOCKS.SANDSTONE] = TEXTURES.SANDSTONE;
 TEXMAP[BLOCKS.ICE] = TEXTURES.ICE;
 TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
+TEXMAP[BLOCKS.GLOWSTONE] = TEXTURES.GLOWSTONE;
 
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
 
 export function BuildVerts(b, neighborChunks, lM) {
 	const blocks = DecodeRLE(b);
-	const lightMap = DecodeRLE(lM);
+
+	let lightMap;
+
+	if (lM) {
+		lightMap = DecodeRLE(lM);
+	}
 
 	const lastNonAirIndex = LastNonAirIndex(b);
 
@@ -83,7 +89,7 @@ export function BuildVerts(b, neighborChunks, lM) {
 
 		let isTransparent = TRANSPARENT.has(block);
 
-		if (isTransparent) {
+		if (isTransparent && lightMap) {
 			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
 		}
 

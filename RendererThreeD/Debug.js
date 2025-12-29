@@ -1,5 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { gl } from "../Globals/Canvas.js";
+import { gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import Renderer from "./Renderer.js";
 import { SetDebugProgramUniforms } from "./SetUniforms.js";

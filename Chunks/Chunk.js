@@ -1,5 +1,5 @@
-import { gl } from "../Globals/Canvas.js";
 import { BLOCKS } from "../Globals/Constants.js";
+import { gl } from "../Globals/Window.js";
 import { DecodeRLE, RLE } from "./RLE.js";
 
 export class Chunk {

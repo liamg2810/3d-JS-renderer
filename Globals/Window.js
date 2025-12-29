@@ -13,3 +13,5 @@ export const gl = canvas.getContext("webgl2");
 if (gl === null) {
 	alert("Unable to initialize WebGL.");
 }
+
+export const ROOT = window.location.href;

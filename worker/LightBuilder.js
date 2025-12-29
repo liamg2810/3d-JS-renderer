@@ -1,5 +1,5 @@
 import { DecodeRLE, RLE } from "../Chunks/RLE.js";
-import { TRANSPARENT } from "../Globals/Constants.js";
+import { LIGHT_SOURCES, TRANSPARENT } from "../Globals/Constants.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 
@@ -79,6 +79,10 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 				// TODO: Fix artifacts caused by this not updating stuff surrounding it.
 				if (isSky && TRANSPARENT.has(block)) {
 					lightMap[x + z * 16 + y * 256] = 14;
+				}
+
+				if (LIGHT_SOURCES.has(block)) {
+					sources.push([x, y, z, 15]);
 				}
 
 				if (!TRANSPARENT.has(block)) {

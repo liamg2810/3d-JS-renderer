@@ -49,6 +49,9 @@ export const TEXTURES = {
 	POPPY: {
 		base: 23,
 	},
+	GLOWSTONE: {
+		base: 24,
+	},
 };
 
 export const BLOCKS = {
@@ -67,6 +70,7 @@ export const BLOCKS = {
 	SANDSTONE: 12,
 	ICE: 13,
 	POPPY: 14,
+	GLOWSTONE: 15,
 };
 
 export const TRANSPARENT = new Set([
@@ -76,7 +80,10 @@ export const TRANSPARENT = new Set([
 	BLOCKS.ICE,
 	BLOCKS.POPPY,
 	BLOCKS.AIR,
+	BLOCKS.GLOWSTONE,
 ]);
+
+export const LIGHT_SOURCES = new Set([BLOCKS.GLOWSTONE]);
 
 /**
  * @type {{
@@ -173,5 +180,3 @@ export const SPAGHETTI_CAVE_RANGE = 0.2;
 export const SPAGHETTI_CAVE_RADIUS = 12;
 
 export const MAX_HEIGHT = 256;
-
-export const ROOT = () => window.location.href;

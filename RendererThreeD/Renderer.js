@@ -1,6 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { gl } from "../Globals/Canvas.js";
-import { ROOT } from "../Globals/Constants.js";
+import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import Clouds from "./Clouds.js";
 import { DebugRenderer } from "./Debug.js";
@@ -59,7 +58,7 @@ class Renderer {
 
 		this.DebugRenderer = new DebugRenderer();
 
-		this.texture = new TextureManager(ROOT() + "textures.png");
+		this.texture = new TextureManager(ROOT + "textures.png");
 	}
 
 	Start() {
