@@ -59,7 +59,7 @@ class Renderer {
 
 		this.DebugRenderer = new DebugRenderer();
 
-		this.texture = new TextureManager("../textures.png");
+		this.texture = new TextureManager("/../textures.png");
 	}
 
 	Start() {
