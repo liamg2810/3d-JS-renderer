@@ -21,7 +21,7 @@ class Clouds {
 	iBuffer;
 
 	constructor() {
-		this.CloudTexture = new TextureManager("/../clouds.png");
+		this.CloudTexture = new TextureManager("./../clouds.png");
 
 		this.InitShaders();
 
