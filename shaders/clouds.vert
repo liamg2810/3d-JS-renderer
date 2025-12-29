@@ -7,10 +7,12 @@ uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
 out highp vec2 vTextureCoord;
+out highp vec2 vPos;
 
 void main() {
 	vec4 mvPosition = uModelViewMatrix * vec4(aVertex, 1.0);
 	gl_Position = uProjectionMatrix * mvPosition;
 
 	vTextureCoord = aTextureCoord;
+	vPos = vec2(aVertex.x, aVertex.z);
 }

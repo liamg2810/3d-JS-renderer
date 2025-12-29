@@ -13,7 +13,6 @@ in uvec2 aVertexInstance;
 in vec3 aVertex;
 
 uniform vec2 uChunkPos;
-uniform mat4 uNormalMatrix;
 uniform mat4 uModelViewMatrix;
 uniform mat4 uProjectionMatrix;
 
@@ -41,9 +40,9 @@ const vec3 normals[6] = vec3[](
 const float PI = 3.1415926535897932384626433832795;
 
 out highp vec2 vTextureCoord;
-out highp vec3 vLighting;
 out highp vec3 vTint;
 out highp vec2 vTintedTexCoord;
+flat out float vLighting;
 flat out uint vTintFlag;
 
 vec2 getFaceUV(int cID, uint dir) {
@@ -138,6 +137,11 @@ void main() {
 	uint dir = (lowBits >> 16) & uint(0x7);
 	uint texture = (lowBits >> 19) & uint(0x3F);
 	uint biome = (lowBits >> 25) & uint(0xF);
+
+	float light = float(((highBits) & uint(0xF)) + 1u) / 16.0;
+
+	vLighting = light;
+
 	int cID = gl_VertexID;
 
 	vec3 pos = aVertex;
@@ -222,27 +226,4 @@ void main() {
 	if (texture == 23u) {
 		normal = rotate45AroundY(normal);
 	}
-
-	float seconds = uTime / 1000.0;
-	float dayLength = 120.0;
-	float t = mod(seconds, dayLength) / dayLength; // 0 → 1 over a full day	
-
-	float sun = max(0.0, cos(t * 2.0 * PI));
-
-	vec3 ambientDay = vec3(0.5);
-	vec3 ambientNight = vec3(0.5);
-
-	vec3 ambientLight = mix(ambientNight, ambientDay, 1.0);
-
-	vec3 directionalLightColor = vec3(1.0) * 1.0;
-	vec3 directionalVector = normalize(vec3(100, 100, 100));
-
-	vec3 lightDir = normalize((uNormalMatrix * vec4(directionalVector, 0.0)).xyz);
-
-
-	vec3 transformedNormal = normalize((uNormalMatrix * vec4(normal, 0.0)).xyz);
-
-
-	highp float directional = max(dot(transformedNormal, lightDir), 0.0);
-	vLighting = ambientLight + (directionalLightColor * directional);
 }

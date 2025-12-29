@@ -69,6 +69,15 @@ export const BLOCKS = {
 	POPPY: 14,
 };
 
+export const TRANSPARENT = new Set([
+	BLOCKS.WATER,
+	BLOCKS.LEAVES,
+	BLOCKS.SPRUCE_LEAVES,
+	BLOCKS.ICE,
+	BLOCKS.POPPY,
+	BLOCKS.AIR,
+]);
+
 /**
  * @type {{
  *   [key: string]: {

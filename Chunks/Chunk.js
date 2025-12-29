@@ -15,6 +15,9 @@ export class Chunk {
 	/** @type {Uint16Array} */
 	blocks;
 
+	lightMap;
+	calculatedLight = false;
+
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
@@ -84,5 +87,10 @@ export class Chunk {
 		decoded[x + z * 16 + y * 256] = block;
 
 		this.blocks = RLE(decoded);
+	}
+
+	PostLight(lightMap) {
+		this.lightMap = lightMap;
+		this.calculatedLight = true;
 	}
 }

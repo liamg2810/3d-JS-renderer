@@ -5,8 +5,6 @@ import Renderer from "./RendererThreeD/Renderer.js";
 /** @type {HTMLInputElement} */
 const renderDistanceInput = document.getElementById("render-d");
 
-Renderer.Start();
-
 document.addEventListener("keydown", (ev) => {
 	if (ev.key === "F11" || ev.key === "F5") {
 		return;
@@ -64,3 +62,5 @@ function ResizeCanvas() {
 }
 
 ResizeCanvas();
+
+Renderer.Start();

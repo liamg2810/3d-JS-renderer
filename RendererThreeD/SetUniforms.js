@@ -15,7 +15,6 @@ import { INFO_TYPES } from "./ShaderProgram.js";
 export function SetBlockProgramUniforms(blockProgram, texture) {
 	const projectionMatrix = CreateProjectectionMatrix();
 	const modelViewMatrix = CreateModelViewMatrix();
-	const normalMatrix = CreateNormalMatrix(modelViewMatrix);
 
 	gl.uniformMatrix4fv(
 		blockProgram.GetLocation("uProjectionMatrix", INFO_TYPES.UNIFORM),
@@ -26,12 +25,6 @@ export function SetBlockProgramUniforms(blockProgram, texture) {
 		blockProgram.GetLocation("uModelViewMatrix", INFO_TYPES.UNIFORM),
 		false,
 		modelViewMatrix
-	);
-
-	gl.uniformMatrix4fv(
-		blockProgram.GetLocation("uNormalMatrix", INFO_TYPES.UNIFORM),
-		false,
-		normalMatrix
 	);
 
 	gl.uniform1f(

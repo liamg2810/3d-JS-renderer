@@ -128,8 +128,8 @@ export class DebugRenderer {
 		const cx = Math.floor((Player.position.x + xOff) / 16);
 		const cz = Math.floor((Player.position.z + zOff) / 16);
 
-		const baseX = (chunk.x - cx) * 16;
-		const baseZ = (chunk.z - cz) * 16;
+		const baseX = (chunk.x - cx) * 16 - 1;
+		const baseZ = (chunk.z - cz) * 16 - 1;
 
 		for (let x = baseX; x <= baseX + 16; x += 4) {
 			this.ChunkBorderVerts.push(x, 0, baseZ, x, 255, baseZ);

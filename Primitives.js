@@ -1,10 +1,12 @@
 import { BLOCKS } from "./Globals/Constants.js";
 
-// [TEXTURE][DIRECTION][POSITION]
+// [LIGHT][BIOME][TEXTURE][DIRECTION][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // DIRECTION = 0-5 = 3 bits
 // TEXTURE = 0-63 = 6 bits
-// TOTAL BITS = 25
+// BIOME = 0-127 = 7 bits
+// LIGHT = 0-15 = 4 bits
+// TOTAL BITS = 36
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
@@ -29,7 +31,8 @@ export function Cube(
 	z,
 	tex,
 	culledFaces = 0b111111,
-	biome = 0
+	biome = 0,
+	light = [15, 0, 0, 0, 0, 0]
 ) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
@@ -71,8 +74,9 @@ export function Cube(
 		}
 
 		let vert = (biome << 25) | (tId << 19) | (dir << 16) | position;
+		let upper = light[dir];
 
-		out.set([0 >>> 0, vert >>> 0], offset + v);
+		out.set([upper >>> 0, vert >>> 0], offset + v);
 		v += 2;
 	}
 
@@ -89,7 +93,7 @@ export function Cube(
  * @param {number} tex
  * @returns {Uint32Array}
  */
-export function Water(out, offset, x, y, z, tex) {
+export function Water(out, offset, x, y, z, tex, light = 15) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -118,7 +122,7 @@ export function Water(out, offset, x, y, z, tex) {
 
 	let vert = (tId << 19) | position;
 
-	out.set([0 >>> 0, vert], offset);
+	out.set([light >>> 0, vert], offset);
 	// }
 
 	return 2;

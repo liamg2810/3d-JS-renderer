@@ -1,5 +1,5 @@
 import Player from "../Player/Player.js";
-import { enqueueChunk, removeLoadedChunk } from "../Scene.js";
+import { enqueueChunk, enqueueLight, removeLoadedChunk } from "../Scene.js";
 import { Chunk } from "./Chunk.js";
 
 class ChunkManager {
@@ -49,6 +49,8 @@ class ChunkManager {
 
 				if (chunk === undefined) {
 					enqueueChunk(x, z);
+				} else if (!chunk.calculatedLight) {
+					enqueueLight(chunk);
 				}
 			}
 		}

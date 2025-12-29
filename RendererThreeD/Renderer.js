@@ -59,7 +59,7 @@ class Renderer {
 
 		this.DebugRenderer = new DebugRenderer();
 
-		this.texture = new TextureManager("/textures.png");
+		this.texture = new TextureManager("../textures.png");
 	}
 
 	Start() {
@@ -80,7 +80,6 @@ class Renderer {
 			// Uniforms
 			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
 			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
-			{ name: "uNormalMatrix", type: INFO_TYPES.UNIFORM },
 			{ name: "uSampler", type: INFO_TYPES.UNIFORM },
 			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
@@ -127,15 +126,12 @@ class Renderer {
 	}
 
 	Update() {
-		if (!this.sceneInit && isQueueing()) {
-			requestAnimationFrame(() => {
-				this.Update();
-			});
-
+		if (!this.shadersInit) {
+			requestAnimationFrame(() => this.Update());
 			return;
 		}
 
-		this.sceneInit = true;
+		this.shadersInit = true;
 
 		const frameStart = performance.now();
 

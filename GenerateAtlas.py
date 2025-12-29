@@ -25,11 +25,13 @@ for ty in range(tiles_y):
         # Top
         padded.paste(tile.crop((0, 0, TILE_SIZE, 1)), (BORDER, 0))
         # Bottom
-        padded.paste(tile.crop((0, TILE_SIZE - 1, TILE_SIZE, TILE_SIZE)), (BORDER, BORDER + TILE_SIZE))
+        padded.paste(tile.crop((0, TILE_SIZE - 1, TILE_SIZE,
+                     TILE_SIZE)), (BORDER, BORDER + TILE_SIZE))
         # Left
         padded.paste(tile.crop((0, 0, 1, TILE_SIZE)), (0, BORDER))
         # Right
-        padded.paste(tile.crop((TILE_SIZE - 1, 0, TILE_SIZE, TILE_SIZE)), (BORDER + TILE_SIZE, BORDER))
+        padded.paste(tile.crop((TILE_SIZE - 1, 0, TILE_SIZE,
+                     TILE_SIZE)), (BORDER + TILE_SIZE, BORDER))
 
         # Corners
         c_tl = tile.getpixel((0, 0))

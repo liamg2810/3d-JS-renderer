@@ -67,3 +67,10 @@ Built with WebGL2, vanilla JavaScript, and [gl-matrix](https://glmatrix.net/). I
 ---
 
 **Made with ❤️ and WebGL**
+
+---
+
+### Boring disclamer:
+
+This project uses assets from the [Minecraft Bedrock Samples](https://github.com/Mojang/bedrock-samples) repository.
+Not an official Minecraft product. Not endorsed by Mojang or Microsoft.

@@ -2,9 +2,9 @@
 
 precision mediump float;
 in highp vec2 vTextureCoord;
-in highp vec3 vLighting;
 in highp vec3 vTint;
 in highp vec2 vTintedTexCoord;
+flat in float vLighting;
 flat in uint vTintFlag;
 
 uniform sampler2D uSampler;
@@ -16,6 +16,7 @@ void main() {
 
     if (vTintFlag == 1u) {
         texelColor = texture(uSampler, vTintedTexCoord);
+
 
         texelColor.rgb *= vTint;
 

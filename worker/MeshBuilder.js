@@ -3,7 +3,7 @@ import {
 	GetFromPositionInRLE,
 	LastNonAirIndex,
 } from "../Chunks/RLE.js";
-import { BLOCKS, TEXTURES } from "../Globals/Constants.js";
+import { BLOCKS, TEXTURES, TRANSPARENT } from "../Globals/Constants.js";
 import { Cube, Water } from "../Primitives.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
@@ -25,17 +25,9 @@ TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
 
-const TRANSPARENT = new Set([
-	BLOCKS.WATER,
-	BLOCKS.LEAVES,
-	BLOCKS.SPRUCE_LEAVES,
-	BLOCKS.ICE,
-	BLOCKS.POPPY,
-	BLOCKS.AIR,
-]);
-
-export function BuildVerts(b, neighborChunks) {
+export function BuildVerts(b, neighborChunks, lM) {
 	const blocks = DecodeRLE(b);
+	const lightMap = DecodeRLE(lM);
 
 	const lastNonAirIndex = LastNonAirIndex(b);
 
@@ -43,6 +35,10 @@ export function BuildVerts(b, neighborChunks) {
 	const pxBlocks = neighborChunks.px ? DecodeRLE(neighborChunks.px) : null;
 	const nzBlocks = neighborChunks.nz ? DecodeRLE(neighborChunks.nz) : null;
 	const pzBlocks = neighborChunks.pz ? DecodeRLE(neighborChunks.pz) : null;
+	const nxLight = neighborChunks.nxl ? DecodeRLE(neighborChunks.nxl) : null;
+	const pxLight = neighborChunks.pxl ? DecodeRLE(neighborChunks.pxl) : null;
+	const nzLight = neighborChunks.nzl ? DecodeRLE(neighborChunks.nzl) : null;
+	const pzLight = neighborChunks.pzl ? DecodeRLE(neighborChunks.pzl) : null;
 
 	const estimatedMaxVerts = 16 * 16 * 256 * 3;
 	const verts = new Uint32Array(estimatedMaxVerts);
@@ -66,12 +62,11 @@ export function BuildVerts(b, neighborChunks) {
 			z = 0;
 			y++;
 		}
+		const b = block & 0xff;
 
-		if (block === BLOCKS.AIR) {
+		if (b === BLOCKS.AIR) {
 			continue;
 		}
-
-		const b = block & 0xff;
 
 		if (b === BLOCKS.WATER) {
 			const above = blocks[x + z * 16 + (y + 1) * 256];
@@ -84,8 +79,15 @@ export function BuildVerts(b, neighborChunks) {
 
 		const biome = block >>> 8;
 		let culled = 0b111111;
+		let lightLevels = [0, 0, 0, 0, 0, 0];
 
-		for (let dir = 0; dir < 6 && block !== BLOCKS.POPPY; dir++) {
+		let isTransparent = TRANSPARENT.has(block);
+
+		if (isTransparent) {
+			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
+		}
+
+		for (let dir = 0; dir < 6 && !isTransparent; dir++) {
 			const dx = NEIGH[dir * 3];
 			const dy = NEIGH[dir * 3 + 1];
 			const dz = NEIGH[dir * 3 + 2];
@@ -95,23 +97,48 @@ export function BuildVerts(b, neighborChunks) {
 			const nz = z + dz;
 
 			let nb;
+			let light = 0;
 
 			if (ny < 0 || ny >= 256) {
 				nb = BLOCKS.AIR;
 			} else if (nx < 0) {
 				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] : BLOCKS.AIR;
+
+				if (TRANSPARENT.has(nb & 0xff)) {
+					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
+				}
 			} else if (nx >= 16) {
 				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] : BLOCKS.AIR;
+
+				if (TRANSPARENT.has(nb & 0xff)) {
+					light = pxLight ? pxLight[nz * 16 + ny * 256] : 0;
+				}
 			} else if (nz < 0) {
 				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] : BLOCKS.AIR;
+
+				if (TRANSPARENT.has(nb & 0xff)) {
+					light = nzLight ? nzLight[nx + 15 * 16 + ny * 256] : 0;
+				}
 			} else if (nz >= 16) {
 				nb = pzBlocks ? pzBlocks[nx + ny * 256] : BLOCKS.AIR;
+
+				if (TRANSPARENT.has(nb & 0xff)) {
+					light = pzLight ? pzLight[nx + ny * 256] : 0;
+				}
 			} else {
 				nb = blocks[nx + nz * 16 + ny * 256];
+
+				if (TRANSPARENT.has(nb & 0xff)) {
+					light = lightMap[nx + nz * 16 + ny * 256];
+				}
 			}
 
+			lightLevels[dir] = light;
+
+			const nbd = nb & 0xff;
+
 			// opaque logic (no leaves, water, etc.)
-			if (!TRANSPARENT.has(nb)) {
+			if (!TRANSPARENT.has(nbd)) {
 				culled &= ~(1 << dir);
 			}
 		}
@@ -125,7 +152,7 @@ export function BuildVerts(b, neighborChunks) {
 		if (tex === TEXTURES.ICE) {
 			waterVi += Cube(waterVerts, waterVi, x, y, z, tex, culled, biome);
 		} else {
-			vi += Cube(verts, vi, x, y, z, tex, culled, biome);
+			vi += Cube(verts, vi, x, y, z, tex, culled, biome, lightLevels);
 		}
 	}
 

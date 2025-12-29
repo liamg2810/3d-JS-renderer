@@ -16,6 +16,7 @@ for (let i = 0; i < poolSize; i++) {
 	worker.onmessage = (ev) => {
 		if (ev.data.type === "Mesh") ProcessMeshFinish(i, ev);
 		else if (ev.data.type === "Terrain") ProcessTerrainFinish(i, ev);
+		else if (ev.data.type === "Light") ProcessLightFinish(i, ev);
 	};
 
 	busy.push(false);
@@ -25,9 +26,16 @@ for (let i = 0; i < poolSize; i++) {
 const chunkQueue = [];
 /** @type {Chunk[]} */
 const meshQueue = [];
+/** @type {Chunk[]} */
+const lightQueue = [];
 const activeMeshes = new Set();
 const activeChunks = new Set();
+const activeLight = new Set();
 const completedChunks = new Set();
+
+function GenerateKey(chunkX, chunkZ) {
+	return `${chunkX}, ${chunkZ}`;
+}
 
 /**
  * @param {number} chunkX
@@ -48,6 +56,11 @@ export function enqueueChunk(chunkX, chunkZ) {
 
 /** @param {Chunk} chunk  */
 export function enqueueMesh(chunk) {
+	if (!chunk.calculatedLight) {
+		console.log("Need the chunk to have a lightmap to build mesh");
+		return;
+	}
+
 	const key = `${chunk.x}, ${chunk.z}`;
 
 	if (activeMeshes.has(key)) {
@@ -58,11 +71,29 @@ export function enqueueMesh(chunk) {
 
 	meshQueue.push(chunk);
 
-	processQueue(chunk.r);
+	processQueue();
+}
+
+export function enqueueLight(chunk) {
+	if (!chunk) return;
+
+	const key = GenerateKey(chunk.x, chunk.z);
+
+	if (activeLight.has(key)) {
+		return;
+	}
+
+	activeLight.add(key);
+
+	lightQueue.push(chunk);
+
+	processQueue();
 }
 
 export function isQueueing() {
-	return chunkQueue.length > 0;
+	return (
+		chunkQueue.length > 0 || meshQueue.length > 0 || lightQueue.length > 0
+	);
 }
 
 export function removeLoadedChunk(chunkX, chunkZ) {
@@ -72,12 +103,17 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 function ProcessTerrainFinish(i, ev) {
 	const { chunkX, chunkZ, blocks } = ev.data;
 	const key = `${chunkX}, ${chunkZ}`;
-	ChunkManager.chunks.push(new Chunk(gl, chunkX, chunkZ, blocks));
+	const chunk = new Chunk(gl, chunkX, chunkZ, blocks);
+
+	ChunkManager.chunks.push(chunk);
 
 	activeChunks.delete(key);
 	completedChunks.add(key);
 
 	busy[i] = false;
+
+	enqueueLight(chunk);
+
 	processQueue();
 }
 
@@ -86,13 +122,117 @@ function ProcessMeshFinish(i, ev) {
 	const key = `${chunkX}, ${chunkZ}`;
 
 	const chunk = ChunkManager.GetChunkAtPos(chunkX, chunkZ);
+	activeMeshes.delete(key);
+	busy[i] = false;
+
+	if (!chunk) {
+		return;
+	}
 
 	chunk.PostVerts(blockVerts, waterVerts);
 
+	processQueue();
+}
+
+function ProcessLightFinish(i, ev) {
+	const { lightMap, recalculates, chunkX, chunkZ } = ev.data;
+	const key = GenerateKey(chunkX, chunkZ);
+
+	const chunk = ChunkManager.GetChunkAtPos(chunkX, chunkZ);
+	activeLight.delete(key);
 	busy[i] = false;
 
-	activeMeshes.delete(key);
+	if (!chunk) {
+		return;
+	}
+
+	if (recalculates[0] === true) {
+		const c = ChunkManager.GetChunkAtPos(chunkX - 1, chunkZ);
+
+		c && enqueueLight(c);
+	}
+	if (recalculates[1] === true) {
+		const c = ChunkManager.GetChunkAtPos(chunkX + 1, chunkZ);
+
+		c && enqueueLight(c);
+	}
+	if (recalculates[2] === true) {
+		const c = ChunkManager.GetChunkAtPos(chunkX, chunkZ - 1);
+
+		c && enqueueLight(c);
+	}
+	if (recalculates[3] === true) {
+		const c = ChunkManager.GetChunkAtPos(chunkX, chunkZ + 1);
+
+		c && enqueueLight(c);
+	}
+
+	chunk.PostLight(lightMap);
+
+	enqueueMesh(chunk);
+
 	processQueue();
+}
+
+function ProcessChunk(i, task) {
+	busy[i] = true;
+
+	workers[i].postMessage({ type: "Terrain", data: task });
+}
+
+function ProcessLight(i, chunk) {
+	busy[i] = true;
+
+	const neighbourLight = {
+		px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.lightMap,
+		nx: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.lightMap,
+		pz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.lightMap,
+		nz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.lightMap,
+	};
+
+	const neighbourBlocks = {
+		px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
+		nx: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.blocks,
+		pz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.blocks,
+		nz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.blocks,
+	};
+
+	workers[i].postMessage({
+		type: "Light",
+		data: {
+			blocks: chunk.blocks,
+			chunkX: chunk.x,
+			chunkZ: chunk.z,
+			neighbours: neighbourLight,
+			neighbourBlocks,
+		},
+	});
+}
+
+function ProcessMesh(i, chunk) {
+	const neighborChunks = {
+		px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
+		nx: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.blocks,
+		pz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.blocks,
+		nz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.blocks,
+		pxl: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.lightMap,
+		nxl: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.lightMap,
+		pzl: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.lightMap,
+		nzl: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.lightMap,
+	};
+
+	busy[i] = true;
+
+	workers[i].postMessage({
+		type: "Mesh",
+		data: {
+			chunkX: chunk.x,
+			chunkZ: chunk.z,
+			chunk: chunk.blocks,
+			neighborChunks: neighborChunks,
+			lightMap: chunk.lightMap,
+		},
+	});
 }
 
 function processQueue() {
@@ -100,32 +240,23 @@ function processQueue() {
 		if (!busy[i] && chunkQueue.length > 0) {
 			const task = chunkQueue.shift();
 
-			busy[i] = true;
-
-			workers[i].postMessage({ type: "Terrain", data: task });
+			ProcessChunk(i, task);
 		}
+	}
 
+	for (let i = 0; i < Math.floor(workers.length / 2); i++) {
+		if (!busy[i] && lightQueue.length > 0) {
+			const chunk = lightQueue.shift();
+
+			ProcessLight(i, chunk);
+		}
+	}
+
+	for (let i = Math.floor(workers.length / 2); i < workers.length; i++) {
 		if (!busy[i] && meshQueue.length > 0) {
 			const chunk = meshQueue.shift();
 
-			const neighborChunks = {
-				px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
-				nx: ChunkManager.GetChunkAtPos(chunk.x - 1, chunk.z)?.blocks,
-				pz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z + 1)?.blocks,
-				nz: ChunkManager.GetChunkAtPos(chunk.x, chunk.z - 1)?.blocks,
-			};
-
-			busy[i] = true;
-
-			workers[i].postMessage({
-				type: "Mesh",
-				data: {
-					chunkX: chunk.x,
-					chunkZ: chunk.z,
-					chunk: chunk.blocks,
-					neighborChunks: neighborChunks,
-				},
-			});
+			ProcessMesh(i, chunk);
 		}
 	}
 }

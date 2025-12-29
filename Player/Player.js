@@ -2,7 +2,7 @@ import ChunkManager from "../Chunks/ChunkManager.js";
 import { GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { BLOCKS } from "../Globals/Constants.js";
 import Renderer from "../RendererThreeD/Renderer.js";
-import { enqueueMesh } from "../Scene.js";
+import { enqueueLight, enqueueMesh } from "../Scene.js";
 
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
@@ -41,7 +41,7 @@ class Player {
 
 	flight = true;
 
-	freezeChunks = false;
+	freezeChunks = true;
 
 	/** @type {{block: number; x: number; y: number; z: number} | undefined} */
 	targetedBlock = undefined;
@@ -98,6 +98,9 @@ class Player {
 			newZ -= dx;
 		}
 
+		newX = Math.min(2147483646, newX);
+		newZ = Math.min(2147483646, newZ);
+
 		const oldX = this.position.x;
 
 		this.position.x = newX;
@@ -129,31 +132,8 @@ class Player {
 
 		this.targetedBlock = this.Raycast();
 
-		if (this.freezeChunks) {
-			this.chunkX = 0;
-			this.chunkZ = 0;
-		}
-
 		if (!this.freezeChunks) {
 			ChunkManager.LoadChunks();
-		}
-
-		const visibleChunks = ChunkManager.chunks.filter((c) => {
-			const unload =
-				c.x >= this.chunkX - this.renderDistance &&
-				c.x <= this.chunkX + this.renderDistance &&
-				c.z >= this.chunkZ - this.renderDistance &&
-				c.z <= this.chunkZ + this.renderDistance;
-
-			return unload;
-		});
-
-		if (!Renderer.isTwoD) {
-			for (const c of visibleChunks) {
-				if (!c.builtVerts) {
-					enqueueMesh(c);
-				}
-			}
 		}
 
 		let lastY = this.position.y;
@@ -188,25 +168,25 @@ class Player {
 			if (b !== BLOCKS.BEDROCK) {
 				chunk.SetBlock(bx, by, bz, BLOCKS.AIR);
 
-				enqueueMesh(chunk);
+				enqueueLight(chunk);
 
 				if (bx === 0) {
 					const c = ChunkManager.GetChunkAtPos(cx - 1, cz);
 
-					c && enqueueMesh(c);
+					c && enqueueLight(c);
 				} else if (bx === 15) {
 					const c = ChunkManager.GetChunkAtPos(cx + 1, cz);
 
-					c && enqueueMesh(c);
+					c && enqueueLight(c);
 				}
 				if (bz === 0) {
 					const c = ChunkManager.GetChunkAtPos(cx, cz - 1);
 
-					c && enqueueMesh(c);
+					c && enqueueLight(c);
 				} else if (bz === 15) {
 					const c = ChunkManager.GetChunkAtPos(cx, cz + 1);
 
-					c && enqueueMesh(c);
+					c && enqueueLight(c);
 				}
 			}
 		}
