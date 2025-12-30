@@ -1,5 +1,6 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { PARTICLES } from "../Globals/Constants.js";
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import Clouds from "./Clouds.js";
@@ -92,10 +93,10 @@ class Renderer {
 	}
 
 	async InitShaders() {
-		const vsSource = await (await fetch("./shaders/chunk.vert")).text();
-		const fsSource = await (await fetch("./shaders/chunk.frag")).text();
+		const vs = await GetShader(SHADERS.CHUNK_VERT);
+		const fs = await GetShader(SHADERS.CHUNK_FRAG);
 
-		this.blockProgram = new ShaderProgram(vsSource, fsSource, [
+		this.blockProgram = new ShaderProgram(vs, fs, [
 			// Attributes
 			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
 			{ name: "aVertexInstance", type: INFO_TYPES.ATTRIBUTE },

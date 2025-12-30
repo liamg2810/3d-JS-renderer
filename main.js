@@ -1,5 +1,7 @@
+import { PARTICLES } from "./Globals/Constants.js";
 import { canvas } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
+import { Particle } from "./RendererThreeD/Particle.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 
 /** @type {HTMLInputElement} */

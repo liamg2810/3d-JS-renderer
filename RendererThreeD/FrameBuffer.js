@@ -1,6 +1,7 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { BLOCKS } from "../Globals/Constants.js";
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { canvas, gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
@@ -55,25 +56,17 @@ export class FrameBuffer {
 	}
 
 	async InitShaders() {
-		const frameBufferVSource = await (
-			await fetch("./shaders/frameBuffer.vert")
-		).text();
-		const frameBufferFSource = await (
-			await fetch("./shaders/frameBuffer.frag")
-		).text();
+		const vs = await GetShader(SHADERS.FRAMEBUFFER_VERT);
+		const fs = await GetShader(SHADERS.FRAMEBUFFER_FRAG);
 
-		this.frameBufferProgram = new ShaderProgram(
-			frameBufferVSource,
-			frameBufferFSource,
-			[
-				// Attributes
-				{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
-				{ name: "aTextureCoord", type: INFO_TYPES.ATTRIBUTE },
-				// Uniforms
-				{ name: "uSampler", type: INFO_TYPES.UNIFORM },
-				{ name: "uUnderWater", type: INFO_TYPES.UNIFORM },
-			]
-		);
+		this.frameBufferProgram = new ShaderProgram(vs, fs, [
+			// Attributes
+			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+			{ name: "aTextureCoord", type: INFO_TYPES.ATTRIBUTE },
+			// Uniforms
+			{ name: "uSampler", type: INFO_TYPES.UNIFORM },
+			{ name: "uUnderWater", type: INFO_TYPES.UNIFORM },
+		]);
 
 		this.ShadersInit = true;
 	}

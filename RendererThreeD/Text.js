@@ -1,3 +1,4 @@
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
@@ -71,8 +72,8 @@ export class TextThreeD {
 	}
 
 	async InitShaders() {
-		const vs = await (await fetch("./shaders/text.vert")).text();
-		const fs = await (await fetch("./shaders/text.frag")).text();
+		const vs = await GetShader(SHADERS.TEXT_VERT);
+		const fs = await GetShader(SHADERS.TEXT_FRAG);
 
 		this.Shader = new ShaderProgram(vs, fs, [
 			// Attributes

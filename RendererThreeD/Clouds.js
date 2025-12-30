@@ -1,3 +1,4 @@
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
@@ -31,8 +32,8 @@ class Clouds {
 	}
 
 	async InitShaders() {
-		const vs = await (await fetch("./shaders/clouds.vert")).text();
-		const fs = await (await fetch("./shaders/clouds.frag")).text();
+		const vs = await GetShader(SHADERS.CLOUDS_VERT);
+		const fs = await GetShader(SHADERS.CLOUDS_FRAG);
 
 		this.Shader = new ShaderProgram(vs, fs, [
 			// Attributes

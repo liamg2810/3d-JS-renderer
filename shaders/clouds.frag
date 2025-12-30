@@ -19,4 +19,6 @@ void main() {
 	float d = sqrt(pow(dx, 2.0) + pow(dy, 2.0));
 
 	fragColor.a *= 0.75 - (d  / 0.5);
+
+	if (fragColor.a <= 0.0) {discard; }
 }

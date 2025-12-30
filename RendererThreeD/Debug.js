@@ -1,4 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import Renderer from "./Renderer.js";
@@ -43,10 +44,10 @@ export class DebugRenderer {
 	}
 
 	async InitShaders() {
-		const debugVSource = await (await fetch("./shaders/debug.vert")).text();
-		const debugFSource = await (await fetch("./shaders/debug.frag")).text();
+		const vs = await GetShader(SHADERS.DEBUG_VERT);
+		const fs = await GetShader(SHADERS.DEBUG_FRAG);
 
-		this.DebugProgram = new ShaderProgram(debugVSource, debugFSource, [
+		this.DebugProgram = new ShaderProgram(vs, fs, [
 			// Attributes
 			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
 			{ name: "aColor", type: INFO_TYPES.ATTRIBUTE },

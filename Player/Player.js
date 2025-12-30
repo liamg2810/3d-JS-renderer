@@ -1,6 +1,7 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { DecodeRLE, GetFromPositionInRLE, RLE } from "../Chunks/RLE.js";
-import { BLOCKS } from "../Globals/Constants.js";
+import { BLOCKS, PARTICLES } from "../Globals/Constants.js";
+import { Particle } from "../RendererThreeD/Particle.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
 
@@ -145,6 +146,18 @@ class Player {
 				this.position.y = lastY;
 				this.yVel = 0;
 			}
+		}
+
+		if (this.keyMap.has("f")) {
+			Renderer.Particles.push(
+				new Particle(
+					this.position.x,
+					this.position.y,
+					this.position.z,
+					1,
+					PARTICLES.EXPLOSION
+				)
+			);
 		}
 
 		this.yVel = Math.min(2, Math.max(-10, this.yVel));

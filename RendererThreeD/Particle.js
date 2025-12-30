@@ -1,11 +1,12 @@
+import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,
 	CreateProjectectionMatrix,
 } from "./Matrices.js";
+import ParticleTextureManager from "./ParticleTextureManager.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
-import { TextureManager } from "./TextureManager.js";
 
 const CELLS_PER_ROW = 128 / 8;
 const CELLS_PER_COL = 128 / 8;
@@ -13,9 +14,6 @@ const CELLS_PER_COL = 128 / 8;
 export class Particle {
 	/** @type {import("../Globals/Constants").PARTICLE} */
 	particle;
-
-	/** @type {import("./TextureManager").TextureManager} */
-	texture;
 
 	/** @type {import("./ShaderProgram").ShaderProgram} */
 	shader;
@@ -42,8 +40,6 @@ export class Particle {
 	 * @param {number} [startKeyframe=0]
 	 */
 	constructor(x, y, z, size, particle, startKeyframe = 0) {
-		this.texture = new TextureManager(ROOT + "particles.png");
-
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -61,10 +57,10 @@ export class Particle {
 	 * @param {number} size
 	 */
 	async InitShaders(size) {
-		const vsSource = await (await fetch("./shaders/particle.vert")).text();
-		const fsSource = await (await fetch("./shaders/particle.frag")).text();
+		const vs = await GetShader(SHADERS.PARTICLE_VERT);
+		const fs = await GetShader(SHADERS.PARTICLE_FRAG);
 
-		this.shader = new ShaderProgram(vsSource, fsSource, [
+		this.shader = new ShaderProgram(vs, fs, [
 			// ATTRIBUTES
 			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
 			{ name: "aTexCoord", type: INFO_TYPES.ATTRIBUTE },
@@ -124,7 +120,7 @@ export class Particle {
 
 		gl.useProgram(this.shader.shaderProgram);
 		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, this.texture.texture);
+		gl.bindTexture(gl.TEXTURE_2D, ParticleTextureManager.texture.texture);
 		gl.uniform1i(
 			this.shader.GetLocation("uSampler", INFO_TYPES.UNIFORM),
 			0
