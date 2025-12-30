@@ -1,9 +1,11 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
+import { PARTICLES } from "../Globals/Constants.js";
 import { gl, ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import Clouds from "./Clouds.js";
 import { DebugRenderer } from "./Debug.js";
 import { FrameBuffer } from "./FrameBuffer.js";
+import { Particle } from "./Particle.js";
 import { SetBlockProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 import { TextThreeD } from "./Text.js";
@@ -37,7 +39,8 @@ class Renderer {
 
 	vao;
 
-	Text;
+	Text = [];
+	Particles = [];
 
 	constructor() {
 		this.frameBuffer = new FrameBuffer();
@@ -47,13 +50,33 @@ class Renderer {
 
 		gl.enable(gl.BLEND);
 		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-		this.Text = new TextThreeD(
-			"Hello world this is some text being rendered\nin the little project im working on for fun\n\nAs you can see the text also supports multi-line functionality.\nFun fact this text is in 3d space and you will\nalways be able to see the characters.\n\ndinnerbone",
-			8,
-			100,
-			1,
-			100
+		this.Text.push(
+			new TextThreeD(
+				"Hello world this is some text being rendered\nin the little project im working on for fun\n\nAs you can see the text also supports multi-line functionality.\nFun fact this text is in 3d space and you will\nalways be able to see the characters.\n\ndinnerbone",
+				8,
+				100,
+				1,
+				100
+			)
 		);
+
+		this.Text.push(new TextThreeD("Introducing particles!", 8, 81, 0));
+
+		for (let x = 4; x <= 12; x++) {
+			this.Particles.push(
+				new Particle(
+					x,
+					80,
+					0,
+					0.5,
+					PARTICLES.ENCHANT,
+					Math.floor(
+						Math.random() * PARTICLES.ENCHANT.KEYFRAMES.length
+					)
+				)
+			);
+		}
+
 		this.InitShaders();
 
 		this.DebugRenderer = new DebugRenderer();
@@ -69,8 +92,8 @@ class Renderer {
 	}
 
 	async InitShaders() {
-		const vsSource = await (await fetch("./shaders/vs.vert")).text();
-		const fsSource = await (await fetch("./shaders/fs.frag")).text();
+		const vsSource = await (await fetch("./shaders/chunk.vert")).text();
+		const fsSource = await (await fetch("./shaders/chunk.frag")).text();
 
 		this.blockProgram = new ShaderProgram(vsSource, fsSource, [
 			// Attributes
@@ -282,7 +305,13 @@ class Renderer {
 		gl.bindVertexArray(null);
 
 		Clouds.Draw();
-		this.Text.Draw();
+		for (let i = 0; i < this.Text.length; i++) {
+			this.Text[i].Draw();
+		}
+
+		for (let i = 0; i < this.Particles.length; i++) {
+			this.Particles[i].Draw();
+		}
 
 		this.DebugRenderer.draw();
 

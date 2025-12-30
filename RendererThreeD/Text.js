@@ -55,6 +55,8 @@ export class TextThreeD {
 
 	IndicesLength;
 
+	ShadersInit = false;
+
 	constructor(text, x, y, z, maxWidth = 100) {
 		this.Texture = new TextureManager(ROOT + "text.png", true);
 		this.InitShaders();
@@ -205,6 +207,8 @@ export class TextThreeD {
 	}
 
 	Draw() {
+		if (!this.ShadersInit) return;
+
 		gl.useProgram(this.Shader.shaderProgram);
 
 		const projectionMatrix = CreateProjectectionMatrix();
