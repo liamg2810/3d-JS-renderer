@@ -2,7 +2,7 @@ import { CalculateLight } from "./LightBuilder.js";
 import { BuildVerts } from "./MeshBuilder.js";
 import { BuildChunk } from "./TerrainBuilder.js";
 
-self.onmessage = async function (event) {
+self.onmessage = function (event) {
 	const { type, data } = event.data;
 
 	if (type === "Terrain") {
@@ -13,22 +13,12 @@ self.onmessage = async function (event) {
 		self.postMessage({ type, chunkX, chunkZ, blocks });
 		blocks = null;
 	} else if (type === "Mesh") {
-		const {
-			chunk,
-			chunkX,
-			chunkZ,
-			neighborChunks,
-			lightMap,
-			TEX_ARRAY,
-			TRANSPARENT_ARRAY,
-		} = data;
+		const { chunk, chunkX, chunkZ, neighborChunks, lightMap } = data;
 
-		let { blockVerts, waterVerts } = await BuildVerts(
+		let { blockVerts, waterVerts } = BuildVerts(
 			chunk,
 			neighborChunks,
-			lightMap,
-			TEX_ARRAY,
-			TRANSPARENT_ARRAY
+			lightMap
 		);
 
 		self.postMessage({ type, chunkX, chunkZ, blockVerts, waterVerts }, [
@@ -38,7 +28,7 @@ self.onmessage = async function (event) {
 	} else if (type === "Light") {
 		const { blocks, chunkX, chunkZ, neighbours, neighbourBlocks } = data;
 
-		let { lightMap, recalculates } = await CalculateLight(
+		let { lightMap, recalculates } = CalculateLight(
 			blocks,
 			neighbours,
 			neighbourBlocks

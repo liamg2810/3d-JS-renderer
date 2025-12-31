@@ -1,26 +1,54 @@
 import { DecodeRLE, RLE } from "../Chunks/RLE.js";
 import { LIGHT_SOURCES, TRANSPARENT } from "../Globals/Constants.js";
-import init, {
-	calculate_light,
-} from "../rust/renderer-wasm/pkg/renderer_wasm.js";
 
-export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
+const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
+
+function BFSLight(lightMap, blocks, queue) {
+	while (queue.length > 0) {
+		let [x, y, z, light] = queue.shift();
+
+		if (light < 0) continue;
+
+		if (x < 0 || x > 15) continue;
+		if (y < 0 || y > 255) continue;
+		if (z < 0 || z > 15) continue;
+
+		const data = blocks[x + z * 16 + y * 256];
+		const block = data & 0xff;
+
+		// Only want to set light level on non transparent blocks
+		if (!TRANSPARENT.has(block)) continue;
+
+		const lightLevel = lightMap[x + z * 16 + y * 256];
+
+		// Not going to override a higher light level
+		if (lightLevel >= light) continue;
+
+		lightMap[x + z * 16 + y * 256] = light;
+
+		for (let dir = 0; dir < 6; dir++) {
+			const dx = NEIGH[dir * 3];
+			const dy = NEIGH[dir * 3 + 1];
+			const dz = NEIGH[dir * 3 + 2];
+
+			const nx = x + dx;
+			const ny = y + dy;
+			const nz = z + dz;
+
+			queue.push([nx, ny, nz, light - 1]);
+		}
+	}
+}
+
+export function CalculateLight(b, neighbours, neighbourBlocks) {
 	let lightMap = new Uint8Array(16 * 16 * 256);
 
 	let blocks = DecodeRLE(b);
 
-	neighbourLight.nx = neighbourLight.nx
-		? DecodeRLE(neighbourLight.nx)
-		: undefined;
-	neighbourLight.px = neighbourLight.px
-		? DecodeRLE(neighbourLight.px)
-		: undefined;
-	neighbourLight.nz = neighbourLight.nz
-		? DecodeRLE(neighbourLight.nz)
-		: undefined;
-	neighbourLight.pz = neighbourLight.pz
-		? DecodeRLE(neighbourLight.pz)
-		: undefined;
+	neighbours.nx = neighbours.nx ? DecodeRLE(neighbours.nx) : undefined;
+	neighbours.px = neighbours.px ? DecodeRLE(neighbours.px) : undefined;
+	neighbours.nz = neighbours.nz ? DecodeRLE(neighbours.nz) : undefined;
+	neighbours.pz = neighbours.pz ? DecodeRLE(neighbours.pz) : undefined;
 
 	neighbourBlocks.nx = neighbourBlocks.nx
 		? DecodeRLE(neighbourBlocks.nx)
@@ -37,24 +65,58 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 	let recalculates = [false, false, false, false];
 
-	const CHUNK_SIZE = 16 * 16 * 256;
+	let sources = [];
 
-	let empty = new Uint16Array(CHUNK_SIZE);
+	for (let x = 0; x < 16; x++) {
+		for (let z = 0; z < 16; z++) {
+			let isSky = true;
 
-	blocks = new Uint16Array(blocks);
+			for (let y = 255; y > 0; y--) {
+				const data = blocks[x + z * 16 + y * 256];
 
-	let neigbours = new Uint16Array(CHUNK_SIZE * 8);
-	neigbours.set(neighbourLight.nx || empty, 0);
-	neigbours.set(neighbourLight.px || empty, CHUNK_SIZE);
-	neigbours.set(neighbourLight.nz || empty, CHUNK_SIZE * 2);
-	neigbours.set(neighbourLight.pz || empty, CHUNK_SIZE * 3);
-	let transparent = new Uint16Array(TRANSPARENT);
-	let sources = new Uint16Array(LIGHT_SOURCES);
+				const block = data & 0xff;
 
-	await init();
+				// TODO: Fix artifacts caused by this not updating stuff surrounding it.
+				if (isSky && TRANSPARENT.has(block)) {
+					lightMap[x + z * 16 + y * 256] = 14;
+				}
 
-	// TODO: lighting sometimes works but mostly just goes from 15 to 0
-	calculate_light(lightMap, blocks, neigbours, transparent, sources);
+				if (LIGHT_SOURCES.has(block)) {
+					sources.push([x, y, z, 15]);
+				}
+
+				if (!TRANSPARENT.has(block)) {
+					if (isSky) {
+						sources.push([x, y + 1, z, 15]);
+					}
+
+					isSky = false;
+					continue;
+				}
+
+				if (!isSky) {
+					if (x === 0 && neighbours.nx) {
+						let l = neighbours.nx[15 + z * 16 + y * 256];
+
+						if (l > 0) sources.push([x, y, z, l - 1]);
+					} else if (x === 15 && neighbours.px) {
+						let l = neighbours.px[z * 16 + y * 256];
+
+						if (l > 0) sources.push([x, y, z, l - 1]);
+					} else if (z === 0 && neighbours.nz) {
+						let l = neighbours.nz[x + 15 * 16 + y * 256];
+						if (l > 0) sources.push([x, y, z, l - 1]);
+					} else if (z === 15 && neighbours.pz) {
+						let l = neighbours.pz[x + y * 256];
+						if (l > 0) sources.push([x, y, z, l - 1]);
+					}
+				}
+			}
+		}
+	}
+
+	BFSLight(lightMap, blocks, sources);
+
 	// Final pass to check for neighbour updates
 
 	for (let y = 0; y < 255; y++) {
@@ -62,7 +124,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 		if (nx && px && nz && pz) break;
 
-		if (!nx && neighbourLight.nx && neighbourBlocks.nx) {
+		if (!nx && neighbours.nx && neighbourBlocks.nx) {
 			for (let z = 0; z < 16; z++) {
 				const data = blocks[z * 16 + y * 256];
 
@@ -74,7 +136,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 				if (!TRANSPARENT.has(nb)) continue;
 
-				const l = neighbourLight.nx[15 + z * 16 + y * 256];
+				const l = neighbours.nx[15 + z * 16 + y * 256];
 
 				if (l < lightMap[z * 16 + y * 256] - 1) {
 					recalculates[0] = true;
@@ -83,7 +145,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 			}
 		}
 
-		if (!px && neighbourLight.px && neighbourBlocks.px) {
+		if (!px && neighbours.px && neighbourBlocks.px) {
 			for (let z = 0; z < 16; z++) {
 				const data = blocks[15 + z * 16 + y * 256];
 
@@ -95,7 +157,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 				if (!TRANSPARENT.has(nb)) continue;
 
-				const l = neighbourLight.px[z * 16 + y * 256];
+				const l = neighbours.px[z * 16 + y * 256];
 
 				if (l < lightMap[15 + z * 16 + y * 256] - 1) {
 					recalculates[1] = true;
@@ -104,7 +166,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 			}
 		}
 
-		if (!nz && neighbourLight.nz && neighbourBlocks.nz) {
+		if (!nz && neighbours.nz && neighbourBlocks.nz) {
 			for (let x = 0; x < 16; x++) {
 				const data = blocks[x + y * 256];
 
@@ -116,7 +178,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 				if (!TRANSPARENT.has(nb)) continue;
 
-				const l = neighbourLight.nz[x + 15 * 16 + y * 256];
+				const l = neighbours.nz[x + 15 * 16 + y * 256];
 
 				if (l < lightMap[x + y * 256] - 1) {
 					recalculates[2] = true;
@@ -125,7 +187,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 			}
 		}
 
-		if (!pz && neighbourLight.pz && neighbourBlocks.pz) {
+		if (!pz && neighbours.pz && neighbourBlocks.pz) {
 			for (let x = 0; x < 16; x++) {
 				const data = blocks[x + 15 * 16 + y * 256];
 
@@ -137,7 +199,7 @@ export async function CalculateLight(b, neighbourLight, neighbourBlocks) {
 
 				if (!TRANSPARENT.has(nb)) continue;
 
-				const l = neighbourLight.pz[x + y * 256];
+				const l = neighbours.pz[x + y * 256];
 
 				if (l < lightMap[x + 15 * 16 + y * 256] - 1) {
 					recalculates[3] = true;
