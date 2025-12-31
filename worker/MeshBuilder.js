@@ -1,10 +1,7 @@
-import {
-	DecodeRLE,
-	GetFromPositionInRLE,
-	LastNonAirIndex,
-} from "../Chunks/RLE.js";
-import { BLOCKS, TEXTURES, TRANSPARENT } from "../Globals/Constants.js";
-import { Cube, Water } from "../Primitives.js";
+import { DecodeRLE } from "../Chunks/RLE.js";
+// import { TEX_ARRAY, TRANSPARENT_ARRAY } from "../Globals/Blocks.js";
+import { BLOCKS, TEXTURES } from "../Globals/Constants.js";
+import init, { mesh_gen } from "../rust/renderer-wasm/pkg/renderer_wasm.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 
@@ -25,142 +22,82 @@ TEXMAP[BLOCKS.GLOWSTONE] = TEXTURES.GLOWSTONE;
 
 const CHUNK = 16;
 const LAYER = CHUNK * CHUNK;
+const CHUNKSIZE = 16 * 16 * 256;
+let empty = new Uint16Array(CHUNKSIZE);
 
-export function BuildVerts(b, neighborChunks, lM) {
-	const blocks = DecodeRLE(b);
+export async function BuildVerts(
+	b,
+	neighborChunks,
+	lM,
+	TEX_ARRAY,
+	TRANSPARENT_ARRAY
+) {
+	const blocks = new Uint32Array(DecodeRLE(b));
 
-	let lightMap;
+	let lightMap = new Uint8Array(DecodeRLE(lM));
 
-	if (lM) {
-		lightMap = DecodeRLE(lM);
+	let neigbours = new Uint16Array(CHUNKSIZE * 4);
+	neigbours.set(neighborChunks.nx || empty, 0);
+	neigbours.set(neighborChunks.px || empty, CHUNKSIZE);
+	neigbours.set(neighborChunks.nz || empty, CHUNKSIZE * 2);
+	neigbours.set(neighborChunks.pz || empty, CHUNKSIZE * 3);
+
+	const nxLight = neighborChunks.nxl
+		? new Uint32Array(DecodeRLE(neighborChunks.nxl))
+		: empty;
+	const pxLight = neighborChunks.pxl
+		? new Uint32Array(DecodeRLE(neighborChunks.pxl))
+		: empty;
+	const nzLight = neighborChunks.nzl
+		? new Uint32Array(DecodeRLE(neighborChunks.nzl))
+		: empty;
+	const pzLight = neighborChunks.pzl
+		? new Uint32Array(DecodeRLE(neighborChunks.pzl))
+		: empty;
+
+	let immediateNeighbourLights = new Uint16Array(16 * 256 * 4);
+
+	for (let i = 0; i < 16 * 256; i++) {
+		// nx
+		immediateNeighbourLights[i] =
+			nxLight[15 + (i % 16) * 16 + Math.floor(i / 16) * 256];
+		// px
+		immediateNeighbourLights[i + 16 * 256] =
+			pxLight[(i % 16) * 16 + Math.floor(i / 16) * 256];
+		// nz
+		immediateNeighbourLights[i + 16 * 256 * 2] =
+			nzLight[(i % 16) + 15 * 16 + Math.floor(i / 16) * 256];
+		// pz
+		immediateNeighbourLights[i + 16 * 256 * 3] =
+			pzLight[(i % 16) + Math.floor(i / 16) * 256];
 	}
 
-	const lastNonAirIndex = LastNonAirIndex(b);
-
-	const nxBlocks = neighborChunks.nx ? DecodeRLE(neighborChunks.nx) : null;
-	const pxBlocks = neighborChunks.px ? DecodeRLE(neighborChunks.px) : null;
-	const nzBlocks = neighborChunks.nz ? DecodeRLE(neighborChunks.nz) : null;
-	const pzBlocks = neighborChunks.pz ? DecodeRLE(neighborChunks.pz) : null;
-	const nxLight = neighborChunks.nxl ? DecodeRLE(neighborChunks.nxl) : null;
-	const pxLight = neighborChunks.pxl ? DecodeRLE(neighborChunks.pxl) : null;
-	const nzLight = neighborChunks.nzl ? DecodeRLE(neighborChunks.nzl) : null;
-	const pzLight = neighborChunks.pzl ? DecodeRLE(neighborChunks.pzl) : null;
+	let viA = new Uint32Array([0, 0]);
 
 	const estimatedMaxVerts = 16 * 16 * 256 * 3;
 	const verts = new Uint32Array(estimatedMaxVerts);
-	let vi = 0;
 
 	const waterVerts = new Uint32Array(estimatedMaxVerts / 6);
-	let waterVi = 0;
 
-	let x = -1,
-		y = 0,
-		z = 0;
+	await init();
 
-	for (let i = 0; i <= lastNonAirIndex; i++) {
-		const block = blocks[i];
-		x++;
-		if (x === 16) {
-			x = 0;
-			z++;
-		}
-		if (z === 16) {
-			z = 0;
-			y++;
-		}
-		const b = block & 0xff;
+	const texs = new Uint8Array(TEX_ARRAY);
+	const ta = new Uint8Array(TRANSPARENT_ARRAY);
 
-		if (b === BLOCKS.AIR) {
-			continue;
-		}
+	mesh_gen(
+		blocks,
+		lightMap,
+		neigbours,
+		immediateNeighbourLights,
+		texs,
+		ta,
+		verts,
+		waterVerts,
+		viA
+	);
 
-		if (b === BLOCKS.WATER) {
-			const above = blocks[x + z * 16 + (y + 1) * 256];
-
-			if (above !== BLOCKS.WATER && above !== BLOCKS.ICE) {
-				waterVi += Water(waterVerts, waterVi, x, y, z, TEXTURES.WATER);
-			}
-			continue;
-		}
-
-		const biome = block >>> 8;
-		let culled = 0b111111;
-		let lightLevels = [0, 0, 0, 0, 0, 0];
-
-		let isTransparent = TRANSPARENT.has(block);
-
-		if (isTransparent && lightMap) {
-			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
-		}
-
-		for (let dir = 0; dir < 6 && !isTransparent; dir++) {
-			const dx = NEIGH[dir * 3];
-			const dy = NEIGH[dir * 3 + 1];
-			const dz = NEIGH[dir * 3 + 2];
-
-			const nx = x + dx;
-			const ny = y + dy;
-			const nz = z + dz;
-
-			let nb;
-			let light = 0;
-
-			if (ny < 0 || ny >= 256) {
-				nb = BLOCKS.AIR;
-			} else if (nx < 0) {
-				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] : BLOCKS.AIR;
-
-				if (TRANSPARENT.has(nb & 0xff)) {
-					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
-				}
-			} else if (nx >= 16) {
-				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] : BLOCKS.AIR;
-
-				if (TRANSPARENT.has(nb & 0xff)) {
-					light = pxLight ? pxLight[nz * 16 + ny * 256] : 0;
-				}
-			} else if (nz < 0) {
-				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] : BLOCKS.AIR;
-
-				if (TRANSPARENT.has(nb & 0xff)) {
-					light = nzLight ? nzLight[nx + 15 * 16 + ny * 256] : 0;
-				}
-			} else if (nz >= 16) {
-				nb = pzBlocks ? pzBlocks[nx + ny * 256] : BLOCKS.AIR;
-
-				if (TRANSPARENT.has(nb & 0xff)) {
-					light = pzLight ? pzLight[nx + ny * 256] : 0;
-				}
-			} else {
-				nb = blocks[nx + nz * 16 + ny * 256];
-
-				if (TRANSPARENT.has(nb & 0xff)) {
-					light = lightMap[nx + nz * 16 + ny * 256];
-				}
-			}
-
-			lightLevels[dir] = light;
-
-			const nbd = nb & 0xff;
-
-			// opaque logic (no leaves, water, etc.)
-			if (!TRANSPARENT.has(nbd)) {
-				culled &= ~(1 << dir);
-			}
-		}
-
-		if (b === BLOCKS.POPPY) {
-			culled = 0b111100;
-		}
-
-		const tex = TEXMAP[b] || TEXTURES.GRASS;
-
-		if (tex === TEXTURES.ICE) {
-			waterVi += Cube(waterVerts, waterVi, x, y, z, tex, culled, biome);
-		} else {
-			vi += Cube(verts, vi, x, y, z, tex, culled, biome, lightLevels);
-		}
-	}
+	let vi = viA[0];
+	let waterVi = viA[1];
 
 	return {
 		blockVerts: verts.subarray(0, vi),

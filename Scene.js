@@ -1,5 +1,6 @@
 import { Chunk } from "./Chunks/Chunk.js";
 import ChunkManager from "./Chunks/ChunkManager.js";
+import { TEX_ARRAY, TRANSPARENT_ARRAY } from "./Globals/Blocks.js";
 import { gl } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
@@ -142,26 +143,22 @@ function ProcessLightFinish(i, ev) {
 	}
 
 	chunk.PostLight(lightMap);
+	const nx = ChunkManager.GetChunkAtPos(chunkX - 1, chunkZ);
+	const px = ChunkManager.GetChunkAtPos(chunkX + 1, chunkZ);
+	const nz = ChunkManager.GetChunkAtPos(chunkX, chunkZ - 1);
+	const pz = ChunkManager.GetChunkAtPos(chunkX, chunkZ + 1);
 
-	if (recalculates[0] === true) {
-		const c = ChunkManager.GetChunkAtPos(chunkX - 1, chunkZ);
-
-		c && enqueueLight(c);
+	if (recalculates[0]) {
+		nx && enqueueLight(nx);
 	}
-	if (recalculates[1] === true) {
-		const c = ChunkManager.GetChunkAtPos(chunkX + 1, chunkZ);
-
-		c && enqueueLight(c);
+	if (recalculates[1]) {
+		px && enqueueLight(px);
 	}
-	if (recalculates[2] === true) {
-		const c = ChunkManager.GetChunkAtPos(chunkX, chunkZ - 1);
-
-		c && enqueueLight(c);
+	if (recalculates[2]) {
+		nz && enqueueLight(nz);
 	}
-	if (recalculates[3] === true) {
-		const c = ChunkManager.GetChunkAtPos(chunkX, chunkZ + 1);
-
-		c && enqueueLight(c);
+	if (recalculates[3]) {
+		pz && enqueueLight(pz);
 	}
 
 	enqueueMesh(chunk);
@@ -204,6 +201,11 @@ function ProcessLight(i, chunk) {
 	});
 }
 
+/**
+ *
+ * @param {number} i
+ * @param {Chunk} chunk
+ */
 function ProcessMesh(i, chunk) {
 	const neighborChunks = {
 		px: ChunkManager.GetChunkAtPos(chunk.x + 1, chunk.z)?.blocks,
@@ -226,6 +228,8 @@ function ProcessMesh(i, chunk) {
 			chunk: chunk.blocks,
 			neighborChunks: neighborChunks,
 			lightMap: chunk.lightMap,
+			TEX_ARRAY,
+			TRANSPARENT_ARRAY,
 		},
 	});
 }

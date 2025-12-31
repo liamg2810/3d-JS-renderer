@@ -140,7 +140,6 @@ export class TextThreeD {
 			if (lines[-y].text.trim() === "") continue;
 
 			lines[-y].text.split("").forEach((t) => {
-				console.log(t);
 				// if t is a " " then it wraps to the final cell of the atlas which is currently an empty glyph
 				const index = CHARSET.indexOf(t);
 

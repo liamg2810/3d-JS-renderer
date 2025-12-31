@@ -1,0 +1,210 @@
+{
+	"air": {
+		"code": 0,
+		"texture": {
+			"top": -1,
+			"bottom": -1,
+			"front": -1,
+			"back": -1,
+			"left": -1,
+			"right": -1
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"grass": {
+		"code": 1,
+		"texture": {
+			"top": 1,
+			"bottom": 8,
+			"front": 0,
+			"back": 0,
+			"left": 0,
+			"right": 0
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"log": {
+		"code": 2,
+		"texture": {
+			"top": 4,
+			"bottom": 4,
+			"front": 3,
+			"back": 3,
+			"left": 3,
+			"right": 3
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"sand": {
+		"code": 3,
+		"texture": {
+			"top": 5,
+			"bottom": 5,
+			"front": 5,
+			"back": 5,
+			"left": 5,
+			"right": 5
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"water": {
+		"code": 4,
+		"texture": {
+			"top": 6,
+			"bottom": 6,
+			"front": 6,
+			"back": 6,
+			"left": 6,
+			"right": 6
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"leaves": {
+		"code": 5,
+		"texture": {
+			"top": 2,
+			"bottom": 2,
+			"front": 2,
+			"back": 2,
+			"left": 2,
+			"right": 2
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"stone": {
+		"code": 6,
+		"texture": {
+			"top": 7,
+			"bottom": 7,
+			"front": 7,
+			"back": 7,
+			"left": 7,
+			"right": 7
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"dirt": {
+		"code": 7,
+		"texture": {
+			"top": 8,
+			"bottom": 8,
+			"front": 8,
+			"back": 8,
+			"left": 8,
+			"right": 8
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"coal": {
+		"code": 8,
+		"texture": {
+			"top": 9,
+			"bottom": 9,
+			"front": 9,
+			"back": 9,
+			"left": 9,
+			"right": 9
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"bedrock": {
+		"code": 9,
+		"texture": {
+			"top": 10,
+			"bottom": 10,
+			"front": 10,
+			"back": 10,
+			"left": 10,
+			"right": 10
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"spruce_leaves": {
+		"code": 10,
+		"texture": {
+			"top": 14,
+			"bottom": 14,
+			"front": 14,
+			"back": 14,
+			"left": 14,
+			"right": 14
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"spruce_log": {
+		"code": 11,
+		"texture": {
+			"top": 12,
+			"bottom": 12,
+			"front": 11,
+			"back": 11,
+			"left": 11,
+			"right": 11
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"sandstone": {
+		"code": 12,
+		"texture": {
+			"top": 19,
+			"bottom": 21,
+			"front": 22,
+			"back": 22,
+			"left": 22,
+			"right": 22
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"ice": {
+		"code": 13,
+		"texture": {
+			"top": 23,
+			"bottom": 23,
+			"front": 23,
+			"back": 23,
+			"left": 23,
+			"right": 23
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"poppy": {
+		"code": 14,
+		"texture": {
+			"top": 23,
+			"bottom": 23,
+			"front": 23,
+			"back": 23,
+			"left": 23,
+			"right": 23
+		},
+		"transparent": true,
+		"illumination": 0
+	},
+	"glowstone": {
+		"code": 15,
+		"texture": {
+			"top": 24,
+			"bottom": 24,
+			"front": 24,
+			"back": 24,
+			"left": 24,
+			"right": 24
+		},
+		"transparent": true,
+		"illumination": 15
+	}
+}

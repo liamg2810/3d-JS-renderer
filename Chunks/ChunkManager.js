@@ -54,7 +54,10 @@ class ChunkManager {
 						enqueueChunk(cx, cz);
 					} else if (!chunk.calculatedLight) {
 						enqueueLight(chunk);
-					} else if (!chunk.builtVerts) {
+					} else if (
+						!chunk.builtVerts &&
+						r <= Player.renderDistance
+					) {
 						enqueueMesh(chunk);
 					}
 				}

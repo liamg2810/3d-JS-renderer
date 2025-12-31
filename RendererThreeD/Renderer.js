@@ -1,4 +1,5 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
+import { LoadBlocks } from "../Globals/Blocks.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT } from "../Globals/Window.js";
@@ -93,6 +94,8 @@ class Renderer {
 	}
 
 	async InitShaders() {
+		await LoadBlocks();
+
 		const vs = await GetShader(SHADERS.CHUNK_VERT);
 		const fs = await GetShader(SHADERS.CHUNK_FRAG);
 
