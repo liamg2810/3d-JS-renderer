@@ -1,6 +1,6 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { GetFromPositionInRLE } from "../Chunks/RLE.js";
-import { BLOCKS } from "../Globals/Constants.js";
+import { GetBlock } from "../Globals/Blocks/Blocks.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { canvas, gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
@@ -200,7 +200,7 @@ export class FrameBuffer {
 
 			const block = GetFromPositionInRLE(bx, by, bz, chunk.blocks);
 
-			underwater = block === BLOCKS.WATER;
+			underwater = block === GetBlock("water");
 		}
 
 		gl.uniform1ui(

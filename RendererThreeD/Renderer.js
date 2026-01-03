@@ -1,13 +1,16 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
-import { LoadBlocks } from "../Globals/Blocks.js";
+import { BIOME_DATA } from "../Globals/Biomes/Biomes.js";
+import { LoadBiomes } from "../Globals/Biomes/Initializer.js";
+import { LoadBlocks } from "../Globals/Blocks/Initializer.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
-import { gl, ROOT } from "../Globals/Window.js";
+import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
+import { InitWorkers } from "../Scene.js";
 import Clouds from "./Clouds.js";
 import { DebugRenderer } from "./Debug.js";
 import { FrameBuffer } from "./FrameBuffer.js";
-import { Particle } from "./Particle.js";
+import ParticleManager from "./ParticleManager.js";
 import { SetBlockProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 import { TextThreeD } from "./Text.js";
@@ -24,7 +27,8 @@ class Renderer {
 	/** @type {number[]} */
 	frameTimes = [];
 
-	seed = Math.random() * 25564235;
+	// seed = Math.random() * 25564235;
+	seed = 0;
 
 	shadersInit = false;
 
@@ -42,7 +46,8 @@ class Renderer {
 	vao;
 
 	Text = [];
-	Particles = [];
+
+	AnimatedParticle;
 
 	constructor() {
 		this.frameBuffer = new FrameBuffer();
@@ -62,31 +67,32 @@ class Renderer {
 			)
 		);
 
-		this.Text.push(new TextThreeD("Introducing particles!", 8, 81, 0));
-
-		for (let x = 4; x <= 12; x++) {
-			this.Particles.push(
-				new Particle(
-					x,
-					80,
-					0,
-					0.5,
-					PARTICLES.ENCHANT,
-					Math.floor(
-						Math.random() * PARTICLES.ENCHANT.KEYFRAMES.length
-					)
-				)
-			);
-		}
+		this.AnimatedParticle = ParticleManager.AddParticle(
+			8,
+			80,
+			-10,
+			0.2,
+			PARTICLES.ENCHANT,
+			0
+		);
 
 		this.InitShaders();
 
 		this.DebugRenderer = new DebugRenderer();
 
-		this.texture = new TextureManager(ROOT + "textures.png");
+		this.texture = new TextureManager(
+			TEXTURE_ROOT + "/blocks/textures.png"
+		);
 	}
 
 	Start() {
+		if (!this.shadersInit) {
+			requestAnimationFrame(() => {
+				this.Start();
+			});
+			return;
+		}
+
 		this.InitScene();
 		requestAnimationFrame(() => {
 			this.Update();
@@ -95,6 +101,8 @@ class Renderer {
 
 	async InitShaders() {
 		await LoadBlocks();
+		await LoadBiomes();
+		InitWorkers();
 
 		const vs = await GetShader(SHADERS.CHUNK_VERT);
 		const fs = await GetShader(SHADERS.CHUNK_FRAG);
@@ -219,7 +227,7 @@ class Renderer {
 
 		for (let i = 0; i < ChunkManager.chunks.length; i++) {
 			let chunk = ChunkManager.chunks[i];
-			if (!chunk.builtVerts) {
+			if (chunk.vertCount === 0) {
 				continue;
 			}
 
@@ -312,10 +320,13 @@ class Renderer {
 		for (let i = 0; i < this.Text.length; i++) {
 			this.Text[i].Draw();
 		}
+		this.AnimatedParticle.y += 0.1;
 
-		for (let i = 0; i < this.Particles.length; i++) {
-			this.Particles[i].Draw();
+		if (this.AnimatedParticle.y >= 90) {
+			this.AnimatedParticle.y = 80;
 		}
+
+		ParticleManager.Draw();
 
 		this.DebugRenderer.draw();
 

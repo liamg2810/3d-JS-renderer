@@ -1,4 +1,5 @@
-import { BLOCKS, CHUNKSIZE, MAX_HEIGHT } from "../Globals/Constants.js";
+import { BLOCK_DATA } from "../Globals/Blocks/Blocks.js";
+import { CHUNKSIZE, MAX_HEIGHT } from "../Globals/Constants.js";
 
 const RLE_DATA = 0x7fff;
 const RLE_FLAG = 0x8000;
@@ -103,7 +104,8 @@ export function LastNonAirIndex(rle) {
 		}
 
 		currentPos++;
-		if ((rle[i] & RLE_DATA) !== BLOCKS.AIR) lastNonAir = currentPos - 1;
+		if ((rle[i] & RLE_DATA) !== BLOCK_DATA["air"])
+			lastNonAir = currentPos - 1;
 	}
 
 	return lastNonAir;

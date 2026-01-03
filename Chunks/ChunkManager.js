@@ -11,11 +11,20 @@ class ChunkManager {
 	/** @type {Chunk[]} */
 	chunks = [];
 
+	lastLoad = 0;
+	loadInteval = 100;
+
 	GetChunkAtPos(x, z) {
 		return this.chunks.find((c) => c.x === x && c.z === z);
 	}
 
 	LoadChunks() {
+		const now = Date.now();
+
+		if (now - this.lastLoad < this.loadInteval) return;
+
+		this.lastLoad = now;
+
 		this.chunks = this.chunks.filter((c) => {
 			const unloadMesh =
 				c.x >= Player.chunkX - Player.renderDistance &&
@@ -52,7 +61,10 @@ class ChunkManager {
 
 					if (chunk === undefined) {
 						enqueueChunk(cx, cz);
-					} else if (!chunk.calculatedLight) {
+					} else if (
+						!chunk.calculatedLight &&
+						r <= Player.renderDistance
+					) {
 						enqueueLight(chunk);
 					} else if (
 						!chunk.builtVerts &&

@@ -1,4 +1,4 @@
-import { BLOCKS } from "../Globals/Constants.js";
+import { BLOCK_DATA } from "../Globals/Blocks/Blocks.js";
 import { gl } from "../Globals/Window.js";
 import { DecodeRLE, RLE } from "./RLE.js";
 
@@ -62,22 +62,31 @@ export class Chunk {
 		this.blockBuffer = gl.createBuffer();
 		this.waterBuffer = gl.createBuffer();
 		this.builtVerts = false;
+		this.vertCount = 0;
+		this.waterVertCount = 0;
 	}
 
 	BlockAt(nx, ny, nz, neighborChunks) {
-		if (ny < 0 || ny >= 256) return BLOCKS.AIR;
+		if (ny < 0 || ny >= 256) return BLOCK_DATA["air"];
 		if (nx < 0)
 			return (
-				neighborChunks.nx?.blocks[15 + nz * 16 + ny * 256] ?? BLOCKS.AIR
+				neighborChunks.nx?.blocks[15 + nz * 16 + ny * 256] ??
+				BLOCK_DATA["air"]
 			);
 		if (nx >= 16)
-			return neighborChunks.px?.blocks[nz * 16 + ny * 256] ?? BLOCKS.AIR;
+			return (
+				neighborChunks.px?.blocks[nz * 16 + ny * 256] ??
+				BLOCK_DATA["air"]
+			);
 		if (nz < 0)
 			return (
-				neighborChunks.nz?.blocks[nx + 15 * 16 + ny * 256] ?? BLOCKS.AIR
+				neighborChunks.nz?.blocks[nx + 15 * 16 + ny * 256] ??
+				BLOCK_DATA["air"]
 			);
 		if (nz >= 16)
-			return neighborChunks.pz?.blocks[nx + ny * 256] ?? BLOCKS.AIR;
+			return (
+				neighborChunks.pz?.blocks[nx + ny * 256] ?? BLOCK_DATA["air"]
+			);
 		return this.blocks[nx + nz * 16 + ny * 256];
 	}
 
@@ -87,6 +96,9 @@ export class Chunk {
 		decoded[x + z * 16 + y * 256] = block;
 
 		this.blocks = RLE(decoded);
+
+		this.calculatedLight = false;
+		this.builtVerts = false;
 	}
 
 	PostLight(lightMap) {

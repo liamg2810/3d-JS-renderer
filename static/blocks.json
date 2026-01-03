@@ -171,12 +171,12 @@
 	"ice": {
 		"code": 13,
 		"texture": {
-			"top": 23,
-			"bottom": 23,
-			"front": 23,
-			"back": 23,
-			"left": 23,
-			"right": 23
+			"top": 18,
+			"bottom": 18,
+			"front": 18,
+			"back": 18,
+			"left": 18,
+			"right": 18
 		},
 		"transparent": true,
 		"illumination": 0

@@ -1,14 +1,13 @@
 import { RLE } from "../Chunks/RLE.js";
+import { BIOME_DATA, GetBiome } from "../Globals/Biomes/Biomes.js";
+import { BLOCK_DATA } from "../Globals/Blocks/Blocks.js";
 import {
-	BIOMES,
-	BLOCKS,
 	CAVE_NOISE_SCALE,
 	CHUNKSIZE,
 	CONTINENTIAL_NOISE_SCALE,
 	HUMIDITY_NOISE_SCALE,
 	MAX_HEIGHT,
 	ORE_NOISE_SCALE,
-	SPAGHETTI_CAVE_RADIUS,
 	SPAGHETTI_CAVE_RANGE,
 	SPAGHETTI_CAVE_VALUE,
 	TEMPERATURE_NOISE_SCALE,
@@ -129,19 +128,19 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 				biomes = [
 					{
-						biome: BIOMES.DESERT,
+						biome: GetBiome("desert"),
 						weight: 1 - blend,
 					},
 					{
-						biome: BIOMES.PLAINS,
+						biome: GetBiome("plains"),
 						weight: blend,
 					},
 				];
 			} else {
-				biomes = [{ biome: BIOMES.OCEAN, weight: 1 }];
+				biomes = [{ biome: GetBiome("ocean"), weight: 1 }];
 			}
 
-			let chosenBiome = BIOMES.PLAINS;
+			let chosenBiome = GetBiome("plains");
 
 			let height = 0;
 			let heightVariation = 0;
@@ -153,8 +152,8 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 					maxWeight = b.weight;
 				}
 
-				height += b.biome.baseHeight * b.weight;
-				heightVariation += b.biome.heightVariation * b.weight;
+				height += b.biome.base_height * b.weight;
+				heightVariation += b.biome.height_variation * b.weight;
 			}
 
 			let elevation =
@@ -168,23 +167,26 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 			elevation = Math.round(elevation);
 
-			let block = chosenBiome.surfaceBlock(worldX, worldZ, elevation);
+			let block = chosenBiome.surface_block;
+
+			blocks[x + z * 16 + elevation * 256] = block;
 
 			if (elevation < WATER_LEVEL) {
-				let b = BLOCKS.WATER;
+				let b = BLOCK_DATA["water"].code;
 
-				if (chosenBiome === BIOMES.OCEAN && temp < -0.45) {
-					b = BLOCKS.ICE;
+				if (chosenBiome === GetBiome("ocean") && temp < -0.45) {
+					b = BLOCK_DATA["ice"].code;
 				}
 				elevation -= 1;
 
 				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
 				for (let y = WATER_LEVEL - 1; y > elevation + 1; y--) {
-					blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.WATER;
+					blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] =
+						BLOCK_DATA["water"].code;
 				}
 
-				block = BLOCKS.SAND;
+				block = BLOCK_DATA["sand"].code;
 			}
 
 			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
@@ -202,26 +204,26 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 			if (
 				elevation > 64 &&
-				block === BLOCKS.GRASS &&
-				treeNoise > 1 - chosenBiome.treeChance
+				block === BLOCK_DATA["grass"].code &&
+				treeNoise > 1 - chosenBiome.tree_chance
 			) {
 				let tree = [];
 
 				if (
-					chosenBiome === BIOMES.PLAINS ||
-					chosenBiome === BIOMES.GRASSLANDS
+					chosenBiome === GetBiome("plains") ||
+					chosenBiome === GetBiome("grasslands")
 				) {
 					tree = DrawPlainsTree(x, elevation, z);
 				}
 
-				if (chosenBiome === BIOMES.TAIGA) {
+				if (chosenBiome === GetBiome("taiga")) {
 					tree = DrawTaigaTree(x, elevation, z);
 				}
 
 				tree.forEach((b) => {
 					if (
 						blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] !==
-						BLOCKS.AIR
+						BLOCK_DATA["air"].code
 					) {
 						return;
 					}
@@ -229,12 +231,12 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 					blocks[b.x + b.z * CHUNKSIZE + b.y * MAX_HEIGHT] = b.block;
 				});
 			} else if (
-				block === BLOCKS.GRASS &&
+				block === BLOCK_DATA["grass"].code &&
 				elevation > 64 &&
 				treeNoise < 0.05
 			) {
 				blocks[x + z * CHUNKSIZE + (elevation + 1) * MAX_HEIGHT] =
-					BLOCKS.POPPY;
+					BLOCK_DATA["poppy"].code;
 			}
 		}
 	}
@@ -258,7 +260,7 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 			caveVal = -0.4;
 		}
 
-		let belowB = BLOCKS.STONE;
+		let belowB = BLOCK_DATA["stone"].code;
 
 		let oreNoise = noise.perlin3(
 			x * ORE_NOISE_SCALE,
@@ -267,15 +269,15 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		);
 
 		if (oreNoise < -0.4) {
-			belowB = BLOCKS.COAL;
+			belowB = BLOCK_DATA["coal"].code;
 		}
 
 		if (y >= elevation - 3) {
-			belowB = chosenBiome.subSurfaceBlock;
+			belowB = chosenBiome.subsurface_block;
 		}
 
 		if (CarveCave(x, y, z, caveNoise)) {
-			belowB = BLOCKS.AIR;
+			belowB = BLOCK_DATA["air"].code;
 		}
 
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
@@ -283,7 +285,7 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 
 	for (let y = 2; y > 0; y--) {
 		// Bedrock
-		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCKS.BEDROCK;
+		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCK_DATA["bedrock"].code;
 	}
 }
 
@@ -298,7 +300,7 @@ function CarveCave(x, y, z, caveNoise, caveVal = SPAGHETTI_CAVE_VALUE) {
  * @param {number} grassX
  * @param {number} grassY
  * @param {number} grassZ
- * @returns {{x: number, y: number, z: number, block: BLOCKS}[]}
+ * @returns {{x: number, y: number, z: number, block: number}[]}
  */
 function DrawPlainsTree(grassX, grassY, grassZ) {
 	let blocks = [];
@@ -306,7 +308,12 @@ function DrawPlainsTree(grassX, grassY, grassZ) {
 	const treeTop = Math.round(Math.random() * 1 + 2);
 
 	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.LOG });
+		blocks.push({
+			x: grassX,
+			y: y,
+			z: grassZ,
+			block: BLOCK_DATA["log"].code,
+		});
 	}
 
 	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -329,7 +336,7 @@ function DrawPlainsTree(grassX, grassY, grassZ) {
 				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
 					continue;
 
-				blocks.push({ x, y, z, block: BLOCKS.LEAVES });
+				blocks.push({ x, y, z, block: BLOCK_DATA["leaves"].code });
 			}
 		}
 	}
@@ -341,7 +348,7 @@ function DrawPlainsTree(grassX, grassY, grassZ) {
  * @param {number} grassX
  * @param {number} grassY
  * @param {number} grassZ
- * @returns {{x: number, y: number, z: number, block: BLOCKS}[]}
+ * @returns {{x: number, y: number, z: number, block: number}[]}
  */
 function DrawTaigaTree(grassX, grassY, grassZ) {
 	let blocks = [];
@@ -349,7 +356,12 @@ function DrawTaigaTree(grassX, grassY, grassZ) {
 	const treeTop = Math.round(Math.random() * 1 + 10);
 
 	for (let y = grassY + 1; y < grassY + treeTop + 2; y++) {
-		blocks.push({ x: grassX, y: y, z: grassZ, block: BLOCKS.SPRUCE_LOG });
+		blocks.push({
+			x: grassX,
+			y: y,
+			z: grassZ,
+			block: BLOCK_DATA["spruce_log"].code,
+		});
 	}
 
 	for (let y = treeTop + grassY; y <= treeTop + grassY + 2; y++) {
@@ -372,7 +384,12 @@ function DrawTaigaTree(grassX, grassY, grassZ) {
 				if (y === treeTop + grassY + 1 && x === grassX && z === grassZ)
 					continue;
 
-				blocks.push({ x, y, z, block: BLOCKS.SPRUCE_LEAVES });
+				blocks.push({
+					x,
+					y,
+					z,
+					block: BLOCK_DATA["spruce_leaves"].code,
+				});
 			}
 		}
 	}
@@ -392,7 +409,12 @@ function DrawTaigaTree(grassX, grassY, grassZ) {
 				if (x === grassX + 2 && z === grassZ - 2) continue;
 				if (x === grassX + 2 && z === grassZ + 2) continue;
 
-				blocks.push({ x, y, z, block: BLOCKS.SPRUCE_LEAVES });
+				blocks.push({
+					x,
+					y,
+					z,
+					block: BLOCK_DATA["spruce_leaves"].code,
+				});
 			}
 		}
 	}
@@ -404,19 +426,19 @@ function DrawTaigaTree(grassX, grassY, grassZ) {
  *
  * @param {number} temp
  * @param {number} humidity
- * @returns {{biome: BIOMES, weight: number}[]}
+ * @returns {{biome: number, weight: number}[]}
  */
 function Biome(temp, humidity) {
-	/** @type {{biome: BIOMES, weight: number}[]} */
+	/** @type {{biome: number, weight: number}[]} */
 	let biomes = [];
 
 	const biome_radius = 0.2;
 
-	for (const [key, value] of Object.entries(BIOMES)) {
+	for (const [key, value] of Object.entries(BIOME_DATA)) {
 		if (isNaN(temp) || isNaN(humidity)) console.warn(temp, humidity);
 
-		const dx = temp - value.tempCenter;
-		const dy = humidity - value.humidityCenter;
+		const dx = temp - value.temp_center;
+		const dy = humidity - value.humidity_center;
 
 		if (!isFinite(dx) || !isFinite(dy)) {
 			// console.warn("INFINITE DISTANCE:");
@@ -438,7 +460,7 @@ function Biome(temp, humidity) {
 		// console.warn(
 		// 	`No valid biomes for ${temp}, ${humidity}. Defaulting to PLAINS`
 		// );
-		return [{ biome: BIOMES.PLAINS, weight: 1 }];
+		return [{ biome: GetBiome("plains"), weight: 1 }];
 	}
 
 	let weightSum = 0;

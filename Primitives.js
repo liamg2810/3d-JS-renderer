@@ -1,5 +1,3 @@
-import { BLOCKS } from "./Globals/Constants.js";
-
 // [LIGHT][BIOME][TEXTURE][DIRECTION][POSITION]
 // [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
 // DIRECTION = 0-5 = 3 bits
@@ -9,6 +7,8 @@ import { BLOCKS } from "./Globals/Constants.js";
 // TOTAL BITS = 36
 
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
+
+const faces = ["top", "bottom", "front", "back", "left", "right"];
 
 /**
  *
@@ -20,7 +20,6 @@ import { BLOCKS } from "./Globals/Constants.js";
  * @param {{top?: number; base: number; bottom?: number}} tex
  * @param {number} culledFaces
  * @param {number} biome
- * @param {BLOCKS[]} blocks
  * @returns {number}
  */
 export function Cube(
@@ -32,7 +31,7 @@ export function Cube(
 	tex,
 	culledFaces = 0b111111,
 	biome = 0,
-	light = [15, 0, 0, 0, 0, 0]
+	light = [0, 0, 0, 0, 0, 0]
 ) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
@@ -50,28 +49,7 @@ export function Cube(
 
 	for (let dir = 0; dir < 6; dir++) {
 		if (!((culledFaces >> dir) & 0b1)) continue;
-		let tId;
-
-		switch (dir) {
-			case 0:
-				tId = tex.top ? tex.top : tex.base;
-				break;
-			case 1:
-				tId = tex.bottom ? tex.bottom : tex.base;
-				break;
-			case 2:
-				tId = tex.left ? tex.left : tex.base;
-				break;
-			case 3:
-				tId = tex.right ? tex.right : tex.base;
-				break;
-			case 4:
-				tId = tex.front ? tex.front : tex.base;
-				break;
-			case 5:
-				tId = tex.back ? tex.back : tex.base;
-				break;
-		}
+		let tId = tex[faces[dir]];
 
 		let vert = (biome << 25) | (tId << 19) | (dir << 16) | position;
 		let upper = light[dir];

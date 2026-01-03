@@ -1,3 +1,5 @@
+import { BIOME_DATA } from "../Globals/Biomes/Biomes.js";
+import { BLOCK_DATA, InputBlocks } from "../Globals/Blocks/Blocks.js";
 import { CalculateLight } from "./LightBuilder.js";
 import { BuildVerts } from "./MeshBuilder.js";
 import { BuildChunk } from "./TerrainBuilder.js";
@@ -26,14 +28,22 @@ self.onmessage = function (event) {
 			waterVerts.buffer,
 		]);
 	} else if (type === "Light") {
-		const { blocks, chunkX, chunkZ, neighbours, neighbourBlocks } = data;
+		const { blocks, chunkX, chunkZ, neighbours, neighbourBlocks, initial } =
+			data;
 
 		let { lightMap, recalculates } = CalculateLight(
 			blocks,
 			neighbours,
-			neighbourBlocks
+			neighbourBlocks,
+			initial
 		);
 
 		self.postMessage({ type, lightMap, recalculates, chunkX, chunkZ });
+	} else if (type === "Init") {
+		const { blocks, biomes } = data;
+
+		Object.assign(BIOME_DATA, biomes);
+
+		InputBlocks(blocks);
 	}
 };

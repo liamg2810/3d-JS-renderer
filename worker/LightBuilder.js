@@ -1,8 +1,17 @@
-import { DecodeRLE, RLE } from "../Chunks/RLE.js";
-import { LIGHT_SOURCES, TRANSPARENT } from "../Globals/Constants.js";
+import { DecodeRLE, LastNonAirIndex, RLE } from "../Chunks/RLE.js";
+import {
+	ILLUMINATION_ARRAY,
+	TRANSPARENT_ARRAY,
+} from "../Globals/Blocks/Blocks.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 
+/**
+ *
+ * @param {number[]} lightMap
+ * @param {number[]} blocks
+ * @param {[number, number, number, number]} queue
+ */
 function BFSLight(lightMap, blocks, queue) {
 	while (queue.length > 0) {
 		let [x, y, z, light] = queue.shift();
@@ -17,7 +26,7 @@ function BFSLight(lightMap, blocks, queue) {
 		const block = data & 0xff;
 
 		// Only want to set light level on non transparent blocks
-		if (!TRANSPARENT.has(block)) continue;
+		if (!TRANSPARENT_ARRAY[block]) continue;
 
 		const lightLevel = lightMap[x + z * 16 + y * 256];
 
@@ -40,10 +49,11 @@ function BFSLight(lightMap, blocks, queue) {
 	}
 }
 
-export function CalculateLight(b, neighbours, neighbourBlocks) {
+export function CalculateLight(b, neighbours, neighbourBlocks, initial) {
 	let lightMap = new Uint8Array(16 * 16 * 256);
 
 	let blocks = DecodeRLE(b);
+	let lastNonAir = LastNonAirIndex(b);
 
 	neighbours.nx = neighbours.nx ? DecodeRLE(neighbours.nx) : undefined;
 	neighbours.px = neighbours.px ? DecodeRLE(neighbours.px) : undefined;
@@ -72,20 +82,25 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 			let isSky = true;
 
 			for (let y = 255; y > 0; y--) {
-				const data = blocks[x + z * 16 + y * 256];
+				let i = x + z * 16 + y * 256;
+
+				const data = blocks[i];
 
 				const block = data & 0xff;
 
-				// TODO: Fix artifacts caused by this not updating stuff surrounding it.
-				if (isSky && TRANSPARENT.has(block)) {
-					lightMap[x + z * 16 + y * 256] = 14;
+				if (isSky && TRANSPARENT_ARRAY[block]) {
+					// if (i > lastNonAir) {
+					lightMap[i] = 14;
+					// } else {
+					// 	sources.push([x, y, z, 14]);
+					// }
 				}
 
-				if (LIGHT_SOURCES.has(block)) {
-					sources.push([x, y, z, 15]);
+				if (ILLUMINATION_ARRAY[block] > 0) {
+					sources.push([x, y, z, ILLUMINATION_ARRAY[block]]);
 				}
 
-				if (!TRANSPARENT.has(block)) {
+				if (!TRANSPARENT_ARRAY[block]) {
 					if (isSky) {
 						sources.push([x, y + 1, z, 15]);
 					}
@@ -117,6 +132,13 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 
 	BFSLight(lightMap, blocks, sources);
 
+	if (initial === undefined) {
+		return {
+			lightMap: RLE(lightMap),
+			recalculates: [true, true, true, true],
+		};
+	}
+
 	// Final pass to check for neighbour updates
 
 	for (let y = 0; y < 255; y++) {
@@ -130,11 +152,10 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 
 				const block = data & 0xff;
 
-				if (!TRANSPARENT.has(block)) continue;
+				if (!TRANSPARENT_ARRAY[block]) continue;
 
 				const nb = neighbourBlocks.nx[15 + z * 16 + y * 256] & 0xff;
-
-				if (!TRANSPARENT.has(nb)) continue;
+				if (!TRANSPARENT_ARRAY[nb]) continue;
 
 				const l = neighbours.nx[15 + z * 16 + y * 256];
 
@@ -151,11 +172,10 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 
 				const block = data & 0xff;
 
-				if (!TRANSPARENT.has(block)) continue;
+				if (!TRANSPARENT_ARRAY[block]) continue;
 
 				const nb = neighbourBlocks.px[z * 16 + y * 256] & 0xff;
-
-				if (!TRANSPARENT.has(nb)) continue;
+				if (!TRANSPARENT_ARRAY[nb]) continue;
 
 				const l = neighbours.px[z * 16 + y * 256];
 
@@ -172,11 +192,10 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 
 				const block = data & 0xff;
 
-				if (!TRANSPARENT.has(block)) continue;
+				if (!TRANSPARENT_ARRAY[block]) continue;
 
 				const nb = neighbourBlocks.nz[x + 15 * 16 + y * 256] & 0xff;
-
-				if (!TRANSPARENT.has(nb)) continue;
+				if (!TRANSPARENT_ARRAY[nb]) continue;
 
 				const l = neighbours.nz[x + 15 * 16 + y * 256];
 
@@ -193,11 +212,10 @@ export function CalculateLight(b, neighbours, neighbourBlocks) {
 
 				const block = data & 0xff;
 
-				if (!TRANSPARENT.has(block)) continue;
+				if (!TRANSPARENT_ARRAY[block]) continue;
 
 				const nb = neighbourBlocks.pz[x + y * 256] & 0xff;
-
-				if (!TRANSPARENT.has(nb)) continue;
+				if (!TRANSPARENT_ARRAY[nb]) continue;
 
 				const l = neighbours.pz[x + y * 256];
 

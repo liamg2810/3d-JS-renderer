@@ -15,3 +15,4 @@ if (gl === null) {
 }
 
 export const ROOT = window.location.href;
+export const TEXTURE_ROOT = ROOT + "static/textures/";

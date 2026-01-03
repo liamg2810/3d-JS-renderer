@@ -1,0 +1,65 @@
+{
+	"plains": {
+		"base_height": 68,
+		"height_variation": 6,
+		"surface_block": "grass",
+		"subsurface_block": "dirt",
+		"temp_center": 0.5,
+		"humidity_center": 0.5,
+		"tree_chance": 0.01,
+		"code": 0,
+		"color": "rgb(0, 255, 0)"
+	},
+	"desert": {
+		"base_height": 70,
+		"height_variation": 3,
+		"surface_block": "sand",
+		"subsurface_block": "sandstone",
+		"temp_center": 0.7,
+		"humidity_center": 0.3,
+		"tree_chance": 0,
+		"code": 1,
+		"color": "rgb(135, 135, 7)"
+	},
+	"mountains": {
+		"base_height": 72,
+		"height_variation": 32,
+		"surface_block": "stone",
+		"subsurface_block": "stone",
+		"temp_center": 0.3,
+		"humidity_center": 0.4,
+		"tree_chance": 0,
+		"code": 2,
+		"color": "rgb(150, 150, 150)"
+	},
+	"grasslands": {
+		"base_height": 64,
+		"height_variation": 12,
+		"surface_block": "grass",
+		"subsurface_block": "dirt",
+		"temp_center": 0.6,
+		"humidity_center": 0.4,
+		"tree_chance": 0.05,
+		"code": 3,
+		"color": "rgb(0, 150, 0)"
+	},
+	"taiga": {
+		"base_height": 64,
+		"height_variation": 12,
+		"surface_block": "grass",
+		"subsurface_block": "dirt",
+		"temp_center": 0.3,
+		"humidity_center": 0.3,
+		"tree_chance": 0.05,
+		"code": 4,
+		"color": "rgb(0, 50, 0)"
+	},
+	"ocean": {
+		"base_height": 45,
+		"height_variation": 5,
+		"surface_block": "sand",
+		"subsurface_block": "stone",
+		"code": 5,
+		"color": "rgb(0, 115, 255)"
+	}
+}

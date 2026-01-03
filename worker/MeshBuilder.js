@@ -1,30 +1,12 @@
+import { DecodeRLE, LastNonAirIndex } from "../Chunks/RLE.js";
 import {
-	DecodeRLE,
-	GetFromPositionInRLE,
-	LastNonAirIndex,
-} from "../Chunks/RLE.js";
-import { BLOCKS, TEXTURES, TRANSPARENT } from "../Globals/Constants.js";
+	BLOCK_DATA,
+	TEX_ARRAY,
+	TRANSPARENT_ARRAY,
+} from "../Globals/Blocks/Blocks.js";
 import { Cube, Water } from "../Primitives.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
-
-const TEXMAP = new Array(256);
-TEXMAP[BLOCKS.STONE] = TEXTURES.STONE;
-TEXMAP[BLOCKS.SAND] = TEXTURES.SAND;
-TEXMAP[BLOCKS.BEDROCK] = TEXTURES.BEDROCK;
-TEXMAP[BLOCKS.LOG] = TEXTURES.LOG;
-TEXMAP[BLOCKS.LEAVES] = TEXTURES.LEAVES;
-TEXMAP[BLOCKS.DIRT] = TEXTURES.DIRT;
-TEXMAP[BLOCKS.COAL] = TEXTURES.COAL;
-TEXMAP[BLOCKS.SPRUCE_LEAVES] = TEXTURES.SPRUCE_LEAVES;
-TEXMAP[BLOCKS.SPRUCE_LOG] = TEXTURES.SPRUCE_LOG;
-TEXMAP[BLOCKS.SANDSTONE] = TEXTURES.SANDSTONE;
-TEXMAP[BLOCKS.ICE] = TEXTURES.ICE;
-TEXMAP[BLOCKS.POPPY] = TEXTURES.POPPY;
-TEXMAP[BLOCKS.GLOWSTONE] = TEXTURES.GLOWSTONE;
-
-const CHUNK = 16;
-const LAYER = CHUNK * CHUNK;
 
 export function BuildVerts(b, neighborChunks, lM) {
 	const blocks = DecodeRLE(b);
@@ -69,16 +51,28 @@ export function BuildVerts(b, neighborChunks, lM) {
 			y++;
 		}
 		const b = block & 0xff;
+		const isTransparent = TRANSPARENT_ARRAY[b];
+		const textures = {
+			top: TEX_ARRAY[b * 6],
+			bottom: TEX_ARRAY[b * 6 + 1],
+			left: TEX_ARRAY[b * 6 + 2],
+			right: TEX_ARRAY[b * 6 + 3],
+			front: TEX_ARRAY[b * 6 + 4],
+			back: TEX_ARRAY[b * 6 + 5],
+		};
 
-		if (b === BLOCKS.AIR) {
+		if (b === BLOCK_DATA["air"].code) {
 			continue;
 		}
 
-		if (b === BLOCKS.WATER) {
-			const above = blocks[x + z * 16 + (y + 1) * 256];
+		if (b === BLOCK_DATA["water"].code) {
+			const above = blocks[x + z * 16 + (y + 1) * 256] & 0xff;
 
-			if (above !== BLOCKS.WATER && above !== BLOCKS.ICE) {
-				waterVi += Water(waterVerts, waterVi, x, y, z, TEXTURES.WATER);
+			if (
+				above !== BLOCK_DATA["water"].code &&
+				above !== BLOCK_DATA["ice"].code
+			) {
+				waterVi += Water(waterVerts, waterVi, x, y, z, textures);
 			}
 			continue;
 		}
@@ -86,8 +80,6 @@ export function BuildVerts(b, neighborChunks, lM) {
 		const biome = block >>> 8;
 		let culled = 0b111111;
 		let lightLevels = [0, 0, 0, 0, 0, 0];
-
-		let isTransparent = TRANSPARENT.has(block);
 
 		if (isTransparent && lightMap) {
 			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
@@ -106,59 +98,84 @@ export function BuildVerts(b, neighborChunks, lM) {
 			let light = 0;
 
 			if (ny < 0 || ny >= 256) {
-				nb = BLOCKS.AIR;
+				nb = BLOCK_DATA["air"];
 			} else if (nx < 0) {
-				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] : BLOCKS.AIR;
+				nb = nxBlocks
+					? nxBlocks[15 + nz * 16 + ny * 256] & 0xff
+					: BLOCK_DATA["air"];
 
-				if (TRANSPARENT.has(nb & 0xff)) {
+				if (TRANSPARENT_ARRAY[nb]) {
 					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
 				}
 			} else if (nx >= 16) {
-				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] : BLOCKS.AIR;
+				nb = pxBlocks
+					? pxBlocks[nz * 16 + ny * 256] & 0xff
+					: BLOCK_DATA["air"];
 
-				if (TRANSPARENT.has(nb & 0xff)) {
+				if (TRANSPARENT_ARRAY[nb]) {
 					light = pxLight ? pxLight[nz * 16 + ny * 256] : 0;
 				}
 			} else if (nz < 0) {
-				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] : BLOCKS.AIR;
+				nb = nzBlocks
+					? nzBlocks[nx + 15 * 16 + ny * 256] & 0xff
+					: BLOCK_DATA["air"];
 
-				if (TRANSPARENT.has(nb & 0xff)) {
+				if (TRANSPARENT_ARRAY[nb]) {
 					light = nzLight ? nzLight[nx + 15 * 16 + ny * 256] : 0;
 				}
 			} else if (nz >= 16) {
-				nb = pzBlocks ? pzBlocks[nx + ny * 256] : BLOCKS.AIR;
+				nb = pzBlocks
+					? pzBlocks[nx + ny * 256] & 0xff
+					: BLOCK_DATA["air"];
 
-				if (TRANSPARENT.has(nb & 0xff)) {
+				if (TRANSPARENT_ARRAY[nb]) {
 					light = pzLight ? pzLight[nx + ny * 256] : 0;
 				}
 			} else {
 				nb = blocks[nx + nz * 16 + ny * 256];
 
-				if (TRANSPARENT.has(nb & 0xff)) {
+				nb = blocks[nx + nz * 16 + ny * 256] & 0xff;
+
+				if (TRANSPARENT_ARRAY[nb]) {
 					light = lightMap[nx + nz * 16 + ny * 256];
 				}
 			}
 
 			lightLevels[dir] = light;
 
-			const nbd = nb & 0xff;
-
-			// opaque logic (no leaves, water, etc.)
-			if (!TRANSPARENT.has(nbd)) {
+			if (!TRANSPARENT_ARRAY[nb]) {
 				culled &= ~(1 << dir);
 			}
 		}
 
-		if (b === BLOCKS.POPPY) {
+		if (b === BLOCK_DATA["poppy"].code) {
 			culled = 0b111100;
 		}
 
-		const tex = TEXMAP[b] || TEXTURES.GRASS;
-
-		if (tex === TEXTURES.ICE) {
-			waterVi += Cube(waterVerts, waterVi, x, y, z, tex, culled, biome);
+		if (b === BLOCK_DATA["ice"].code) {
+			waterVi += Cube(
+				waterVerts,
+				waterVi,
+				x,
+				y,
+				z,
+				textures,
+				culled,
+				biome,
+				lightLevels
+			);
 		} else {
-			vi += Cube(verts, vi, x, y, z, tex, culled, biome, lightLevels);
+			vi += Cube(
+				verts,
+				vi,
+				x,
+				y,
+				z,
+				textures,
+				culled,
+				biome,
+				lightLevels
+			);
 		}
 	}
 

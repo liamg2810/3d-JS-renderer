@@ -1,5 +1,5 @@
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
-import { gl, ROOT } from "../Globals/Window.js";
+import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,
@@ -59,7 +59,7 @@ export class TextThreeD {
 	ShadersInit = false;
 
 	constructor(text, x, y, z, maxWidth = 100) {
-		this.Texture = new TextureManager(ROOT + "text.png", true);
+		this.Texture = new TextureManager(TEXTURE_ROOT + "text.png", true);
 		this.InitShaders();
 
 		this.text = text;

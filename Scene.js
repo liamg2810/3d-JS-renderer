@@ -1,6 +1,7 @@
 import { Chunk } from "./Chunks/Chunk.js";
 import ChunkManager from "./Chunks/ChunkManager.js";
-import { TEX_ARRAY, TRANSPARENT_ARRAY } from "./Globals/Blocks.js";
+import { BIOME_DATA, GetBiome } from "./Globals/Biomes/Biomes.js";
+import { BLOCK_DATA } from "./Globals/Blocks/Blocks.js";
 import { gl } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
@@ -10,29 +11,33 @@ const poolSize = navigator.hardwareConcurrency || 4;
 const workers = [];
 const busy = [];
 
-for (let i = 0; i < poolSize; i++) {
-	const worker = new Worker("./worker/WorkerHandler.js", { type: "module" });
-	workers.push(worker);
-
-	worker.onmessage = (ev) => {
-		if (ev.data.type === "Mesh") ProcessMeshFinish(i, ev);
-		else if (ev.data.type === "Terrain") ProcessTerrainFinish(i, ev);
-		else if (ev.data.type === "Light") ProcessLightFinish(i, ev);
-	};
-
-	busy.push(false);
-}
-
-/** @type {{chunkX: number, chunkZ: number, seed: number}[]} */
+/** @type {{chunkX: number, chunkZ: number, seed: number, priority: number, queueTime: number}[]} */
 const chunkQueue = [];
-/** @type {Chunk[]} */
+/** @type {{chunk: Chunk, priority: number, queueTime: number}[]} */
 const meshQueue = [];
-/** @type {Chunk[]} */
+/** @type {{chunk: Chunk, priority: number, queueTime: number}[]} */
+
 const lightQueue = [];
 const activeMeshes = new Set();
 const activeChunks = new Set();
 const activeLight = new Set();
 const completedChunks = new Set();
+
+/**
+ * Calculate priority based on distance to player
+ * @param {number} chunkX
+ * @param {number} chunkZ
+ * @returns {number} Lower is higher priority
+ */
+function calculatePriority(chunkX, chunkZ) {
+	const playerChunkX = Math.floor(Player.position.x / 16);
+	const playerChunkZ = Math.floor(Player.position.z / 16);
+
+	const dx = chunkX - playerChunkX;
+	const dz = chunkZ - playerChunkZ;
+
+	return dx * dx + dz * dz; // Squared distance (cheaper than sqrt)
+}
 
 function GenerateKey(chunkX, chunkZ) {
 	return `${chunkX}, ${chunkZ}`;
@@ -50,7 +55,16 @@ export function enqueueChunk(chunkX, chunkZ) {
 	}
 
 	activeChunks.add(key);
-	chunkQueue.push({ chunkX, chunkZ, seed: Renderer.seed });
+	chunkQueue.push({
+		chunkX,
+		chunkZ,
+		seed: Renderer.seed,
+		priority: calculatePriority(chunkX, chunkZ),
+		queueTime: Date.now(),
+	});
+
+	// Sort by priority (lower = higher priority)
+	chunkQueue.sort((a, b) => a.priority - b.priority);
 
 	processQueue();
 }
@@ -64,8 +78,13 @@ export function enqueueMesh(chunk) {
 	}
 
 	activeMeshes.add(key);
+	meshQueue.push({
+		chunk,
+		priority: calculatePriority(chunk.x, chunk.z),
+		queueTime: Date.now(),
+	});
 
-	meshQueue.push(chunk);
+	meshQueue.sort((a, b) => a.priority - b.priority);
 
 	processQueue();
 }
@@ -80,8 +99,13 @@ export function enqueueLight(chunk) {
 	}
 
 	activeLight.add(key);
+	lightQueue.push({
+		chunk,
+		priority: calculatePriority(chunk.x, chunk.z),
+		queueTime: Date.now(),
+	});
 
-	lightQueue.push(chunk);
+	lightQueue.sort((a, b) => a.priority - b.priority);
 
 	processQueue();
 }
@@ -161,8 +185,6 @@ function ProcessLightFinish(i, ev) {
 		pz && enqueueLight(pz);
 	}
 
-	enqueueMesh(chunk);
-
 	processQueue();
 }
 
@@ -197,6 +219,7 @@ function ProcessLight(i, chunk) {
 			chunkZ: chunk.z,
 			neighbours: neighbourLight,
 			neighbourBlocks,
+			initial: chunk.lightMap,
 		},
 	});
 }
@@ -228,8 +251,6 @@ function ProcessMesh(i, chunk) {
 			chunk: chunk.blocks,
 			neighborChunks: neighborChunks,
 			lightMap: chunk.lightMap,
-			TEX_ARRAY,
-			TRANSPARENT_ARRAY,
 		},
 	});
 }
@@ -238,24 +259,46 @@ function processQueue() {
 	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && chunkQueue.length > 0) {
 			const task = chunkQueue.shift();
-
 			ProcessChunk(i, task);
 		}
 	}
 
-	for (let i = 0; i < Math.floor(workers.length / 2); i++) {
+	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && lightQueue.length > 0) {
-			const chunk = lightQueue.shift();
-
-			ProcessLight(i, chunk);
+			const item = lightQueue.shift();
+			ProcessLight(i, item.chunk);
 		}
 	}
 
-	for (let i = Math.floor(workers.length / 2); i < workers.length; i++) {
+	for (let i = 0; i < workers.length; i++) {
 		if (!busy[i] && meshQueue.length > 0) {
-			const chunk = meshQueue.shift();
-
-			ProcessMesh(i, chunk);
+			const item = meshQueue.shift();
+			ProcessMesh(i, item.chunk);
 		}
+	}
+}
+
+export function InitWorkers() {
+	for (let i = 0; i < poolSize; i++) {
+		const worker = new Worker("./worker/WorkerHandler.js", {
+			type: "module",
+		});
+		workers.push(worker);
+
+		worker.onmessage = (ev) => {
+			if (ev.data.type === "Mesh") ProcessMeshFinish(i, ev);
+			else if (ev.data.type === "Terrain") ProcessTerrainFinish(i, ev);
+			else if (ev.data.type === "Light") ProcessLightFinish(i, ev);
+		};
+
+		worker.postMessage({
+			type: "Init",
+			data: {
+				blocks: BLOCK_DATA,
+				biomes: BIOME_DATA,
+			},
+		});
+
+		busy.push(false);
 	}
 }

@@ -1,7 +1,9 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { DecodeRLE, GetFromPositionInRLE, RLE } from "../Chunks/RLE.js";
-import { BLOCKS, PARTICLES } from "../Globals/Constants.js";
+import { GetBlock } from "../Globals/Blocks/Blocks.js";
+import { PARTICLES } from "../Globals/Constants.js";
 import { Particle } from "../RendererThreeD/Particle.js";
+import ParticleManager from "../RendererThreeD/ParticleManager.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
 
@@ -149,14 +151,12 @@ class Player {
 		}
 
 		if (this.keyMap.has("f")) {
-			Renderer.Particles.push(
-				new Particle(
-					this.position.x,
-					this.position.y,
-					this.position.z,
-					1,
-					PARTICLES.EXPLOSION
-				)
+			ParticleManager.AddParticle(
+				this.position.x,
+				this.position.y,
+				this.position.z,
+				1,
+				PARTICLES.EXPLOSION
 			);
 		}
 
@@ -178,8 +178,8 @@ class Player {
 
 			const b = GetFromPositionInRLE(bx, by, bz, chunk.blocks);
 
-			if (b !== BLOCKS.BEDROCK) {
-				chunk.SetBlock(bx, by, bz, BLOCKS.AIR);
+			if (b !== GetBlock("bedrock").code) {
+				chunk.SetBlock(bx, by, bz, GetBlock("air").code);
 
 				enqueueLight(chunk);
 
@@ -230,9 +230,9 @@ class Player {
 
 		const blocks = DecodeRLE(chunk.blocks);
 
-		if (blocks[bx + bz * 16 + by * 256] !== BLOCKS.AIR) return;
+		if (blocks[bx + bz * 16 + by * 256] !== GetBlock("air").code) return;
 
-		blocks[bx + bz * 16 + by * 256] = BLOCKS.GLOWSTONE;
+		blocks[bx + bz * 16 + by * 256] = GetBlock("glowstone").code;
 
 		chunk.blocks = RLE(blocks);
 
@@ -350,13 +350,13 @@ class Player {
 		const cz = Math.floor(z / 16);
 
 		const chunk = ChunkManager.GetChunkAtPos(cx, cz);
-		if (!chunk) return BLOCKS.AIR;
+		if (!chunk) return GetBlock("air");
 
 		let bx = ((Math.floor(x) % 16) + 16) % 16;
 		let by = Math.floor(y);
 		let bz = ((Math.floor(z) % 16) + 16) % 16;
 
-		if (by < 0 || by >= 256) return BLOCKS.AIR;
+		if (by < 0 || by >= 256) return GetBlock("air");
 
 		return GetFromPositionInRLE(bx, by, bz, chunk.blocks) & 0xff;
 	}
@@ -391,7 +391,7 @@ class Player {
 		for (let i = 0; i < maxDistance; i++) {
 			const block = this.GetBlockAtPos(ix, iy, iz);
 
-			if (block !== BLOCKS.AIR) {
+			if (block !== GetBlock("air").code) {
 				let normal = 0;
 
 				if (icx > pcx) normal = 2;

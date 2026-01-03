@@ -1,5 +1,5 @@
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
-import { gl, ROOT } from "../Globals/Window.js";
+import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,
@@ -22,7 +22,7 @@ class Clouds {
 	iBuffer;
 
 	constructor() {
-		this.CloudTexture = new TextureManager(ROOT + "clouds.png");
+		this.CloudTexture = new TextureManager(TEXTURE_ROOT + "clouds.png");
 
 		this.InitShaders();
 
