@@ -29,15 +29,10 @@ A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore inf
 | **W/A/S/D** | Move forward/left/backward/right |
 | **Mouse**   | Look around (click canvas first) |
 | **Shift**   | Sprint (increased speed + FOV)   |
-| **F**       | Remove targeted block            |
+| **LMB**     | Remove targeted block            |
+| **RMB**     | Place glowstone                  |
 | **Alt + G** | Toggle chunk borders (debug)     |
 | **ESC**     | Release pointer lock             |
-
-### Debug Overlays
-
--   **Heightmap**: Toggle heightmap visualization
--   **Temperature**: Display temperature map overlay
--   **Humidity**: Display humidity map overlay
 
 ## 📂 Project Structure
 
@@ -50,10 +45,6 @@ A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore inf
 ├── shaders/             # GLSL shader files
 └── worker/              # Web workers for terrain generation
 ```
-
-## 🎨 Customization
-
-Edit [Globals/Constants.js](Globals/Constants.js) to customize biomes, blocks, terrain parameters, and world generation settings.
 
 ## 🐛 Known Issues
 
