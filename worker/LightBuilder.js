@@ -1,5 +1,6 @@
 import { DecodeRLE, LastNonAirIndex, RLE } from "../Chunks/RLE.js";
 import {
+	BLOCK_DATA,
 	ILLUMINATION_ARRAY,
 	TRANSPARENT_ARRAY,
 } from "../Globals/Blocks/Blocks.js";
@@ -49,11 +50,18 @@ function BFSLight(lightMap, blocks, queue) {
 	}
 }
 
-export function CalculateLight(b, neighbours, neighbourBlocks, initial) {
+export function CalculateLight(
+	b,
+	neighbours,
+	neighbourBlocks,
+	initial,
+	lightSourcesCache,
+	solidHeightmap,
+	transparentHeightmap
+) {
 	let lightMap = new Uint8Array(16 * 16 * 256);
 
 	let blocks = DecodeRLE(b);
-	let lastNonAir = LastNonAirIndex(b);
 
 	neighbours.nx = neighbours.nx ? DecodeRLE(neighbours.nx) : undefined;
 	neighbours.px = neighbours.px ? DecodeRLE(neighbours.px) : undefined;
@@ -77,55 +85,114 @@ export function CalculateLight(b, neighbours, neighbourBlocks, initial) {
 
 	let sources = [];
 
-	for (let x = 0; x < 16; x++) {
-		for (let z = 0; z < 16; z++) {
-			let isSky = true;
+	// Light sources pass
+	for (let i = 0; i < lightSourcesCache.length; i++) {
+		const blockIndex = lightSourcesCache[i];
 
-			for (let y = 255; y > 0; y--) {
-				let i = x + z * 16 + y * 256;
+		const data = blocks[blockIndex];
 
-				const data = blocks[i];
+		const block = data & 0xff;
 
-				const block = data & 0xff;
+		const x = blockIndex % 16;
+		const z = Math.floor(blockIndex / 16) % 16;
+		const y = Math.floor(blockIndex / 256);
 
-				if (isSky && TRANSPARENT_ARRAY[block]) {
-					// if (i > lastNonAir) {
-					lightMap[i] = 14;
-					// } else {
-					// 	sources.push([x, y, z, 14]);
-					// }
-				}
+		sources.push([x, y, z, ILLUMINATION_ARRAY[block]]);
+	}
 
-				if (ILLUMINATION_ARRAY[block] > 0) {
-					sources.push([x, y, z, ILLUMINATION_ARRAY[block]]);
-				}
+	// Heightmap pass
+	for (let i = 0; i < 16 * 16; i++) {
+		const x = i % 16;
+		const z = Math.floor(i / 16);
 
-				if (!TRANSPARENT_ARRAY[block]) {
-					if (isSky) {
-						sources.push([x, y + 1, z, 15]);
-					}
+		for (let y = transparentHeightmap[i]; y >= solidHeightmap[i]; y--) {
+			const data = blocks[i + y * 256];
+			const block = data & 0xff;
 
-					isSky = false;
-					continue;
-				}
+			// if (block === BLOCK_DATA["air"].code) continue;
 
-				if (!isSky) {
-					if (x === 0 && neighbours.nx) {
-						let l = neighbours.nx[15 + z * 16 + y * 256];
+			sources.push([x, y + 1, z, 15]);
+			// lightMap[i + (y + 1) * 256] = 15;
+		}
+	}
 
-						if (l > 0) sources.push([x, y, z, l - 1]);
-					} else if (x === 15 && neighbours.px) {
-						let l = neighbours.px[z * 16 + y * 256];
+	// Add the neighbours light as sources
 
-						if (l > 0) sources.push([x, y, z, l - 1]);
-					} else if (z === 0 && neighbours.nz) {
-						let l = neighbours.nz[x + 15 * 16 + y * 256];
-						if (l > 0) sources.push([x, y, z, l - 1]);
-					} else if (z === 15 && neighbours.pz) {
-						let l = neighbours.pz[x + y * 256];
-						if (l > 0) sources.push([x, y, z, l - 1]);
-					}
-				}
+	for (let y = 0; y < 256; y++) {
+		for (let a = 0; a < 16; a++) {
+			// nx (x = 0)
+			if (
+				neighbourBlocks.nx &&
+				neighbours.nx &&
+				y < solidHeightmap[a * 16]
+			) {
+				const block = blocks[a * 16 + y * 256] & 0xff;
+				const nb = neighbourBlocks.nx[15 + a * 16 + y * 256] & 0xff;
+
+				if (
+					block === BLOCK_DATA["air"].code &&
+					nb === BLOCK_DATA["air"].code
+				)
+					sources.push([
+						0,
+						y,
+						a,
+						neighbours.nx[15 + a * 16 + y * 256] - 1,
+					]);
+			}
+
+			// px (x = 15)
+			if (
+				neighbourBlocks.px &&
+				neighbours.px &&
+				y < solidHeightmap[15 + a * 16]
+			) {
+				const block = blocks[15 + a * 16 + y * 256] & 0xff;
+				const nb = neighbourBlocks.px[a * 16 + y * 256] & 0xff;
+
+				if (
+					block === BLOCK_DATA["air"].code &&
+					nb === BLOCK_DATA["air"].code
+				)
+					sources.push([
+						15,
+						y,
+						a,
+						neighbours.px[a * 16 + y * 256] - 1,
+					]);
+			}
+
+			// nz (z = 0)
+			if (neighbourBlocks.nz && neighbours.nz && y < solidHeightmap[a]) {
+				const block = blocks[a + y * 256] & 0xff;
+				const nb = neighbourBlocks.nz[a + 15 * 16 + y * 256] & 0xff;
+
+				if (
+					block === BLOCK_DATA["air"].code &&
+					nb === BLOCK_DATA["air"].code
+				)
+					sources.push([
+						a,
+						y,
+						0,
+						neighbours.nz[a + 15 * 16 + y * 256] - 1,
+					]);
+			}
+
+			// pz (z = 15)
+			if (
+				neighbourBlocks.pz &&
+				neighbours.pz &&
+				y < solidHeightmap[a + 15 * 16]
+			) {
+				const block = blocks[a + 15 * 16 + y * 256] & 0xff;
+				const nb = neighbourBlocks.pz[a + y * 256] & 0xff;
+
+				if (
+					block === BLOCK_DATA["air"].code &&
+					nb === BLOCK_DATA["air"].code
+				)
+					sources.push([a, y, 15, neighbours.pz[a + y * 256] - 1]);
 			}
 		}
 	}
@@ -138,91 +205,41 @@ export function CalculateLight(b, neighbours, neighbourBlocks, initial) {
 			recalculates: [true, true, true, true],
 		};
 	}
+	let initLightMap = DecodeRLE(initial);
 
 	// Final pass to check for neighbour updates
 
-	for (let y = 0; y < 255; y++) {
+	for (let a = 0; a < 16; a++) {
 		const [nx, px, nz, pz] = recalculates;
-
 		if (nx && px && nz && pz) break;
 
-		if (!nx && neighbours.nx && neighbourBlocks.nx) {
-			for (let z = 0; z < 16; z++) {
-				const data = blocks[z * 16 + y * 256];
+		for (let y = 0; y < 255; y++) {
+			// nx (x = 0)
+			if (!nx) {
+				const i = a * 16 + y * 256;
 
-				const block = data & 0xff;
-
-				if (!TRANSPARENT_ARRAY[block]) continue;
-
-				const nb = neighbourBlocks.nx[15 + z * 16 + y * 256] & 0xff;
-				if (!TRANSPARENT_ARRAY[nb]) continue;
-
-				const l = neighbours.nx[15 + z * 16 + y * 256];
-
-				if (l < lightMap[z * 16 + y * 256] - 1) {
-					recalculates[0] = true;
-					break;
-				}
+				if (lightMap[i] !== initLightMap[i]) recalculates[0] = true;
 			}
-		}
 
-		if (!px && neighbours.px && neighbourBlocks.px) {
-			for (let z = 0; z < 16; z++) {
-				const data = blocks[15 + z * 16 + y * 256];
+			// px (x = 15)
+			if (!px) {
+				const i = 15 + a * 16 + y * 256;
 
-				const block = data & 0xff;
-
-				if (!TRANSPARENT_ARRAY[block]) continue;
-
-				const nb = neighbourBlocks.px[z * 16 + y * 256] & 0xff;
-				if (!TRANSPARENT_ARRAY[nb]) continue;
-
-				const l = neighbours.px[z * 16 + y * 256];
-
-				if (l < lightMap[15 + z * 16 + y * 256] - 1) {
-					recalculates[1] = true;
-					break;
-				}
+				if (lightMap[i] !== initLightMap[i]) recalculates[1] = true;
 			}
-		}
 
-		if (!nz && neighbours.nz && neighbourBlocks.nz) {
-			for (let x = 0; x < 16; x++) {
-				const data = blocks[x + y * 256];
+			// nz (z = 0)
+			if (!nz) {
+				const i = a + y * 256;
 
-				const block = data & 0xff;
-
-				if (!TRANSPARENT_ARRAY[block]) continue;
-
-				const nb = neighbourBlocks.nz[x + 15 * 16 + y * 256] & 0xff;
-				if (!TRANSPARENT_ARRAY[nb]) continue;
-
-				const l = neighbours.nz[x + 15 * 16 + y * 256];
-
-				if (l < lightMap[x + y * 256] - 1) {
-					recalculates[2] = true;
-					break;
-				}
+				if (lightMap[i] !== initLightMap[i]) recalculates[2] = true;
 			}
-		}
 
-		if (!pz && neighbours.pz && neighbourBlocks.pz) {
-			for (let x = 0; x < 16; x++) {
-				const data = blocks[x + 15 * 16 + y * 256];
+			// pz (z = 15)
+			if (!pz) {
+				const i = a + 15 * 16 + y * 256;
 
-				const block = data & 0xff;
-
-				if (!TRANSPARENT_ARRAY[block]) continue;
-
-				const nb = neighbourBlocks.pz[x + y * 256] & 0xff;
-				if (!TRANSPARENT_ARRAY[nb]) continue;
-
-				const l = neighbours.pz[x + y * 256];
-
-				if (l < lightMap[x + 15 * 16 + y * 256] - 1) {
-					recalculates[3] = true;
-					break;
-				}
+				if (lightMap[i] !== initLightMap[i]) recalculates[3] = true;
 			}
 		}
 	}

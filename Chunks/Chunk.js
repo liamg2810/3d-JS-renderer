@@ -1,4 +1,8 @@
-import { BLOCK_DATA } from "../Globals/Blocks/Blocks.js";
+import {
+	BLOCK_DATA,
+	ILLUMINATION_ARRAY,
+	TRANSPARENT_ARRAY,
+} from "../Globals/Blocks/Blocks.js";
 import { gl } from "../Globals/Window.js";
 import { DecodeRLE, RLE } from "./RLE.js";
 
@@ -18,17 +22,30 @@ export class Chunk {
 	lightMap;
 	calculatedLight = false;
 
+	lightSourcesCache = new Set();
+
+	/** @type {Uint8Array} */
+	solidHeightmap = new Uint8Array(16 * 16);
+
+	/** @type {Uint8Array} */
+	transparentHeightmap = new Uint8Array(16 * 16);
+
 	/**
 	 *
 	 * @param {WebGL2RenderingContext} gl
 	 * @param {number} x
 	 * @param {number} z
 	 * @param {Uint16Array} blocks
+	 * @param {Uint8Array} solidHeightmap
+	 * @param {Uint8Array} transparentHeightmap
 	 */
-	constructor(gl, x, z, blocks) {
+	constructor(gl, x, z, blocks, solidHeightmap, transparentHeightmap) {
 		this.x = x;
 		this.z = z;
 		this.blocks = blocks;
+
+		this.solidHeightmap = solidHeightmap;
+		this.transparentHeightmap = transparentHeightmap;
 
 		this.builtVerts = false;
 
@@ -93,16 +110,60 @@ export class Chunk {
 	SetBlock(x, y, z, block) {
 		const decoded = DecodeRLE(this.blocks);
 
-		decoded[x + z * 16 + y * 256] = block;
+		const i = x + z * 16 + y * 256;
+
+		decoded[i] = block;
 
 		this.blocks = RLE(decoded);
 
 		this.calculatedLight = false;
 		this.builtVerts = false;
+
+		console.log(i, ILLUMINATION_ARRAY[block]);
+
+		if (ILLUMINATION_ARRAY[block] > 0 && !this.lightSourcesCache.has(i)) {
+			this.lightSourcesCache.add(i);
+		}
+
+		if (this.lightSourcesCache.has(i) && ILLUMINATION_ARRAY[block] === 0) {
+			this.lightSourcesCache.delete(i);
+		}
+
+		if (
+			y >= this.solidHeightmap[x + z * 16] ||
+			y >= this.transparentHeightmap[x + z * 16]
+		) {
+			let foundTransparent = false;
+			for (let hy = 255; hy >= 0; hy--) {
+				const data = decoded[x + z * 16 + hy * 256];
+				const block = data & 0xff;
+
+				if (
+					!foundTransparent &&
+					block !== BLOCK_DATA["air"].code &&
+					TRANSPARENT_ARRAY[block]
+				) {
+					foundTransparent = true;
+
+					this.transparentHeightmap[x + z * 16] = hy;
+				}
+
+				if (!TRANSPARENT_ARRAY[block]) {
+					if (!foundTransparent) {
+						this.transparentHeightmap[x + z * 16] = hy;
+					}
+
+					this.solidHeightmap[x + z * 16] = hy;
+
+					break;
+				}
+			}
+		}
 	}
 
 	PostLight(lightMap) {
 		this.lightMap = lightMap;
 		this.calculatedLight = true;
+		this.builtVerts = false;
 	}
 }

@@ -6,6 +6,8 @@
 // LIGHT = 0-15 = 4 bits
 // TOTAL BITS = 36
 
+import { TEX_ARRAY } from "./Globals/Blocks/Blocks.js";
+
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
 const faces = ["top", "bottom", "front", "back", "left", "right"];
@@ -17,7 +19,7 @@ const faces = ["top", "bottom", "front", "back", "left", "right"];
  * @param {number} x
  * @param {number} y
  * @param {number} z
- * @param {{top?: number; base: number; bottom?: number}} tex
+ * @param {number} blockCode
  * @param {number} culledFaces
  * @param {number} biome
  * @returns {number}
@@ -28,7 +30,7 @@ export function Cube(
 	x,
 	y,
 	z,
-	tex,
+	blockCode,
 	culledFaces = 0b111111,
 	biome = 0,
 	light = [0, 0, 0, 0, 0, 0]
@@ -49,7 +51,7 @@ export function Cube(
 
 	for (let dir = 0; dir < 6; dir++) {
 		if (!((culledFaces >> dir) & 0b1)) continue;
-		let tId = tex[faces[dir]];
+		let tId = TEX_ARRAY[blockCode * 6 + dir];
 
 		let vert = (biome << 25) | (tId << 19) | (dir << 16) | position;
 		let upper = light[dir];
@@ -68,10 +70,10 @@ export function Cube(
  * @param {number} x
  * @param {number} y
  * @param {number} z
- * @param {number} tex
+ * @param {number} blockCode
  * @returns {Uint32Array}
  */
-export function Water(out, offset, x, y, z, tex, light = 15) {
+export function Water(out, offset, x, y, z, blockCode, light = 15) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -84,24 +86,11 @@ export function Water(out, offset, x, y, z, tex, light = 15) {
 
 	const position = (x << 12) | (y << 4) | z;
 
-	// const directions = [
-	// 	// TOP face normal
-	// 	0,
-	// ];
-
-	// for (let [ix, dir] of directions.entries()) {
-	// 	let tId;
-
-	// switch (dir) {
-	// 	case 0:
-	let tId = tex.top ? tex.top : tex.base;
-	// break;
-	// }
+	let tId = TEX_ARRAY[blockCode * 6];
 
 	let vert = (tId << 19) | position;
 
 	out.set([light >>> 0, vert], offset);
-	// }
 
 	return 2;
 }

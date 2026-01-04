@@ -1,6 +1,6 @@
 import { RLE } from "../Chunks/RLE.js";
 import { BIOME_DATA, GetBiome } from "../Globals/Biomes/Biomes.js";
-import { BLOCK_DATA } from "../Globals/Blocks/Blocks.js";
+import { BLOCK_DATA, TRANSPARENT_ARRAY } from "../Globals/Blocks/Blocks.js";
 import {
 	CAVE_NOISE_SCALE,
 	CHUNKSIZE,
@@ -20,6 +20,9 @@ import { voronoi } from "../Noise/voronoi.js";
 
 export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
+
+	let solidHeightmap = new Uint8Array(CHUNKSIZE * CHUNKSIZE);
+	let transparentHeightmap = new Uint8Array(CHUNKSIZE * CHUNKSIZE);
 
 	noise.seed(seed);
 
@@ -110,34 +113,60 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 			let biomes = [];
 
 			if (continential > -0.1) {
-				// if (humidity < -0.25) {
-				// 	biomes = [{ biome: BIOMES.TAIGA, weight: 1 }];
-				// } else if (humidity < 0) {
-				// 	const blend = (humidity + 0.25) * 4;
-				// 	biomes = [
-				// 		{ biome: BIOMES.TAIGA, weight: 1 - blend },
-				// 		{ biome: BIOMES.PLAINS, weight: blend },
-				// 	];
-				// } else {
-				// 	biomes = [{ biome: BIOMES.PLAINS, weight: 1 }];
-				// }
-
 				biomes = Biome((temp + 1) / 2, (humidity + 1) / 2);
 			} else if (continential > -0.2) {
 				const blend = (continential + 0.2) * 10;
 
+				const land = blend;
+
+				const desert = Math.abs(0.5 - blend);
+
+				const total = land + desert;
+
 				biomes = [
 					{
 						biome: GetBiome("desert"),
-						weight: 1 - blend,
+						weight: desert / total,
 					},
 					{
 						biome: GetBiome("plains"),
-						weight: blend,
+						weight: land / total,
+					},
+				];
+			} else if (continential > -0.3) {
+				const blend = (continential + 0.3) * 10;
+
+				const desert = blend;
+
+				const ocean = 1 - blend;
+
+				const total = ocean + desert;
+
+				biomes = [
+					{
+						biome: GetBiome("desert"),
+						weight: desert / total,
+					},
+					{
+						biome: GetBiome("ocean"),
+						weight: ocean / total,
 					},
 				];
 			} else {
-				biomes = [{ biome: GetBiome("ocean"), weight: 1 }];
+				const blend = Math.abs(continential);
+
+				const desert = 0.3 - blend;
+				const ocean = blend;
+
+				const total = desert + ocean;
+
+				biomes = [
+					{ biome: GetBiome("ocean"), weight: ocean / total },
+					{
+						biome: GetBiome("desert"),
+						weight: desert / total,
+					},
+				];
 			}
 
 			let chosenBiome = GetBiome("plains");
@@ -169,8 +198,6 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 			let block = chosenBiome.surface_block;
 
-			blocks[x + z * 16 + elevation * 256] = block;
-
 			if (elevation < WATER_LEVEL) {
 				let b = BLOCK_DATA["water"].code;
 
@@ -187,6 +214,13 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 				}
 
 				block = BLOCK_DATA["sand"].code;
+
+				if (
+					chosenBiome === GetBiome("ocean") &&
+					noise.perlin2(worldX * 0.2, worldZ * 0.2) < -0.3
+				) {
+					block = BLOCK_DATA["stone"].code;
+				}
 			}
 
 			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
@@ -195,10 +229,8 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 				continue;
 			}
 
-			const b = block;
-
 			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] =
-				(chosenBiome.code << 8) | b;
+				(chosenBiome.code << 8) | block;
 
 			const treeNoise = Math.random();
 
@@ -241,11 +273,40 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 		}
 	}
 
-	return RLE(blocks);
+	for (let xz = 0; xz < 16 * 16; xz++) {
+		let foundTransparent = false;
+
+		for (let y = 255; y >= 0; y--) {
+			const data = blocks[xz + y * 256];
+			const block = data & 0xff;
+
+			if (
+				!foundTransparent &&
+				block !== BLOCK_DATA["air"].code &&
+				TRANSPARENT_ARRAY[block]
+			) {
+				foundTransparent = true;
+
+				transparentHeightmap[xz] = y;
+			}
+
+			if (!TRANSPARENT_ARRAY[block]) {
+				if (!foundTransparent) {
+					transparentHeightmap[xz] = y;
+				}
+
+				solidHeightmap[xz] = y;
+
+				break;
+			}
+		}
+	}
+
+	return { blocks: RLE(blocks), transparentHeightmap, solidHeightmap };
 }
 
 function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
-	for (let y = elevation - 1; y > 2; y--) {
+	for (let y = elevation - 1; y > 1; y--) {
 		let caveVal = -0.4;
 
 		if (y < elevation / 1.5) {
@@ -283,7 +344,7 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
 	}
 
-	for (let y = 2; y > 0; y--) {
+	for (let y = 1; y >= 0; y--) {
 		// Bedrock
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = BLOCK_DATA["bedrock"].code;
 	}

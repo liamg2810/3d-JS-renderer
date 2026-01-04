@@ -232,11 +232,7 @@ class Player {
 
 		if (blocks[bx + bz * 16 + by * 256] !== GetBlock("air").code) return;
 
-		blocks[bx + bz * 16 + by * 256] = GetBlock("glowstone").code;
-
-		chunk.blocks = RLE(blocks);
-
-		enqueueLight(chunk);
+		chunk.SetBlock(bx, by, bz, GetBlock("glowstone").code);
 	}
 
 	SetDebugs() {
@@ -389,6 +385,8 @@ class Player {
 		let icz = Math.floor(iz);
 
 		for (let i = 0; i < maxDistance; i++) {
+			if (iy < 0 || iy > 255) return undefined;
+
 			const block = this.GetBlockAtPos(ix, iy, iz);
 
 			if (block !== GetBlock("air").code) {

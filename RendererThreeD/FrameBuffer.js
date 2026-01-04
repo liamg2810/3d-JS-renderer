@@ -200,7 +200,7 @@ export class FrameBuffer {
 
 			const block = GetFromPositionInRLE(bx, by, bz, chunk.blocks);
 
-			underwater = block === GetBlock("water");
+			underwater = block === GetBlock("water").code;
 		}
 
 		gl.uniform1ui(

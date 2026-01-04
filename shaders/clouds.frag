@@ -13,7 +13,7 @@ void main() {
 
 	fragColor = texture(uSampler, vTextureCoord);
 
-	if (fragColor.a <= 0.0) {discard; }
+	if (fragColor.a != 1.0) {discard; }
 
 	float dx = ((vPos.x + size) / (size * 2.0)) - 0.5;
 	float dy = ((vPos.y + size) / (size * 2.0)) - 0.5;

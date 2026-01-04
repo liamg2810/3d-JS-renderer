@@ -121,9 +121,17 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 }
 
 function ProcessTerrainFinish(i, ev) {
-	const { chunkX, chunkZ, blocks } = ev.data;
+	const { chunkX, chunkZ, blocks, solidHeightmap, transparentHeightmap } =
+		ev.data;
 	const key = `${chunkX}, ${chunkZ}`;
-	const chunk = new Chunk(gl, chunkX, chunkZ, blocks);
+	const chunk = new Chunk(
+		gl,
+		chunkX,
+		chunkZ,
+		blocks,
+		solidHeightmap,
+		transparentHeightmap
+	);
 
 	ChunkManager.chunks.push(chunk);
 
@@ -220,6 +228,9 @@ function ProcessLight(i, chunk) {
 			neighbours: neighbourLight,
 			neighbourBlocks,
 			initial: chunk.lightMap,
+			lightSourcesCache: [...chunk.lightSourcesCache],
+			solidHeightmap: chunk.solidHeightmap,
+			transparentHeightmap: chunk.transparentHeightmap,
 		},
 	});
 }

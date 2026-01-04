@@ -10,10 +10,20 @@ self.onmessage = function (event) {
 	if (type === "Terrain") {
 		const { chunkX, chunkZ, seed } = data;
 
-		let blocks = BuildChunk(chunkX, chunkZ, seed);
+		let { blocks, solidHeightmap, transparentHeightmap } = BuildChunk(
+			chunkX,
+			chunkZ,
+			seed
+		);
 
-		self.postMessage({ type, chunkX, chunkZ, blocks });
-		blocks = null;
+		self.postMessage({
+			type,
+			chunkX,
+			chunkZ,
+			blocks,
+			solidHeightmap,
+			transparentHeightmap,
+		});
 	} else if (type === "Mesh") {
 		const { chunk, chunkX, chunkZ, neighborChunks, lightMap } = data;
 
@@ -28,14 +38,26 @@ self.onmessage = function (event) {
 			waterVerts.buffer,
 		]);
 	} else if (type === "Light") {
-		const { blocks, chunkX, chunkZ, neighbours, neighbourBlocks, initial } =
-			data;
+		const {
+			blocks,
+			chunkX,
+			chunkZ,
+			neighbours,
+			neighbourBlocks,
+			initial,
+			lightSourcesCache,
+			solidHeightmap,
+			transparentHeightmap,
+		} = data;
 
 		let { lightMap, recalculates } = CalculateLight(
 			blocks,
 			neighbours,
 			neighbourBlocks,
-			initial
+			initial,
+			lightSourcesCache,
+			solidHeightmap,
+			transparentHeightmap
 		);
 
 		self.postMessage({ type, lightMap, recalculates, chunkX, chunkZ });

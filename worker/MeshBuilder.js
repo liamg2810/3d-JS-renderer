@@ -11,6 +11,8 @@ const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 export function BuildVerts(b, neighborChunks, lM) {
 	const blocks = DecodeRLE(b);
 
+	const air = BLOCK_DATA["air"];
+
 	let lightMap;
 
 	if (lM) {
@@ -32,36 +34,21 @@ export function BuildVerts(b, neighborChunks, lM) {
 	const verts = new Uint32Array(estimatedMaxVerts);
 	let vi = 0;
 
+	let lightLevels = new Uint8Array([0, 0, 0, 0, 0, 0]);
+
 	const waterVerts = new Uint32Array(estimatedMaxVerts / 6);
 	let waterVi = 0;
-
-	let x = -1,
-		y = 0,
-		z = 0;
-
 	for (let i = 0; i <= lastNonAirIndex; i++) {
 		const block = blocks[i];
-		x++;
-		if (x === 16) {
-			x = 0;
-			z++;
-		}
-		if (z === 16) {
-			z = 0;
-			y++;
-		}
+
+		const x = i % 16;
+		const z = (i >>> 4) % 16;
+		const y = i >>> 8;
+
 		const b = block & 0xff;
 		const isTransparent = TRANSPARENT_ARRAY[b];
-		const textures = {
-			top: TEX_ARRAY[b * 6],
-			bottom: TEX_ARRAY[b * 6 + 1],
-			left: TEX_ARRAY[b * 6 + 2],
-			right: TEX_ARRAY[b * 6 + 3],
-			front: TEX_ARRAY[b * 6 + 4],
-			back: TEX_ARRAY[b * 6 + 5],
-		};
 
-		if (b === BLOCK_DATA["air"].code) {
+		if (b === air.code) {
 			continue;
 		}
 
@@ -72,14 +59,14 @@ export function BuildVerts(b, neighborChunks, lM) {
 				above !== BLOCK_DATA["water"].code &&
 				above !== BLOCK_DATA["ice"].code
 			) {
-				waterVi += Water(waterVerts, waterVi, x, y, z, textures);
+				waterVi += Water(waterVerts, waterVi, x, y, z, b);
 			}
 			continue;
 		}
 
 		const biome = block >>> 8;
 		let culled = 0b111111;
-		let lightLevels = [0, 0, 0, 0, 0, 0];
+		// let lightLevels = [0, 0, 0, 0, 0, 0];
 
 		if (isTransparent && lightMap) {
 			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
@@ -98,35 +85,27 @@ export function BuildVerts(b, neighborChunks, lM) {
 			let light = 0;
 
 			if (ny < 0 || ny >= 256) {
-				nb = BLOCK_DATA["air"];
+				nb = air;
 			} else if (nx < 0) {
-				nb = nxBlocks
-					? nxBlocks[15 + nz * 16 + ny * 256] & 0xff
-					: BLOCK_DATA["air"];
+				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] & 0xff : air;
 
 				if (TRANSPARENT_ARRAY[nb]) {
 					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
 				}
 			} else if (nx >= 16) {
-				nb = pxBlocks
-					? pxBlocks[nz * 16 + ny * 256] & 0xff
-					: BLOCK_DATA["air"];
+				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] & 0xff : air;
 
 				if (TRANSPARENT_ARRAY[nb]) {
 					light = pxLight ? pxLight[nz * 16 + ny * 256] : 0;
 				}
 			} else if (nz < 0) {
-				nb = nzBlocks
-					? nzBlocks[nx + 15 * 16 + ny * 256] & 0xff
-					: BLOCK_DATA["air"];
+				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] & 0xff : air;
 
 				if (TRANSPARENT_ARRAY[nb]) {
 					light = nzLight ? nzLight[nx + 15 * 16 + ny * 256] : 0;
 				}
 			} else if (nz >= 16) {
-				nb = pzBlocks
-					? pzBlocks[nx + ny * 256] & 0xff
-					: BLOCK_DATA["air"];
+				nb = pzBlocks ? pzBlocks[nx + ny * 256] & 0xff : air;
 
 				if (TRANSPARENT_ARRAY[nb]) {
 					light = pzLight ? pzLight[nx + ny * 256] : 0;
@@ -152,6 +131,8 @@ export function BuildVerts(b, neighborChunks, lM) {
 			culled = 0b111100;
 		}
 
+		if (culled === 0) continue;
+
 		if (b === BLOCK_DATA["ice"].code) {
 			waterVi += Cube(
 				waterVerts,
@@ -159,23 +140,13 @@ export function BuildVerts(b, neighborChunks, lM) {
 				x,
 				y,
 				z,
-				textures,
+				b,
 				culled,
 				biome,
 				lightLevels
 			);
 		} else {
-			vi += Cube(
-				verts,
-				vi,
-				x,
-				y,
-				z,
-				textures,
-				culled,
-				biome,
-				lightLevels
-			);
+			vi += Cube(verts, vi, x, y, z, b, culled, biome, lightLevels);
 		}
 	}
 
