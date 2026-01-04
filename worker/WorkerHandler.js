@@ -10,11 +10,8 @@ self.onmessage = function (event) {
 	if (type === "Terrain") {
 		const { chunkX, chunkZ, seed } = data;
 
-		let { blocks, solidHeightmap, transparentHeightmap } = BuildChunk(
-			chunkX,
-			chunkZ,
-			seed
-		);
+		let { blocks, solidHeightmap, transparentHeightmap, lightSources } =
+			BuildChunk(chunkX, chunkZ, seed);
 
 		self.postMessage({
 			type,
@@ -23,6 +20,7 @@ self.onmessage = function (event) {
 			blocks,
 			solidHeightmap,
 			transparentHeightmap,
+			lightSources,
 		});
 	} else if (type === "Mesh") {
 		const { chunk, chunkX, chunkZ, neighborChunks, lightMap } = data;

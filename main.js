@@ -52,11 +52,8 @@ canvas.addEventListener("mousemove", (ev) => {
 		return;
 	}
 
-	if (!Renderer.isTwoD) {
-		Player.view.yaw -= ev.movementX * 0.3;
-		Player.view.pitch -= ev.movementY * 0.2;
-		Player.view.pitch = Math.max(Math.min(Player.view.pitch, 90), -90);
-	}
+	Player.view.yaw -= ev.movementX * 0.3;
+	Player.view.pitch -= ev.movementY * 0.2;
 });
 
 window.addEventListener("resize", () => {

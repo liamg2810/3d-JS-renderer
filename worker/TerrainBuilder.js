@@ -1,6 +1,10 @@
 import { RLE } from "../Chunks/RLE.js";
 import { BIOME_DATA, GetBiome } from "../Globals/Biomes/Biomes.js";
-import { BLOCK_DATA, TRANSPARENT_ARRAY } from "../Globals/Blocks/Blocks.js";
+import {
+	BLOCK_DATA,
+	ILLUMINATION_ARRAY,
+	TRANSPARENT_ARRAY,
+} from "../Globals/Blocks/Blocks.js";
 import {
 	CAVE_NOISE_SCALE,
 	CHUNKSIZE,
@@ -18,11 +22,14 @@ import {
 import noise from "../Noise/perlin.js";
 import { voronoi } from "../Noise/voronoi.js";
 
+let lightSources = new Set();
+
 export function BuildChunk(chunkX, chunkZ, seed) {
 	let blocks = new Uint16Array(CHUNKSIZE * CHUNKSIZE * MAX_HEIGHT);
 
 	let solidHeightmap = new Uint8Array(CHUNKSIZE * CHUNKSIZE);
 	let transparentHeightmap = new Uint8Array(CHUNKSIZE * CHUNKSIZE);
+	lightSources = new Set();
 
 	noise.seed(seed);
 
@@ -223,10 +230,23 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 				}
 			}
 
-			BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks);
+			BuildUnderground(
+				x,
+				z,
+				elevation,
+				chosenBiome,
+				caveNoise,
+				blocks,
+				worldX,
+				worldZ
+			);
 
 			if (CarveCave(x, elevation, z, caveNoise, SPAGHETTI_CAVE_VALUE)) {
 				continue;
+			}
+
+			if (ILLUMINATION_ARRAY[block] > 0) {
+				lightSources.add(x + z * CHUNKSIZE + elevation * MAX_HEIGHT);
 			}
 
 			blocks[x + z * CHUNKSIZE + elevation * MAX_HEIGHT] =
@@ -302,10 +322,24 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 		}
 	}
 
-	return { blocks: RLE(blocks), transparentHeightmap, solidHeightmap };
+	return {
+		blocks: RLE(blocks),
+		transparentHeightmap,
+		solidHeightmap,
+		lightSources,
+	};
 }
 
-function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
+function BuildUnderground(
+	x,
+	z,
+	elevation,
+	chosenBiome,
+	caveNoise,
+	blocks,
+	worldX,
+	worldZ
+) {
 	for (let y = elevation - 1; y > 1; y--) {
 		let caveVal = -0.4;
 
@@ -324,12 +358,12 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 		let belowB = BLOCK_DATA["stone"].code;
 
 		let oreNoise = noise.perlin3(
-			x * ORE_NOISE_SCALE,
+			worldX * ORE_NOISE_SCALE,
 			y * ORE_NOISE_SCALE,
-			z * ORE_NOISE_SCALE
+			worldZ * ORE_NOISE_SCALE
 		);
 
-		if (oreNoise < -0.4) {
+		if (oreNoise < -0.7) {
 			belowB = BLOCK_DATA["coal"].code;
 		}
 
@@ -341,6 +375,9 @@ function BuildUnderground(x, z, elevation, chosenBiome, caveNoise, blocks) {
 			belowB = BLOCK_DATA["air"].code;
 		}
 
+		if (ILLUMINATION_ARRAY[belowB] > 0) {
+			lightSources.add(x + z * CHUNKSIZE + y * MAX_HEIGHT);
+		}
 		blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] = belowB;
 	}
 

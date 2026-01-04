@@ -119,8 +119,6 @@ export class Chunk {
 		this.calculatedLight = false;
 		this.builtVerts = false;
 
-		console.log(i, ILLUMINATION_ARRAY[block]);
-
 		if (ILLUMINATION_ARRAY[block] > 0 && !this.lightSourcesCache.has(i)) {
 			this.lightSourcesCache.add(i);
 		}

@@ -121,8 +121,14 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 }
 
 function ProcessTerrainFinish(i, ev) {
-	const { chunkX, chunkZ, blocks, solidHeightmap, transparentHeightmap } =
-		ev.data;
+	const {
+		chunkX,
+		chunkZ,
+		blocks,
+		solidHeightmap,
+		transparentHeightmap,
+		lightSources,
+	} = ev.data;
 	const key = `${chunkX}, ${chunkZ}`;
 	const chunk = new Chunk(
 		gl,
@@ -132,6 +138,8 @@ function ProcessTerrainFinish(i, ev) {
 		solidHeightmap,
 		transparentHeightmap
 	);
+
+	chunk.lightSourcesCache = lightSources;
 
 	ChunkManager.chunks.push(chunk);
 

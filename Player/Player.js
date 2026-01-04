@@ -1,6 +1,6 @@
 import ChunkManager from "../Chunks/ChunkManager.js";
 import { DecodeRLE, GetFromPositionInRLE, RLE } from "../Chunks/RLE.js";
-import { GetBlock } from "../Globals/Blocks/Blocks.js";
+import { BLOCK_DATA, GetBlock } from "../Globals/Blocks/Blocks.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { Particle } from "../RendererThreeD/Particle.js";
 import ParticleManager from "../RendererThreeD/ParticleManager.js";
@@ -48,6 +48,11 @@ class Player {
 
 	/** @type {{block: number; x: number; y: number; z: number; normal: number} | undefined} */
 	targetedBlock = undefined;
+
+	spawnRays = false;
+
+	particleSpawnDebounce = 500;
+	lastParticleSpawn = 0;
 
 	constructor(x, y, z) {
 		this.position.x = x;
@@ -133,6 +138,24 @@ class Player {
 			}
 		}
 
+		if (this.keyMap.has("arrowleft")) {
+			this.view.yaw += 1;
+		}
+
+		if (this.keyMap.has("arrowright")) {
+			this.view.yaw -= 1;
+		}
+
+		if (this.keyMap.has("arrowup")) {
+			this.view.pitch += 1;
+		}
+
+		if (this.keyMap.has("arrowdown")) {
+			this.view.pitch -= 1;
+		}
+
+		this.view.pitch = Math.max(Math.min(this.view.pitch, 90), -90);
+
 		this.targetedBlock = this.Raycast();
 
 		if (!this.freezeChunks) {
@@ -150,14 +173,23 @@ class Player {
 			}
 		}
 
-		if (this.keyMap.has("f")) {
+		if (
+			this.keyMap.has("f") &&
+			Date.now() - this.lastParticleSpawn > this.particleSpawnDebounce
+		) {
 			ParticleManager.AddParticle(
 				this.position.x,
 				this.position.y,
 				this.position.z,
 				1,
-				PARTICLES.EXPLOSION
+				PARTICLES.RED_THING
 			);
+
+			this.lastParticleSpawn = Date.now();
+		}
+
+		if (this.keyMap.has("g")) {
+			this.spawnRays = !this.spawnRays;
 		}
 
 		this.yVel = Math.min(2, Math.max(-10, this.yVel));
@@ -365,55 +397,102 @@ class Player {
 		let dy = Math.sin(pitch);
 		let dz = -Math.cos(pitch) * Math.cos(yaw);
 
+		// not sure where +1 comes from but thats what works so i wont complain
 		let x = this.position.x + 1;
-		let y = this.position.y + 1;
+		let y = this.position.y + (pitch > 0 ? 0 : 1);
 		let z = this.position.z + 1;
 
-		let ix = x;
-		let iy = y;
-		let iz = z;
+		let voxelX = Math.floor(x);
+		let voxelY = Math.floor(y);
+		let voxelZ = Math.floor(z);
 
-		const stepX = dx;
-		const stepY = dy;
-		const stepZ = dz;
+		const stepX = dx > 0 ? 1 : -1;
+		const stepY = dy > 0 ? 1 : -1;
+		const stepZ = dz > 0 ? 1 : -1;
 
-		let pcx = Math.floor(ix);
-		let pcy = Math.floor(iy);
-		let pcz = Math.floor(iz);
-		let icx = Math.floor(ix);
-		let icy = Math.floor(iy);
-		let icz = Math.floor(iz);
+		const tDeltaX = dx !== 0 ? Math.abs(1 / dx) : Infinity;
+		const tDeltaY = dy !== 0 ? Math.abs(1 / dy) : Infinity;
+		const tDeltaZ = dz !== 0 ? Math.abs(1 / dz) : Infinity;
 
-		for (let i = 0; i < maxDistance; i++) {
-			if (iy < 0 || iy > 255) return undefined;
+		let tMaxX =
+			dx !== 0
+				? ((stepX > 0 ? Math.ceil(x) : Math.floor(x)) - x) / dx
+				: Infinity;
+		let tMaxY =
+			dy !== 0
+				? ((stepY > 0 ? Math.ceil(y) : Math.floor(y)) - y) / dy
+				: Infinity;
+		let tMaxZ =
+			dz !== 0
+				? ((stepZ > 0 ? Math.ceil(z) : Math.floor(z)) - z) / dz
+				: Infinity;
 
-			const block = this.GetBlockAtPos(ix, iy, iz);
+		if (tMaxX < 0) tMaxX += tDeltaX;
+		if (tMaxY < 0) tMaxY += tDeltaY;
+		if (tMaxZ < 0) tMaxZ += tDeltaZ;
+
+		let normal = 0;
+		let distance = 0;
+
+		while (distance < maxDistance) {
+			if (voxelY < 0 || voxelY > 255) return undefined;
+
+			const block = this.GetBlockAtPos(voxelX, voxelY, voxelZ);
 
 			if (block !== GetBlock("air").code) {
-				let normal = 0;
+				if (this.spawnRays) {
+					ParticleManager.AddParticle(
+						voxelX,
+						voxelY,
+						voxelZ,
+						0.3,
+						PARTICLES.EXPLOSION
+					);
+				}
 
-				if (icx > pcx) normal = 2;
-				else if (icx < pcx) normal = 3;
-				else if (icy > pcy) normal = 1;
-				else if (icy < pcy) normal = 0;
-				else if (icz > pcz) normal = 4;
-				else if (icz < pcz) normal = 5;
+				this.spawnRays = false;
 
-				return { block, x: ix, y: iy, z: iz, normal };
+				return { block, x: voxelX, y: voxelY, z: voxelZ, normal };
 			}
 
-			pcx = Math.floor(ix);
-			pcy = Math.floor(iy);
-			pcz = Math.floor(iz);
+			if (this.spawnRays) {
+				ParticleManager.AddParticle(
+					voxelX,
+					voxelY,
+					voxelZ,
+					0.3,
+					PARTICLES.EXPLOSION
+				);
+			}
 
-			ix += stepX;
-			iy += stepY;
-			iz += stepZ;
-
-			icx = Math.floor(ix);
-			icy = Math.floor(iy);
-			icz = Math.floor(iz);
+			if (tMaxX < tMaxY) {
+				if (tMaxX < tMaxZ) {
+					voxelX += stepX;
+					distance = tMaxX;
+					tMaxX += tDeltaX;
+					normal = stepX > 0 ? 2 : 3;
+				} else {
+					voxelZ += stepZ;
+					distance = tMaxZ;
+					tMaxZ += tDeltaZ;
+					normal = stepZ > 0 ? 4 : 5;
+				}
+			} else {
+				if (tMaxY < tMaxZ) {
+					voxelY += stepY;
+					distance = tMaxY;
+					tMaxY += tDeltaY;
+					normal = stepY > 0 ? 1 : 0;
+				} else {
+					voxelZ += stepZ;
+					distance = tMaxZ;
+					tMaxZ += tDeltaZ;
+					normal = stepZ > 0 ? 4 : 5;
+				}
+			}
 		}
+
+		this.spawnRays = false;
 
 		return undefined;
 	}

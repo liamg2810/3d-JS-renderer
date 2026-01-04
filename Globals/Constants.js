@@ -3,7 +3,7 @@ export const TERRAIN_NOISE_SCALE = 0.025;
 export const TEMPERATURE_NOISE_SCALE = 0.005;
 export const HUMIDITY_NOISE_SCALE = 0.01;
 export const CAVE_NOISE_SCALE = 0.1;
-export const ORE_NOISE_SCALE = 0.025;
+export const ORE_NOISE_SCALE = 0.1;
 export const WATER_LEVEL = 72;
 export const CONTINENTIAL_NOISE_SCALE = 0.002;
 export const WEIRDNESS_NOISE_SCALE = 0.02;
@@ -63,5 +63,13 @@ export const PARTICLES = {
 			{ x: 11, y: 15 },
 		],
 		DURATION: 500 / 8, // 8 frames in a 500ms
+	},
+	RED_THING: {
+		KEYFRAMES: [
+			{ x: 0, y: 13 },
+			{ x: 1, y: 13 },
+			{ x: 2, y: 13 },
+		],
+		DURATION: 300 / 3, // 3 frames in 300ms
 	},
 };

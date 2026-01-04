@@ -67,15 +67,6 @@ class Renderer {
 			)
 		);
 
-		this.AnimatedParticle = ParticleManager.AddParticle(
-			8,
-			80,
-			-10,
-			0.2,
-			PARTICLES.ENCHANT,
-			0
-		);
-
 		this.InitShaders();
 
 		this.DebugRenderer = new DebugRenderer();
@@ -157,6 +148,15 @@ class Renderer {
 
 	InitScene() {
 		ChunkManager.LoadChunks();
+
+		this.AnimatedParticle = ParticleManager.AddParticle(
+			8,
+			80,
+			-10,
+			0.2,
+			PARTICLES.ENCHANT,
+			0
+		);
 	}
 
 	Update() {
