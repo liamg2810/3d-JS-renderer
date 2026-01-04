@@ -1,9 +1,9 @@
-import { DecodeRLE, LastNonAirIndex, RLE } from "../Chunks/RLE.js";
 import {
 	BLOCK_DATA,
 	ILLUMINATION_ARRAY,
 	TRANSPARENT_ARRAY,
 } from "../Globals/Blocks/Blocks.js";
+import { DecodeRLE, LastNonAirIndex, RLE } from "../World/RLE.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 
@@ -26,7 +26,7 @@ function BFSLight(lightMap, blocks, queue) {
 		const data = blocks[x + z * 16 + y * 256];
 		const block = data & 0xff;
 
-		// Only want to set light level on non transparent blocks
+		// Only want to set light level on transparent blocks
 		if (!TRANSPARENT_ARRAY[block]) continue;
 
 		const lightLevel = lightMap[x + z * 16 + y * 256];

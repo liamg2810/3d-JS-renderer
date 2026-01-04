@@ -1,4 +1,3 @@
-import { RLE } from "../Chunks/RLE.js";
 import { BIOME_DATA, GetBiome } from "../Globals/Biomes/Biomes.js";
 import {
 	BLOCK_DATA,
@@ -21,6 +20,7 @@ import {
 } from "../Globals/Constants.js";
 import noise from "../Noise/perlin.js";
 import { voronoi } from "../Noise/voronoi.js";
+import { RLE } from "../World/RLE.js";
 
 let lightSources = new Set();
 
@@ -215,7 +215,7 @@ export function BuildChunk(chunkX, chunkZ, seed) {
 
 				blocks[x + z * CHUNKSIZE + WATER_LEVEL * MAX_HEIGHT] = b;
 
-				for (let y = WATER_LEVEL - 1; y > elevation + 1; y--) {
+				for (let y = WATER_LEVEL - 1; y > elevation; y--) {
 					blocks[x + z * CHUNKSIZE + y * MAX_HEIGHT] =
 						BLOCK_DATA["water"].code;
 				}

@@ -1,13 +1,13 @@
-import { GetShader, SHADERS } from "../Globals/Shaders.js";
-import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
-import Player from "../Player/Player.js";
+import { GetShader, SHADERS } from "../../Globals/Shaders.js";
+import { gl, ROOT, TEXTURE_ROOT } from "../../Globals/Window.js";
+import Player from "../../Player/Player.js";
 import {
 	CreateModelViewMatrix,
 	CreateProjectectionMatrix,
-} from "./Matrices.js";
+} from "../Matrices.js";
+import { INFO_TYPES, ShaderProgram } from "../ShaderProgram.js";
+import { TextureManager } from "../TextureManager.js";
 import { Particle } from "./Particle.js";
-import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
-import { TextureManager } from "./TextureManager.js";
 
 const CELLS_PER_ROW = 128 / 8;
 const CELLS_PER_COL = 128 / 8;
@@ -134,6 +134,8 @@ class ParticleManager {
 		const texOffsets = new Float32Array(4 * this.Particles.length);
 		const origins = new Float32Array(4 * this.Particles.length);
 
+		this.Particles = this.Particles.filter((p) => !p.toDelete);
+
 		for (let i = 0; i < this.Particles.length; i++) {
 			const p = this.Particles[i];
 
@@ -233,11 +235,28 @@ class ParticleManager {
 	 * @param {number} y
 	 * @param {number} z
 	 * @param {number} size
-	 * @param {import("../Globals/Constants").PARTICLE} particle
+	 * @param {import("../../Globals/Constants.js").PARTICLE} particle
 	 * @param {number} [startKeyframe=0]
+	 * @param {undefined} [lifespan=undefined]
 	 */
-	AddParticle(x, y, z, size, particle, startKeyframe = 0) {
-		const p = new Particle(x, y, z, size, particle, startKeyframe);
+	AddParticle(
+		x,
+		y,
+		z,
+		size,
+		particle,
+		startKeyframe = 0,
+		lifespan = undefined
+	) {
+		const p = new Particle(
+			x,
+			y,
+			z,
+			size,
+			particle,
+			startKeyframe,
+			lifespan
+		);
 
 		this.Particles.push(p);
 

@@ -1,17 +1,17 @@
-import { DecodeRLE, LastNonAirIndex } from "../Chunks/RLE.js";
 import {
 	BLOCK_DATA,
 	TEX_ARRAY,
 	TRANSPARENT_ARRAY,
 } from "../Globals/Blocks/Blocks.js";
 import { Cube, Water } from "../Primitives.js";
+import { DecodeRLE, LastNonAirIndex } from "../World/RLE.js";
 
 const NEIGH = [0, 1, 0, 0, -1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, -1];
 
 export function BuildVerts(b, neighborChunks, lM) {
 	const blocks = DecodeRLE(b);
 
-	const air = BLOCK_DATA["air"];
+	const air = BLOCK_DATA["air"].code;
 
 	let lightMap;
 
@@ -36,7 +36,7 @@ export function BuildVerts(b, neighborChunks, lM) {
 
 	let lightLevels = new Uint8Array([0, 0, 0, 0, 0, 0]);
 
-	const waterVerts = new Uint32Array(estimatedMaxVerts / 6);
+	const waterVerts = new Uint32Array(estimatedMaxVerts);
 	let waterVi = 0;
 	for (let i = 0; i <= lastNonAirIndex; i++) {
 		const block = blocks[i];
@@ -48,19 +48,7 @@ export function BuildVerts(b, neighborChunks, lM) {
 		const b = block & 0xff;
 		const isTransparent = TRANSPARENT_ARRAY[b];
 
-		if (b === air.code) {
-			continue;
-		}
-
-		if (b === BLOCK_DATA["water"].code) {
-			const above = blocks[x + z * 16 + (y + 1) * 256] & 0xff;
-
-			if (
-				above !== BLOCK_DATA["water"].code &&
-				above !== BLOCK_DATA["ice"].code
-			) {
-				waterVi += Water(waterVerts, waterVi, x, y, z, b);
-			}
+		if (b === air) {
 			continue;
 		}
 
@@ -72,7 +60,14 @@ export function BuildVerts(b, neighborChunks, lM) {
 			lightLevels = lightLevels.fill(lightMap[x + z * 16 + y * 256]);
 		}
 
-		for (let dir = 0; dir < 6 && !isTransparent; dir++) {
+		let waterLevels = [6, 6, 6, 6];
+
+		for (
+			let dir = 0;
+			dir < 6 &&
+			(!TRANSPARENT_ARRAY[b] || b === BLOCK_DATA["water"].code);
+			dir++
+		) {
 			const dx = NEIGH[dir * 3];
 			const dy = NEIGH[dir * 3 + 1];
 			const dz = NEIGH[dir * 3 + 2];
@@ -88,6 +83,12 @@ export function BuildVerts(b, neighborChunks, lM) {
 				nb = air;
 			} else if (nx < 0) {
 				nb = nxBlocks ? nxBlocks[15 + nz * 16 + ny * 256] & 0xff : air;
+
+				// TODO: This will not work because i am not yet storing water levels in the block;
+				if (b === BLOCK_DATA["water"].code && nb === b) {
+					waterLevels[0] = 7;
+					waterLevels[2] = 7;
+				}
 
 				if (TRANSPARENT_ARRAY[nb]) {
 					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
@@ -111,8 +112,6 @@ export function BuildVerts(b, neighborChunks, lM) {
 					light = pzLight ? pzLight[nx + ny * 256] : 0;
 				}
 			} else {
-				nb = blocks[nx + nz * 16 + ny * 256];
-
 				nb = blocks[nx + nz * 16 + ny * 256] & 0xff;
 
 				if (TRANSPARENT_ARRAY[nb]) {
@@ -122,7 +121,10 @@ export function BuildVerts(b, neighborChunks, lM) {
 
 			lightLevels[dir] = light;
 
-			if (!TRANSPARENT_ARRAY[nb]) {
+			if (
+				!TRANSPARENT_ARRAY[nb] ||
+				(b === BLOCK_DATA["water"].code && nb === b)
+			) {
 				culled &= ~(1 << dir);
 			}
 		}
@@ -133,8 +135,14 @@ export function BuildVerts(b, neighborChunks, lM) {
 
 		if (culled === 0) continue;
 
-		if (b === BLOCK_DATA["ice"].code) {
-			waterVi += Cube(
+		if (b === BLOCK_DATA["water"].code) {
+			let above = blocks[x + z * 16 + (y + 1) * 256] & 0xff;
+
+			if (above === b) {
+				waterLevels = [7, 7, 7, 7, 7, 7];
+			}
+
+			waterVi += Water(
 				waterVerts,
 				waterVi,
 				x,
@@ -142,8 +150,9 @@ export function BuildVerts(b, neighborChunks, lM) {
 				z,
 				b,
 				culled,
-				biome,
-				lightLevels
+				// biome,
+				lightLevels,
+				waterLevels
 			);
 		} else {
 			vi += Cube(verts, vi, x, y, z, b, culled, biome, lightLevels);

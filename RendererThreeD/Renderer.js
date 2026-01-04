@@ -1,4 +1,3 @@
-import ChunkManager from "../Chunks/ChunkManager.js";
 import { BIOME_DATA } from "../Globals/Biomes/Biomes.js";
 import { LoadBiomes } from "../Globals/Biomes/Initializer.js";
 import { LoadBlocks } from "../Globals/Blocks/Initializer.js";
@@ -7,14 +6,16 @@ import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import { InitWorkers } from "../Scene.js";
+import ChunkManager from "../World/ChunkManager.js";
 import Clouds from "./Clouds.js";
 import { DebugRenderer } from "./Debug.js";
 import { FrameBuffer } from "./FrameBuffer.js";
-import ParticleManager from "./ParticleManager.js";
+import ParticleManager from "./Particles/ParticleManager.js";
 import { SetBlockProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 import { TextThreeD } from "./Text.js";
 import { TextureManager } from "./TextureManager.js";
+import TickCounter from "./TickCounter.js";
 
 const fpsCounter = document.getElementById("fps-count");
 
@@ -24,11 +25,11 @@ class Renderer {
 	/** @type {import('./ShaderProgram.js').ShaderProgram} */
 	blockProgram;
 
+	/** @type {import('./ShaderProgram.js').ShaderProgram} */
+	fluidsProgram;
+
 	/** @type {number[]} */
 	frameTimes = [];
-
-	// seed = Math.random() * 25564235;
-	seed = 0;
 
 	shadersInit = false;
 
@@ -109,6 +110,22 @@ class Renderer {
 			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
 		]);
+
+		const fluidsVS = await GetShader(SHADERS.FLUIDS_VERT);
+		const fluidsFS = await GetShader(SHADERS.FLUIDS_FRAG);
+
+		this.fluidsProgram = new ShaderProgram(fluidsVS, fluidsFS, [
+			// Attributes
+			{ name: "aVertex", type: INFO_TYPES.ATTRIBUTE },
+			{ name: "aVertexInstance", type: INFO_TYPES.ATTRIBUTE },
+			// Uniforms
+			{ name: "uProjectionMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uModelViewMatrix", type: INFO_TYPES.UNIFORM },
+			{ name: "uSampler", type: INFO_TYPES.UNIFORM },
+			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
+			{ name: "uTime", type: INFO_TYPES.UNIFORM },
+		]);
+
 		this.shadersInit = true;
 		//prettier-ignore
 		const verts = [
@@ -143,6 +160,23 @@ class Renderer {
 			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 			0
 		);
+
+		gl.enableVertexAttribArray(
+			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+		);
+		gl.vertexAttribPointer(
+			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE), // location
+			3, // size (num values to pull from buffer per iteration)
+			gl.FLOAT, // type of data in buffer
+			false, // normalize
+			0, // stride (0 = compute from size and type above)
+			0 // offset in buffer
+		);
+		gl.vertexAttribDivisor(
+			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
+			0
+		);
+
 		gl.bindVertexArray(null);
 	}
 
@@ -155,7 +189,8 @@ class Renderer {
 			-10,
 			0.2,
 			PARTICLES.ENCHANT,
-			0
+			0,
+			Infinity
 		);
 	}
 
@@ -170,6 +205,8 @@ class Renderer {
 		const frameStart = performance.now();
 
 		Player.Update();
+
+		TickCounter.Tick();
 
 		this.Draw();
 
@@ -272,18 +309,21 @@ class Renderer {
 			// chunk = null;
 		}
 
+		gl.useProgram(this.fluidsProgram.shaderProgram);
+		SetBlockProgramUniforms(this.fluidsProgram, this.texture.texture);
+
 		for (let i = 0; i < chunksWithWater.length; i++) {
 			let chunk = chunksWithWater[i];
 
 			gl.uniform2f(
-				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
+				this.fluidsProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				(chunk.x - cx) * 16,
 				(chunk.z - cz) * 16
 			);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.waterBuffer);
 			gl.vertexAttribIPointer(
-				this.blockProgram.GetLocation(
+				this.fluidsProgram.GetLocation(
 					"aVertexInstance",
 					INFO_TYPES.ATTRIBUTE
 				),
@@ -293,7 +333,7 @@ class Renderer {
 				0
 			);
 			gl.enableVertexAttribArray(
-				this.blockProgram.GetLocation(
+				this.fluidsProgram.GetLocation(
 					"aVertexInstance",
 					INFO_TYPES.ATTRIBUTE
 				)

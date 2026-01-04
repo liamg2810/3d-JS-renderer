@@ -5,12 +5,9 @@
 // BIOME = 0-127 = 7 bits
 // LIGHT = 0-15 = 4 bits
 // TOTAL BITS = 36
-
-import { TEX_ARRAY } from "./Globals/Blocks/Blocks.js";
-
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
-const faces = ["top", "bottom", "front", "back", "left", "right"];
+import { TEX_ARRAY } from "./Globals/Blocks/Blocks.js";
 
 /**
  *
@@ -63,6 +60,17 @@ export function Cube(
 	return v;
 }
 
+// [HEIGHT][LIGHT]-[TEXTURE][DIRECTION][POSITION]
+// [POSITION] = XXXXYYYYYYYYZZZZ = 16 bits
+// DIRECTION = 0-5 = 3 bits
+// TEXTURE = 0-63 = 6 bits
+// -- High bits
+// LIGHT = 0-15 = 4 bits
+// HEIGHT = 0-7 * 4 verts = 12 bits
+// TOTAL BITS = 37
+
+// NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
+
 /**
  *
  * @param {Uint32Array} out
@@ -73,7 +81,17 @@ export function Cube(
  * @param {number} blockCode
  * @returns {Uint32Array}
  */
-export function Water(out, offset, x, y, z, blockCode, light = 15) {
+export function Water(
+	out,
+	offset,
+	x,
+	y,
+	z,
+	blockCode,
+	culledFaces = 0b111111,
+	light = [0, 0, 0, 0],
+	heights = [6, 6, 6, 6]
+) {
 	if (x < 0 || x > 15) {
 		throw new Error("Out of bounds X position on new cube.");
 	}
@@ -88,9 +106,21 @@ export function Water(out, offset, x, y, z, blockCode, light = 15) {
 
 	let tId = TEX_ARRAY[blockCode * 6];
 
-	let vert = (tId << 19) | position;
+	let v = 0;
 
-	out.set([light >>> 0, vert], offset);
+	for (let dir = 0; dir < 6; dir++) {
+		if (!((culledFaces >> dir) & 0b1)) continue;
+		let vert = (tId << 19) | (dir << 16) | position;
+		let high =
+			(heights[3] << 13) |
+			(heights[2] << 10) |
+			(heights[1] << 7) |
+			(heights[0] << 4) |
+			light[dir];
 
-	return 2;
+		out.set([high, vert], offset + v);
+		v += 2;
+	}
+
+	return v;
 }

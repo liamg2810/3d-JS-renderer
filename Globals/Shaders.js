@@ -25,4 +25,6 @@ export const SHADERS = {
 	PARTICLE_VERT: ROOT + "shaders/particle.vert",
 	TEXT_FRAG: ROOT + "shaders/text.frag",
 	TEXT_VERT: ROOT + "shaders/text.vert",
+	FLUIDS_FRAG: ROOT + "shaders/fluids.frag",
+	FLUIDS_VERT: ROOT + "shaders/fluids.vert",
 };

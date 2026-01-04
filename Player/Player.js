@@ -1,11 +1,11 @@
-import ChunkManager from "../Chunks/ChunkManager.js";
-import { DecodeRLE, GetFromPositionInRLE, RLE } from "../Chunks/RLE.js";
 import { BLOCK_DATA, GetBlock } from "../Globals/Blocks/Blocks.js";
 import { PARTICLES } from "../Globals/Constants.js";
-import { Particle } from "../RendererThreeD/Particle.js";
-import ParticleManager from "../RendererThreeD/ParticleManager.js";
+import { Particle } from "../RendererThreeD/Particles/Particle.js";
+import ParticleManager from "../RendererThreeD/Particles/ParticleManager.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
+import ChunkManager from "../World/ChunkManager.js";
+import { DecodeRLE, GetFromPositionInRLE, RLE } from "../World/RLE.js";
 
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
@@ -264,7 +264,7 @@ class Player {
 
 		if (blocks[bx + bz * 16 + by * 256] !== GetBlock("air").code) return;
 
-		chunk.SetBlock(bx, by, bz, GetBlock("glowstone").code);
+		chunk.SetBlock(bx, by, bz, GetBlock("water").code);
 	}
 
 	SetDebugs() {

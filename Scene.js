@@ -1,17 +1,18 @@
-import { Chunk } from "./Chunks/Chunk.js";
-import ChunkManager from "./Chunks/ChunkManager.js";
 import { BIOME_DATA, GetBiome } from "./Globals/Biomes/Biomes.js";
 import { BLOCK_DATA } from "./Globals/Blocks/Blocks.js";
 import { gl } from "./Globals/Window.js";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
+import { Chunk } from "./World/Chunk.js";
+import ChunkManager from "./World/ChunkManager.js";
+import World from "./World/World.js";
 
 const poolSize = navigator.hardwareConcurrency || 4;
 
 const workers = [];
 const busy = [];
 
-/** @type {{chunkX: number, chunkZ: number, seed: number, priority: number, queueTime: number}[]} */
+/** @type {{chunkX: number, chunkZ: number, priority: number, queueTime: number}[]} */
 const chunkQueue = [];
 /** @type {{chunk: Chunk, priority: number, queueTime: number}[]} */
 const meshQueue = [];
@@ -58,7 +59,6 @@ export function enqueueChunk(chunkX, chunkZ) {
 	chunkQueue.push({
 		chunkX,
 		chunkZ,
-		seed: Renderer.seed,
 		priority: calculatePriority(chunkX, chunkZ),
 		queueTime: Date.now(),
 	});
@@ -205,6 +205,7 @@ function ProcessLightFinish(i, ev) {
 }
 
 function ProcessChunk(i, task) {
+	task.seed = World.seed;
 	busy[i] = true;
 
 	workers[i].postMessage({ type: "Terrain", data: task });

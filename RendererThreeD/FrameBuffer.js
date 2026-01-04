@@ -1,9 +1,9 @@
-import ChunkManager from "../Chunks/ChunkManager.js";
-import { GetFromPositionInRLE } from "../Chunks/RLE.js";
 import { GetBlock } from "../Globals/Blocks/Blocks.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { canvas, gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
+import ChunkManager from "../World/ChunkManager.js";
+import { GetFromPositionInRLE } from "../World/RLE.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
 
 export class FrameBuffer {

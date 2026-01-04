@@ -1,7 +1,7 @@
-import ChunkManager from "../Chunks/ChunkManager.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
 import { gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
+import ChunkManager from "../World/ChunkManager.js";
 import Renderer from "./Renderer.js";
 import { SetDebugProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
