@@ -75,7 +75,8 @@
 			"right": 2
 		},
 		"transparent": true,
-		"illumination": 0
+		"illumination": 0,
+		"lightDecay": 1
 	},
 	"stone": {
 		"code": 6,
@@ -206,5 +207,31 @@
 		},
 		"transparent": true,
 		"illumination": 15
+	},
+	"oak_planks": {
+		"code": 16,
+		"texture": {
+			"top": 25,
+			"bottom": 25,
+			"front": 25,
+			"back": 25,
+			"left": 25,
+			"right": 25
+		},
+		"transparent": false,
+		"illumination": 0
+	},
+	"glass": {
+		"code": 17,
+		"texture": {
+			"top": 26,
+			"bottom": 26,
+			"front": 26,
+			"back": 26,
+			"left": 26,
+			"right": 26
+		},
+		"transparent": true,
+		"illumination": 0
 	}
 }

@@ -63,12 +63,10 @@ export class Chunk {
 
 		this.vertCount = blockVerts.length;
 
-		if (waterVerts.length > 0) {
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.waterBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, waterVerts, gl.STATIC_DRAW);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.waterBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, waterVerts, gl.STATIC_DRAW);
 
-			this.waterVertCount = waterVerts.length;
-		}
+		this.waterVertCount = waterVerts.length;
 
 		this.builtVerts = true;
 	}

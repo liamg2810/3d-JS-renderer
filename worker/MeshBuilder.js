@@ -79,6 +79,9 @@ export function BuildVerts(b, neighborChunks, lM) {
 			let nb;
 			let light = 0;
 
+			let chosenLightMap = lightMap;
+			let lightMapIndex = nx + nz * 16 + ny * 256;
+
 			if (ny < 0 || ny >= 256) {
 				nb = air;
 			} else if (nx < 0) {
@@ -90,33 +93,29 @@ export function BuildVerts(b, neighborChunks, lM) {
 					waterLevels[2] = 7;
 				}
 
-				if (TRANSPARENT_ARRAY[nb]) {
-					light = nxLight ? nxLight[15 + nz * 16 + ny * 256] : 0;
-				}
+				lightMapIndex = 15 + nz * 16 + ny * 256;
+				chosenLightMap = nxLight;
 			} else if (nx >= 16) {
 				nb = pxBlocks ? pxBlocks[nz * 16 + ny * 256] & 0xff : air;
 
-				if (TRANSPARENT_ARRAY[nb]) {
-					light = pxLight ? pxLight[nz * 16 + ny * 256] : 0;
-				}
+				lightMapIndex = nz * 16 + ny * 256;
+				chosenLightMap = pxLight;
 			} else if (nz < 0) {
 				nb = nzBlocks ? nzBlocks[nx + 15 * 16 + ny * 256] & 0xff : air;
 
-				if (TRANSPARENT_ARRAY[nb]) {
-					light = nzLight ? nzLight[nx + 15 * 16 + ny * 256] : 0;
-				}
+				lightMapIndex = nx + 15 * 16 + ny * 256;
+				chosenLightMap = nzLight;
 			} else if (nz >= 16) {
 				nb = pzBlocks ? pzBlocks[nx + ny * 256] & 0xff : air;
 
-				if (TRANSPARENT_ARRAY[nb]) {
-					light = pzLight ? pzLight[nx + ny * 256] : 0;
-				}
+				lightMapIndex = nx + ny * 256;
+				chosenLightMap = pzLight;
 			} else {
 				nb = blocks[nx + nz * 16 + ny * 256] & 0xff;
+			}
 
-				if (TRANSPARENT_ARRAY[nb]) {
-					light = lightMap[nx + nz * 16 + ny * 256];
-				}
+			if (TRANSPARENT_ARRAY[nb]) {
+				light = chosenLightMap ? chosenLightMap[lightMapIndex] : 0;
 			}
 
 			lightLevels[dir] = light;
@@ -137,6 +136,8 @@ export function BuildVerts(b, neighborChunks, lM) {
 
 		if (b === BLOCK_DATA["water"].code) {
 			let above = blocks[x + z * 16 + (y + 1) * 256] & 0xff;
+
+			console.log(`Water at: ${x} ${y} ${z}`);
 
 			if (above === b) {
 				waterLevels = [7, 7, 7, 7, 7, 7];

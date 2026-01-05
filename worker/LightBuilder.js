@@ -1,6 +1,7 @@
 import {
 	BLOCK_DATA,
 	ILLUMINATION_ARRAY,
+	LIGHT_DECAY_ARRAY,
 	TRANSPARENT_ARRAY,
 } from "../Globals/Blocks/Blocks.js";
 import { DecodeRLE, LastNonAirIndex, RLE } from "../World/RLE.js";
@@ -45,7 +46,7 @@ function BFSLight(lightMap, blocks, queue) {
 			const ny = y + dy;
 			const nz = z + dz;
 
-			queue.push([nx, ny, nz, light - 1]);
+			queue.push([nx, ny, nz, light - (1 + LIGHT_DECAY_ARRAY[block])]);
 		}
 	}
 }
@@ -105,14 +106,36 @@ export function CalculateLight(
 		const x = i % 16;
 		const z = Math.floor(i / 16);
 
+		let skyLight = 15;
+
 		for (let y = transparentHeightmap[i]; y >= solidHeightmap[i]; y--) {
 			const data = blocks[i + y * 256];
 			const block = data & 0xff;
 
-			// if (block === BLOCK_DATA["air"].code) continue;
+			sources.push([x, y + 1, z, skyLight]);
 
-			sources.push([x, y + 1, z, 15]);
-			// lightMap[i + (y + 1) * 256] = 15;
+			skyLight -= LIGHT_DECAY_ARRAY[block];
+		}
+
+		skyLight = 15;
+
+		// Crawl up heightmap to add sources against flat walls
+		if (x !== 0 && x !== 15 && z !== 0 && z !== 15) {
+			const nx = solidHeightmap[x - 1 + z * 16];
+			const px = solidHeightmap[x + 1 + z * 16];
+			const nz = solidHeightmap[x + (z - 1) * 16];
+			const pz = solidHeightmap[x + (z + 1) * 16];
+
+			const maxNeighbourHeight = Math.max(nx, px, nz, pz);
+
+			for (let y = maxNeighbourHeight; y >= solidHeightmap[i]; y--) {
+				const data = blocks[i + y * 256];
+				const block = data & 0xff;
+
+				sources.push([x, y + 1, z, skyLight]);
+
+				skyLight -= LIGHT_DECAY_ARRAY[block];
+			}
 		}
 	}
 
@@ -198,6 +221,13 @@ export function CalculateLight(
 	}
 
 	BFSLight(lightMap, blocks, sources);
+
+	// Final heightmap pass to fill in full skylight
+	for (let i = 0; i < 16 * 16; i++) {
+		for (let y = 255; y > transparentHeightmap[i]; y--) {
+			lightMap[i + (y + 1) * 256] = 15;
+		}
+	}
 
 	if (initial === undefined) {
 		return {

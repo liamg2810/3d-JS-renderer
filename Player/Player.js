@@ -1,4 +1,10 @@
-import { BLOCK_DATA, GetBlock } from "../Globals/Blocks/Blocks.js";
+import {
+	BLOCK_ARRAY,
+	BLOCK_DATA,
+	BLOCK_NAMES_ARRAY,
+	GetBlock,
+	GetBlockByCode,
+} from "../Globals/Blocks/Blocks.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { Particle } from "../RendererThreeD/Particles/Particle.js";
 import ParticleManager from "../RendererThreeD/Particles/ParticleManager.js";
@@ -10,6 +16,7 @@ import { DecodeRLE, GetFromPositionInRLE, RLE } from "../World/RLE.js";
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
 const chunkPosDebug = document.getElementById("chunk-pos");
+const selectedBlockDebug = document.getElementById("selected-block");
 
 class Player {
 	HEIGHT = 1.8;
@@ -53,6 +60,8 @@ class Player {
 
 	particleSpawnDebounce = 500;
 	lastParticleSpawn = 0;
+
+	selectedBlock = 0;
 
 	constructor(x, y, z) {
 		this.position.x = x;
@@ -237,6 +246,26 @@ class Player {
 		}
 	}
 
+	SwitchBlock(dir = 1) {
+		this.selectedBlock += dir;
+
+		if (this.selectedBlock >= BLOCK_ARRAY.length) {
+			this.selectedBlock = 0;
+		}
+
+		if (this.selectedBlock === BLOCK_DATA["air"].code) {
+			this.selectedBlock += dir;
+		}
+
+		if (this.selectedBlock < 0) {
+			this.selectedBlock = BLOCK_ARRAY.length - 1;
+		}
+
+		selectedBlockDebug.innerText = `Selected block: ${
+			BLOCK_NAMES_ARRAY[this.selectedBlock]
+		}`;
+	}
+
 	Place() {
 		if (this.targetedBlock === undefined) return;
 
@@ -264,7 +293,7 @@ class Player {
 
 		if (blocks[bx + bz * 16 + by * 256] !== GetBlock("air").code) return;
 
-		chunk.SetBlock(bx, by, bz, GetBlock("water").code);
+		chunk.SetBlock(bx, by, bz, this.selectedBlock);
 	}
 
 	SetDebugs() {

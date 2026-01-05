@@ -84,6 +84,7 @@ class Renderer {
 			});
 			return;
 		}
+		Player.SwitchBlock();
 
 		this.InitScene();
 		requestAnimationFrame(() => {

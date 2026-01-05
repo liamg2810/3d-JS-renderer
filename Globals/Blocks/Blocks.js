@@ -2,8 +2,10 @@ export let TEX_ARRAY = [];
 export let BLOCK_ARRAY = [];
 export let TRANSPARENT_ARRAY = [];
 export let ILLUMINATION_ARRAY = [];
+export let LIGHT_DECAY_ARRAY = [];
+export let BLOCK_NAMES_ARRAY = [];
 
-/** @typedef {{code: number, texture: { top: number, bottom: number, front: number, back: number, left: number, right: number }, transparent: bool, illumination: number}} BLOCK */
+/** @typedef {{code: number, texture: { top: number, bottom: number, front: number, back: number, left: number, right: number }, transparent: bool, illumination: number, lightDecay: number}} BLOCK */
 
 /** @type {{name: BLOCK}} */
 export let BLOCK_DATA = {};
@@ -32,7 +34,7 @@ export function GetBlockByCode(code) {
 export function InputBlocks(json) {
 	Object.assign(BLOCK_DATA, json);
 
-	for (let o of Object.values(json)) {
+	for (let [k, o] of Object.entries(json)) {
 		TEX_ARRAY.push(o["texture"]["top"]);
 		TEX_ARRAY.push(o["texture"]["bottom"]);
 		TEX_ARRAY.push(o["texture"]["left"]);
@@ -43,5 +45,7 @@ export function InputBlocks(json) {
 		BLOCK_ARRAY.push(o["code"]);
 		TRANSPARENT_ARRAY.push(o["transparent"]);
 		ILLUMINATION_ARRAY.push(o["illumination"]);
+		LIGHT_DECAY_ARRAY.push(o["lightDecay"] || 0);
+		BLOCK_NAMES_ARRAY.push(k);
 	}
 }

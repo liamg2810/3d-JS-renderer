@@ -60,6 +60,10 @@ window.addEventListener("resize", () => {
 	ResizeCanvas();
 });
 
+canvas.addEventListener("wheel", (ev) => {
+	Player.SwitchBlock(ev.deltaY < 0 ? 1 : -1);
+});
+
 renderDistanceInput.addEventListener("change", (ev) => {
 	console.log(ev.target.value, typeof ev.target.value);
 	Player.renderDistance = parseInt(ev.target.value);
