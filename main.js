@@ -28,7 +28,7 @@ document.addEventListener("keyup", (ev) => {
 });
 
 canvas.addEventListener("click", (ev) => {
-	if (document.pointerLockElement) {
+	if (document.pointerLockElement && ev.button === 0) {
 		Player.Break();
 	}
 
