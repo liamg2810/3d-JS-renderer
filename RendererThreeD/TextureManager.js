@@ -4,7 +4,7 @@ import { gl } from "../Globals/Window.js";
  * @param {WebGL2RenderingContext} gl
  * @param {boolean} mipmaps
  */
-function loadTexture(url, mipmaps) {
+async function loadTexture(url, mipmaps) {
 	const texture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -33,44 +33,75 @@ function loadTexture(url, mipmaps) {
 		pixel
 	);
 
-	const image = new Image();
-	image.onload = () => {
-		gl.bindTexture(gl.TEXTURE_2D, texture);
-		gl.texImage2D(
-			gl.TEXTURE_2D,
-			level,
-			internalFormat,
-			srcFormat,
-			srcType,
-			image
-		);
-
-		if (mipmaps) {
-			gl.generateMipmap(gl.TEXTURE_2D);
-
-			gl.texParameteri(
+	return new Promise((resolve, reject) => {
+		const image = new Image();
+		image.onload = () => {
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+			gl.texImage2D(
 				gl.TEXTURE_2D,
-				gl.TEXTURE_MIN_FILTER,
-				gl.LINEAR_MIPMAP_NEAREST
+				level,
+				internalFormat,
+				srcFormat,
+				srcType,
+				image
 			);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		} else {
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-		}
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-	};
-	image.src = url;
 
-	return texture;
+			if (mipmaps) {
+				gl.generateMipmap(gl.TEXTURE_2D);
+
+				gl.texParameteri(
+					gl.TEXTURE_2D,
+					gl.TEXTURE_MIN_FILTER,
+					gl.LINEAR_MIPMAP_NEAREST
+				);
+				gl.texParameteri(
+					gl.TEXTURE_2D,
+					gl.TEXTURE_MAG_FILTER,
+					gl.NEAREST
+				);
+			} else {
+				gl.texParameteri(
+					gl.TEXTURE_2D,
+					gl.TEXTURE_MIN_FILTER,
+					gl.NEAREST
+				);
+				gl.texParameteri(
+					gl.TEXTURE_2D,
+					gl.TEXTURE_MAG_FILTER,
+					gl.NEAREST
+				);
+			}
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+			resolve(texture);
+		};
+		image.src = url;
+	});
 }
 
 export class TextureManager {
 	/** @type {WebGLTexture} */
 	texture;
 
-	constructor(src, mipmaps = false) {
-		this.texture = loadTexture(src, mipmaps);
+	TextureLoaded = false;
+
+	src;
+	mipmaps = false;
+
+	constructor(src, mipmaps = false, autoInit = true) {
+		this.src = src;
+		this.mipmaps = mipmaps;
+
+		// Allow external sources to manually await for the texture
+		if (autoInit) {
+			this.LoadTex();
+		}
+	}
+
+	async LoadTex() {
+		this.texture = await loadTexture(this.src, this.mipmaps);
+
+		this.TextureLoaded = true;
 	}
 }

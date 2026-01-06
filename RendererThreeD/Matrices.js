@@ -55,3 +55,35 @@ export function CreateNormalMatrix(modelViewMatrix) {
 
 	return normalMatrix;
 }
+
+export function CreateHotbarIconsProjectionMatrix(size) {
+	const projectionMatrix = mat4.create();
+	mat4.perspective(
+		projectionMatrix,
+		(90 * Math.PI) / 180,
+		size / size,
+		0.1,
+		10000
+	);
+
+	return projectionMatrix;
+}
+
+export function CreateHotbarIconsViewMatrix() {
+	const viewMatrix = mat4.create();
+	mat4.rotateX(viewMatrix, viewMatrix, (45 * Math.PI) / 180);
+	mat4.rotateY(viewMatrix, viewMatrix, (-45 * Math.PI) / 180);
+	mat4.translate(viewMatrix, viewMatrix, [-0.2, -0.4, 1.8]);
+
+	return viewMatrix;
+}
+
+export function CreateHotbarIconsModelViewMatrix() {
+	const viewMatrix = CreateHotbarIconsViewMatrix();
+
+	const modelMatrix = mat4.create();
+	const modelViewMatrix = mat4.create();
+	mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
+
+	return modelViewMatrix;
+}

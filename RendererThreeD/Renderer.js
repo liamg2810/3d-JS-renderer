@@ -1,15 +1,21 @@
 import { BIOME_DATA } from "../Globals/Biomes/Biomes.js";
 import { LoadBiomes } from "../Globals/Biomes/Initializer.js";
-import { LoadBlocks } from "../Globals/Blocks/Initializer.js";
+import { BLOCK_ARRAY } from "../Globals/Blocks/Blocks.js";
+import {
+	InitializeHotbarIcons,
+	LoadBlocks,
+} from "../Globals/Blocks/Initializer.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { GetShader, SHADERS } from "../Globals/Shaders.js";
-import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
+import { canvas, gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import { InitWorkers } from "../Scene.js";
 import ChunkManager from "../World/ChunkManager.js";
 import Clouds from "./Clouds.js";
 import { DebugRenderer } from "./Debug.js";
 import { FrameBuffer } from "./FrameBuffer.js";
+import HotbarIconFrameBuffer from "./GUI/Hotbar/HotbarIconFrameBuffer.js";
+import HotbarIconShaderProgram from "./GUI/Hotbar/IconShaderProgram.js";
 import ParticleManager from "./Particles/ParticleManager.js";
 import { SetBlockProgramUniforms } from "./SetUniforms.js";
 import { INFO_TYPES, ShaderProgram } from "./ShaderProgram.js";
@@ -84,7 +90,7 @@ class Renderer {
 			});
 			return;
 		}
-		Player.SwitchBlock();
+		InitializeHotbarIcons();
 
 		this.InitScene();
 		requestAnimationFrame(() => {
@@ -95,6 +101,7 @@ class Renderer {
 	async InitShaders() {
 		await LoadBlocks();
 		await LoadBiomes();
+		await HotbarIconShaderProgram.InitShaders();
 		InitWorkers();
 
 		const vs = await GetShader(SHADERS.CHUNK_VERT);
@@ -370,6 +377,35 @@ class Renderer {
 		ParticleManager.Draw();
 
 		this.DebugRenderer.draw();
+
+		let skipAir = false;
+
+		const gap = HotbarIconFrameBuffer.FrameWidth / canvas.width;
+
+		HotbarIconFrameBuffer.DrawFrame(
+			Player.selectedBlock,
+			0 / 10,
+			-0.9,
+			true
+		);
+
+		for (let i = -3; i < 4; i++) {
+			let ix =
+				Player.selectedBlock + i > 0
+					? Player.selectedBlock + i
+					: Player.selectedBlock + i + BLOCK_ARRAY.length - 1;
+
+			if (BLOCK_ARRAY[ix % BLOCK_ARRAY.length] === 0) skipAir = true;
+
+			ix = ix + (skipAir && i > 0 ? 1 : 0);
+
+			HotbarIconFrameBuffer.DrawFrame(
+				ix % BLOCK_ARRAY.length,
+				0 + gap * i,
+				-0.9,
+				false
+			);
+		}
 
 		this.frameBuffer.DrawFrame();
 	}

@@ -128,16 +128,10 @@ export function BuildVerts(b, neighborChunks, lM) {
 			}
 		}
 
-		if (b === BLOCK_DATA["poppy"].code) {
-			culled = 0b111100;
-		}
-
 		if (culled === 0) continue;
 
 		if (b === BLOCK_DATA["water"].code) {
 			let above = blocks[x + z * 16 + (y + 1) * 256] & 0xff;
-
-			console.log(`Water at: ${x} ${y} ${z}`);
 
 			if (above === b) {
 				waterLevels = [7, 7, 7, 7, 7, 7];

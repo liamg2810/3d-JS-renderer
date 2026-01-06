@@ -51,6 +51,8 @@ class Clouds {
 	Draw() {
 		gl.useProgram(this.Shader.shaderProgram);
 
+		gl.disable(gl.CULL_FACE);
+
 		const planeScale = 4096;
 		const planeY = 300;
 
@@ -144,6 +146,8 @@ class Clouds {
 			gl.UNSIGNED_SHORT,
 			0
 		);
+
+		gl.enable(gl.CULL_FACE);
 	}
 }
 

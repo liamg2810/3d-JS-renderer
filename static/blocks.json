@@ -233,5 +233,19 @@
 		},
 		"transparent": true,
 		"illumination": 0
+	},
+
+	"snowy_grass": {
+		"code": 18,
+		"texture": {
+			"top": 16,
+			"bottom": 8,
+			"front": 17,
+			"back": 17,
+			"left": 17,
+			"right": 17
+		},
+		"transparent": false,
+		"illumination": 0
 	}
 }

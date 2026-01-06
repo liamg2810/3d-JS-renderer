@@ -5,6 +5,9 @@ export let ILLUMINATION_ARRAY = [];
 export let LIGHT_DECAY_ARRAY = [];
 export let BLOCK_NAMES_ARRAY = [];
 
+/** @type {import("../../RendererThreeD/GUI/Hotbar/Icon").HotbarIcon[]} */
+export let HOTBAR_ICONS_ARRAY = [];
+
 /** @typedef {{code: number, texture: { top: number, bottom: number, front: number, back: number, left: number, right: number }, transparent: bool, illumination: number, lightDecay: number}} BLOCK */
 
 /** @type {{name: BLOCK}} */

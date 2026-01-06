@@ -7,7 +7,7 @@
 // TOTAL BITS = 36
 // NORMALS = [UP, DOWN, LEFT, RIGHT, FRONT, BACK]
 
-import { TEX_ARRAY } from "./Globals/Blocks/Blocks.js";
+import { BLOCK_DATA, TEX_ARRAY } from "./Globals/Blocks/Blocks.js";
 
 /**
  *
@@ -40,6 +40,10 @@ export function Cube(
 	}
 	if (y < 0 || y > 255) {
 		throw new Error("Out of bounds Y position on new cube.");
+	}
+
+	if (blockCode === BLOCK_DATA["poppy"].code) {
+		culledFaces = 0b111100;
 	}
 
 	const position = (x << 12) | (y << 4) | z;

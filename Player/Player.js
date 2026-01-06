@@ -16,7 +16,6 @@ import { DecodeRLE, GetFromPositionInRLE, RLE } from "../World/RLE.js";
 const worldPosDebug = document.getElementById("world-pos");
 const blockPosDebug = document.getElementById("block-pos");
 const chunkPosDebug = document.getElementById("chunk-pos");
-const selectedBlockDebug = document.getElementById("selected-block");
 
 class Player {
 	HEIGHT = 1.8;
@@ -61,7 +60,7 @@ class Player {
 	particleSpawnDebounce = 500;
 	lastParticleSpawn = 0;
 
-	selectedBlock = 0;
+	selectedBlock = 1;
 
 	constructor(x, y, z) {
 		this.position.x = x;
@@ -260,10 +259,6 @@ class Player {
 		if (this.selectedBlock < 0) {
 			this.selectedBlock = BLOCK_ARRAY.length - 1;
 		}
-
-		selectedBlockDebug.innerText = `Selected block: ${
-			BLOCK_NAMES_ARRAY[this.selectedBlock]
-		}`;
 	}
 
 	Place() {

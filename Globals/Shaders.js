@@ -27,4 +27,6 @@ export const SHADERS = {
 	TEXT_VERT: ROOT + "shaders/text.vert",
 	FLUIDS_FRAG: ROOT + "shaders/fluids.frag",
 	FLUIDS_VERT: ROOT + "shaders/fluids.vert",
+	HOTBAR_ICON_UI_FRAG: ROOT + "shaders/hotbarIconUI.frag",
+	HOTBAR_ICON_UI_VERT: ROOT + "shaders/hotbarIconUI.vert",
 };
