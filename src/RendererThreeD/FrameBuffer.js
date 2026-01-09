@@ -1,5 +1,5 @@
 import { GetBlock } from "../Globals/Blocks/Blocks.js";
-import { GetShader, SHADERS } from "../Globals/Shaders.js";
+import { GetShader, SHADERS } from "../Globals/Shaders";
 import { canvas, gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import ChunkManager from "../World/ChunkManager.js";

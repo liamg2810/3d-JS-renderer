@@ -1,0 +1,27 @@
+{
+	"name": "3d-js-renderer",
+	"version": "1.0.0",
+	"description": "A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore infinite procedurally generated worlds with multiple biomes, caves, and dynamic terrain.",
+	"main": "main.js",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/liamg2810/3d-JS-renderer.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"bugs": {
+		"url": "https://github.com/liamg2810/3d-JS-renderer/issues"
+	},
+	"homepage": "https://github.com/liamg2810/3d-JS-renderer#readme",
+	"devDependencies": {
+		"typescript": "^5.9.3",
+		"vite": "^7.3.1"
+	}
+}

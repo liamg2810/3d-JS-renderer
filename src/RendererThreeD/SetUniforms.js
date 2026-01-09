@@ -11,7 +11,7 @@ import { INFO_TYPES } from "./ShaderProgram.js";
 
 /**
  *
- * @param {import('./ShaderProgram').ShaderProgram} blockProgram
+ * @param {import('./ShaderProgram.js').ShaderProgram} blockProgram
  * @param {WebGLTexture} texture
  */
 export function SetBlockProgramUniforms(blockProgram, texture) {
@@ -57,7 +57,7 @@ export function SetDebugProgramUniforms(debugProgram) {
 
 /**
  *
- * @param {import('./ShaderProgram').ShaderProgram} program
+ * @param {import('./ShaderProgram.js').ShaderProgram} program
  * @param {WebGLTexture} texture
  * @param {number} size
  */

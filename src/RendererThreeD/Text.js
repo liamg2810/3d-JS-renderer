@@ -1,4 +1,4 @@
-import { GetShader, SHADERS } from "../Globals/Shaders.js";
+import { GetShader, SHADERS } from "../Globals/Shaders";
 import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import {
@@ -32,9 +32,9 @@ function cross(a, b) {
 }
 
 export class TextThreeD {
-	/** @type {import("./TextureManager").TextureManager} */
+	/** @type {import("./TextureManager.js").TextureManager} */
 	Texture;
-	/** @type {import("./ShaderProgram").ShaderProgram} */
+	/** @type {import("./ShaderProgram.js").ShaderProgram} */
 	Shader;
 
 	/** @type {string} */

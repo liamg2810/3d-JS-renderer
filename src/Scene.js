@@ -300,7 +300,7 @@ function processQueue() {
 
 export function InitWorkers() {
 	for (let i = 0; i < poolSize; i++) {
-		const worker = new Worker("./worker/WorkerHandler.js", {
+		const worker = new Worker("./src/worker/WorkerHandler.js", {
 			type: "module",
 		});
 		workers.push(worker);

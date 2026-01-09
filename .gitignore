@@ -1,2 +1,4 @@
 .venv
 rust/renderer-wasm/target
+
+node_modules/

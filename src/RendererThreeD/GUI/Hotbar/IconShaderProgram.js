@@ -1,4 +1,4 @@
-import { GetShader, SHADERS } from "../../../Globals/Shaders.js";
+import { GetShader, SHADERS } from "../../../Globals/Shaders";
 import { TEXTURE_ROOT } from "../../../Globals/Window.js";
 import { INFO_TYPES, ShaderProgram } from "../../ShaderProgram.js";
 import { TextureManager } from "../../TextureManager.js";

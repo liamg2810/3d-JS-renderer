@@ -1,4 +1,4 @@
-import { GetShader, SHADERS } from "../Globals/Shaders.js";
+import { GetShader, SHADERS } from "../Globals/Shaders";
 import { gl } from "../Globals/Window.js";
 import Player from "../Player/Player.js";
 import ChunkManager from "../World/ChunkManager.js";
@@ -30,7 +30,7 @@ export class DebugRenderer {
 	TargetedBlockColors = [];
 	TargetedBlockIndices = [];
 
-	/** @type {import("./ShaderProgram").ShaderProgram} */
+	/** @type {import("./ShaderProgram.js").ShaderProgram} */
 	DebugProgram;
 
 	ShadersInit = false;
