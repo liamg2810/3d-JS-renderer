@@ -48,12 +48,14 @@ function GenerateKey(chunkX, chunkZ) {
  * @param {number} chunkX
  * @param {number} chunkZ
  */
-export function enqueueChunk(chunkX, chunkZ) {
+export async function enqueueChunk(chunkX, chunkZ) {
 	const key = `${chunkX}, ${chunkZ}`;
 
 	if (activeChunks.has(key) || completedChunks.has(key)) {
 		return;
 	}
+
+	console.log(`queue chunk ${key}`);
 
 	activeChunks.add(key);
 	chunkQueue.push({
@@ -72,6 +74,8 @@ export function enqueueChunk(chunkX, chunkZ) {
 /** @param {Chunk} chunk  */
 export function enqueueMesh(chunk) {
 	const key = `${chunk.x}, ${chunk.z}`;
+
+	console.log(`queue mesh ${key}`);
 
 	if (activeMeshes.has(key)) {
 		return;
@@ -120,15 +124,14 @@ export function removeLoadedChunk(chunkX, chunkZ) {
 	completedChunks.delete(`${chunkX}, ${chunkZ}`);
 }
 
-function ProcessTerrainFinish(i, ev) {
-	const {
-		chunkX,
-		chunkZ,
-		blocks,
-		solidHeightmap,
-		transparentHeightmap,
-		lightSources,
-	} = ev.data;
+export function CreateChunk(
+	chunkX,
+	chunkZ,
+	blocks,
+	solidHeightmap,
+	transparentHeightmap,
+	lightSources
+) {
 	const key = `${chunkX}, ${chunkZ}`;
 	const chunk = new Chunk(
 		gl,
@@ -138,13 +141,34 @@ function ProcessTerrainFinish(i, ev) {
 		solidHeightmap,
 		transparentHeightmap
 	);
+	activeChunks.delete(key);
+	completedChunks.add(key);
 
 	chunk.lightSourcesCache = lightSources;
 
 	ChunkManager.chunks.push(chunk);
 
-	activeChunks.delete(key);
-	completedChunks.add(key);
+	return chunk;
+}
+
+function ProcessTerrainFinish(i, ev) {
+	const {
+		chunkX,
+		chunkZ,
+		blocks,
+		solidHeightmap,
+		transparentHeightmap,
+		lightSources,
+	} = ev.data;
+
+	const chunk = CreateChunk(
+		chunkX,
+		chunkZ,
+		blocks,
+		solidHeightmap,
+		transparentHeightmap,
+		lightSources
+	);
 
 	busy[i] = false;
 
@@ -237,7 +261,9 @@ function ProcessLight(i, chunk) {
 			neighbours: neighbourLight,
 			neighbourBlocks,
 			initial: chunk.lightMap,
-			lightSourcesCache: [...chunk.lightSourcesCache],
+			lightSourcesCache: chunk.lightSourcesCache
+				? [...chunk.lightSourcesCache]
+				: [],
 			solidHeightmap: chunk.solidHeightmap,
 			transparentHeightmap: chunk.transparentHeightmap,
 		},
