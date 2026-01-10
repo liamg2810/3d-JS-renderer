@@ -1,6 +1,7 @@
-import { canvas } from "./Globals/Window.js";
+import { canvas } from "./Globals/Window";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
+import { debug } from "./ui/exports.svelte.js";
 
 /** @type {HTMLInputElement} */
 const renderDistanceInput = document.getElementById("render-d");
@@ -10,9 +11,21 @@ document.addEventListener("keydown", (ev) => {
 		return;
 	}
 
+	if (ev.key === "p") {
+		debug.paused = true;
+
+		document.exitPointerLock();
+	}
+
 	ev.preventDefault();
 
 	Player.keyMap.add(ev.key.toLowerCase());
+});
+
+document.addEventListener("pointerlockchange", () => {
+	if (!document.pointerLockElement) {
+		debug.paused = true;
+	}
 });
 
 document.addEventListener("keyup", (ev) => {

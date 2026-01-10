@@ -1,6 +1,6 @@
 import { GetBlock } from "../Globals/Blocks/Blocks.js";
 import { GetShader, SHADERS } from "../Globals/Shaders";
-import { canvas, gl } from "../Globals/Window.js";
+import { canvas, gl } from "../Globals/Window";
 import Player from "../Player/Player.js";
 import ChunkManager from "../World/ChunkManager.js";
 import { GetFromPositionInRLE } from "../World/RLE.js";

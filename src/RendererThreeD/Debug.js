@@ -1,5 +1,5 @@
 import { GetShader, SHADERS } from "../Globals/Shaders";
-import { gl } from "../Globals/Window.js";
+import { gl } from "../Globals/Window";
 import Player from "../Player/Player.js";
 import ChunkManager from "../World/ChunkManager.js";
 import Renderer from "./Renderer.js";

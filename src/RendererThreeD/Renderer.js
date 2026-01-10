@@ -7,7 +7,7 @@ import {
 } from "../Globals/Blocks/Initializer.js";
 import { PARTICLES } from "../Globals/Constants.js";
 import { GetShader, SHADERS } from "../Globals/Shaders";
-import { canvas, gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
+import { canvas, gl, ROOT, TEXTURE_ROOT } from "../Globals/Window";
 import Player from "../Player/Player.js";
 import { InitWorkers } from "../Scene.js";
 // import { fps, SetFPS } from "../ui/exports.svelte.js";
@@ -387,11 +387,13 @@ class Renderer {
 		HotbarIconFrameBuffer.DrawFrame(
 			Player.selectedBlock,
 			0 / 10,
-			-0.9,
+			-0.8,
 			true
 		);
 
 		for (let i = -3; i < 4; i++) {
+			if (i === 0) continue;
+
 			let ix =
 				Player.selectedBlock + i > 0
 					? Player.selectedBlock + i
@@ -404,7 +406,7 @@ class Renderer {
 			HotbarIconFrameBuffer.DrawFrame(
 				ix % BLOCK_ARRAY.length,
 				0 + gap * i,
-				-0.9,
+				-0.8,
 				false
 			);
 		}

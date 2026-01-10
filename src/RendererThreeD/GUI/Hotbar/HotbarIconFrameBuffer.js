@@ -3,7 +3,7 @@ import {
 	HOTBAR_ICONS_ARRAY,
 } from "../../../Globals/Blocks/Blocks.js";
 import { GetShader, SHADERS } from "../../../Globals/Shaders";
-import { canvas, gl } from "../../../Globals/Window.js";
+import { canvas, gl } from "../../../Globals/Window";
 import Player from "../../../Player/Player.js";
 import { INFO_TYPES, ShaderProgram } from "../../ShaderProgram.js";
 

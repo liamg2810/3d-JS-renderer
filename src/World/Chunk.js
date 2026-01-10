@@ -4,7 +4,7 @@ import {
 	TRANSPARENT_ARRAY,
 } from "../Globals/Blocks/Blocks.js";
 import { db } from "../Globals/DB/db";
-import { gl } from "../Globals/Window.js";
+import { gl } from "../Globals/Window";
 import { DecodeRLE, RLE } from "./RLE.js";
 
 export class Chunk {

@@ -1,4 +1,4 @@
-import { gl } from "../Globals/Window.js";
+import { gl } from "../Globals/Window";
 import {
 	CreateHotbarIconsModelViewMatrix,
 	CreateHotbarIconsProjectionMatrix,

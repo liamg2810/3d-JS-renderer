@@ -1,5 +1,5 @@
 import { GetBlock } from "../Blocks/Blocks.js";
-import { ROOT } from "../Window.js";
+import { ROOT } from "../Window";
 import { BIOME_DATA } from "./Biomes.js";
 
 export async function LoadBiomes() {

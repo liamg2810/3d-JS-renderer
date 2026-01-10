@@ -1,5 +1,5 @@
 import { GetShader, SHADERS } from "../Globals/Shaders";
-import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window.js";
+import { gl, ROOT, TEXTURE_ROOT } from "../Globals/Window";
 import Player from "../Player/Player.js";
 import {
 	CreateModelViewMatrix,

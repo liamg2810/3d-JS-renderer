@@ -1,4 +1,4 @@
-import { canvas } from "../Globals/Window.js";
+import { canvas } from "../Globals/Window";
 import Player from "../Player/Player.js";
 
 let mat4 =

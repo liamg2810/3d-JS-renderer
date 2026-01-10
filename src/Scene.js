@@ -1,6 +1,6 @@
 import { BIOME_DATA, GetBiome } from "./Globals/Biomes/Biomes.js";
 import { BLOCK_DATA } from "./Globals/Blocks/Blocks.js";
-import { gl } from "./Globals/Window.js";
+import { gl } from "./Globals/Window";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 import { Chunk } from "./World/Chunk.js";
@@ -54,8 +54,6 @@ export async function enqueueChunk(chunkX, chunkZ) {
 	if (activeChunks.has(key) || completedChunks.has(key)) {
 		return;
 	}
-
-	console.log(`queue chunk ${key}`);
 
 	activeChunks.add(key);
 	chunkQueue.push({

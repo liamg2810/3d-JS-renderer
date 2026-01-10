@@ -1,14 +1,12 @@
-/**
- * @type {HTMLCanvasElement}
- */
-export const canvas = document.getElementById("canvas");
+export const canvas: HTMLCanvasElement = document.getElementById(
+	"canvas"
+) as HTMLCanvasElement;
 
 if (canvas === null) {
 	alert("Canvas not found.");
 }
 
-/** @type {WebGL2RenderingContext} */
-export const gl = canvas.getContext("webgl2");
+export const gl: WebGL2RenderingContext = canvas.getContext("webgl2");
 
 if (gl === null) {
 	alert("Unable to initialize WebGL.");

@@ -1,4 +1,4 @@
-import { gl, TEXTURE_ROOT } from "../../../Globals/Window.js";
+import { gl, TEXTURE_ROOT } from "../../../Globals/Window";
 import { Cube } from "../../../Primitives.js";
 import { SetHotbarIconUniforms } from "../../SetUniforms.js";
 import { INFO_TYPES } from "../../ShaderProgram.js";
@@ -8,7 +8,7 @@ import IconShaderProgram from "./IconShaderProgram.js";
 // { blockId: 4, texture: "ui/icon_water_bucket.png" }
 const CUSTOM_ICONS = [];
 
-const ICON_SIZE = 128;
+const ICON_SIZE = 256;
 
 export class HotbarIcon {
 	/** @type {WebGLTexture} */

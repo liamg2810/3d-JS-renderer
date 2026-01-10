@@ -10,12 +10,9 @@ import { Particle } from "../RendererThreeD/Particles/Particle.js";
 import ParticleManager from "../RendererThreeD/Particles/ParticleManager.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
+import { SetPosition } from "../ui/exports.svelte.js";
 import ChunkManager from "../World/ChunkManager.js";
 import { DecodeRLE, GetFromPositionInRLE, RLE } from "../World/RLE.js";
-
-const worldPosDebug = document.getElementById("world-pos");
-const blockPosDebug = document.getElementById("block-pos");
-const chunkPosDebug = document.getElementById("chunk-pos");
 
 class Player {
 	HEIGHT = 1.8;
@@ -292,19 +289,13 @@ class Player {
 	}
 
 	SetDebugs() {
-		worldPosDebug.innerText = `Position: ${
-			Math.round(this.position.x * 10) / 10
-		} ${Math.round(this.position.y * 10) / 10} ${
-			Math.round(this.position.z * 10) / 10
-		}`;
-
-		const bx = ((Math.floor(this.position.x) % 16) + 16) % 16;
-		const bz = ((Math.floor(this.position.z) % 16) + 16) % 16;
-
-		blockPosDebug.innerText = `Block: ${bx} ${Math.round(
-			this.position.y
-		)} ${bz}`;
-		chunkPosDebug.innerText = `Chunk: ${this.chunkX} ${this.chunkZ}`;
+		SetPosition(
+			this.position.x,
+			this.position.y,
+			this.position.z,
+			this.chunkX,
+			this.chunkZ
+		);
 	}
 
 	DoGravity() {

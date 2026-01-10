@@ -1,5 +1,5 @@
 import { HotbarIcon } from "../../RendererThreeD/GUI/Hotbar/Icon.js";
-import { ROOT } from "../Window.js";
+import { ROOT } from "../Window";
 import { BLOCK_ARRAY, HOTBAR_ICONS_ARRAY, InputBlocks } from "./Blocks.js";
 
 export async function LoadBlocks() {
