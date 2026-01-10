@@ -119,7 +119,7 @@ class ChunkManager {
 							chunk.blocks,
 							chunk.solidHeightmap,
 							chunk.transparentHeightmap,
-							new Set([chunk.lightSources])
+							new Set(chunk.lightSources)
 						);
 						return key;
 					}

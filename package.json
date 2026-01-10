@@ -15,12 +15,21 @@
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
-	"type": "commonjs",
+	"type": "module",
 	"bugs": {
 		"url": "https://github.com/liamg2810/3d-JS-renderer/issues"
 	},
 	"homepage": "https://github.com/liamg2810/3d-JS-renderer#readme",
 	"devDependencies": {
+		"@sveltejs/adapter-auto": "^7.0.0",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@tsconfig/svelte": "^5.0.6",
+		"@types/node": "^25.0.6",
+		"eslint": "^9.39.2",
+		"eslint-plugin-svelte": "^3.14.0",
+		"svelte": "^5.46.1",
+		"svelte-loader": "^3.2.4",
+		"svelte-preprocess": "^6.0.3",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1"
 	},

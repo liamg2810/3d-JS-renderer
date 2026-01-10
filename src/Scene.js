@@ -75,8 +75,6 @@ export async function enqueueChunk(chunkX, chunkZ) {
 export function enqueueMesh(chunk) {
 	const key = `${chunk.x}, ${chunk.z}`;
 
-	console.log(`queue mesh ${key}`);
-
 	if (activeMeshes.has(key)) {
 		return;
 	}
