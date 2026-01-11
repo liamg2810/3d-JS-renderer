@@ -3,9 +3,6 @@ import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 import { debug } from "./ui/exports.svelte.js";
 
-/** @type {HTMLInputElement} */
-const renderDistanceInput = document.getElementById("render-d");
-
 document.addEventListener("keydown", (ev) => {
 	if (ev.key === "F11" || ev.key === "F5") {
 		return;
@@ -13,6 +10,7 @@ document.addEventListener("keydown", (ev) => {
 
 	if (ev.key === "p") {
 		debug.paused = true;
+		debug.settingsOpen = false;
 
 		document.exitPointerLock();
 	}
@@ -25,6 +23,7 @@ document.addEventListener("keydown", (ev) => {
 document.addEventListener("pointerlockchange", () => {
 	if (!document.pointerLockElement) {
 		debug.paused = true;
+		debug.settingsOpen = false;
 	}
 });
 
@@ -75,10 +74,6 @@ window.addEventListener("resize", () => {
 
 canvas.addEventListener("wheel", (ev) => {
 	Player.SwitchBlock(ev.deltaY < 0 ? 1 : -1);
-});
-
-renderDistanceInput.addEventListener("change", (ev: any) => {
-	Player.renderDistance = parseInt(ev.target.value ?? 4);
 });
 
 function ResizeCanvas() {

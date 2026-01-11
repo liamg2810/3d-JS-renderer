@@ -1,6 +1,7 @@
 export let debug = $state({
 	fps: 0,
 	paused: false,
+	settingsOpen: false,
 	position: {
 		x: 0,
 		y: 0,
@@ -8,6 +9,11 @@ export let debug = $state({
 		cx: 0,
 		cz: 0,
 	},
+});
+
+export let settings = $state({
+	renderDistance: 4,
+	fov: 60,
 });
 
 export function SetFPS(f: number) {

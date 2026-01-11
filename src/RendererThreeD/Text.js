@@ -31,6 +31,9 @@ function cross(a, b) {
 	];
 }
 
+const charWidth = 0.1;
+const charHeight = 0.1;
+
 export class TextThreeD {
 	/** @type {import("./TextureManager.js").TextureManager} */
 	Texture;
@@ -104,6 +107,7 @@ export class TextThreeD {
 		let line = "";
 		let lineStart = 0;
 		let lineWidth = 0;
+		let subLine = false;
 
 		this.text.split("").forEach((t) => {
 			if (t === "\n") {
@@ -116,10 +120,13 @@ export class TextThreeD {
 
 			line = line + t;
 
-			lineWidth++;
+			lineWidth += charWidth;
 
-			if (lineWidth % 2 === 1) {
-				lineStart--;
+			if (subLine) {
+				lineStart -= charWidth * 2;
+				subLine = false;
+			} else {
+				subLine = true;
 			}
 
 			if (lineWidth >= this.MaxWidth) {
@@ -151,17 +158,17 @@ export class TextThreeD {
 				const endU = startU + CELL_WIDTH / ATLAS_WIDTH;
 				const endV = startV + CELL_HEIGHT / ATLAS_HEIGHT;
 
-				const textWidth = (CELL_WIDTH * 16) / ATLAS_WIDTH;
+				const textWidth = 0.1;
 
 				// prettier-ignore
 				verts.push(
-					-textWidth, 0.5, 0,
-					-textWidth, -0.5, 0,
-					textWidth, 0.5, 0,
-					textWidth, -0.5, 0,
+					-charWidth, charHeight, 0,
+					-charWidth, -charHeight, 0,
+					charWidth, charHeight, 0,
+					charWidth, -charHeight, 0,
 				);
 
-				const o = [x, y + lines.length / 2, z];
+				const o = [x, y * charHeight * 2, z];
 
 				origins.push(...o, ...o, ...o, ...o);
 
@@ -174,7 +181,7 @@ export class TextThreeD {
 					endU, startV,
 					endU, endV
 				);
-				x += 1;
+				x += charWidth * 2;
 				i += 4;
 			});
 		}

@@ -7,6 +7,7 @@ import {
 	enqueueMesh,
 	removeLoadedChunk,
 } from "../Scene.js";
+import { settings } from "../ui/exports.svelte.js";
 import { Chunk } from "./Chunk.js";
 
 class ChunkManager {
@@ -35,16 +36,16 @@ class ChunkManager {
 
 		for (const c of this.chunks) {
 			const inRenderDistance =
-				Math.abs(c.x - Player.chunkX) <= Player.renderDistance &&
-				Math.abs(c.z - Player.chunkZ) <= Player.renderDistance;
+				Math.abs(c.x - Player.chunkX) <= settings.renderDistance &&
+				Math.abs(c.z - Player.chunkZ) <= settings.renderDistance;
 
 			if (!inRenderDistance && c.builtVerts) {
 				c.ClearMesh();
 			}
 
 			const unload =
-				Math.abs(c.x - Player.chunkX) > Player.renderDistance + 2 ||
-				Math.abs(c.z - Player.chunkZ) > Player.renderDistance + 2;
+				Math.abs(c.x - Player.chunkX) > settings.renderDistance + 2 ||
+				Math.abs(c.z - Player.chunkZ) > settings.renderDistance + 2;
 
 			if (unload) {
 				this.pendingSaves.set(`${c.x},${c.z}`, {
@@ -73,7 +74,7 @@ class ChunkManager {
 
 		const missedChunks = new Set();
 
-		for (let r = 0; r < Player.renderDistance + 2; r++) {
+		for (let r = 0; r < settings.renderDistance + 2; r++) {
 			for (let x = -r; x <= r; x++) {
 				for (let z = -r; z <= r; z++) {
 					if (Math.max(Math.abs(x), Math.abs(z)) !== r) continue;
@@ -87,12 +88,12 @@ class ChunkManager {
 						missedChunks.add(`${cx},${cz}`);
 					} else if (
 						!chunk.calculatedLight &&
-						r <= Player.renderDistance
+						r <= settings.renderDistance
 					) {
 						enqueueLight(chunk);
 					} else if (
 						!chunk.builtVerts &&
-						r <= Player.renderDistance
+						r <= settings.renderDistance
 					) {
 						enqueueMesh(chunk);
 					}

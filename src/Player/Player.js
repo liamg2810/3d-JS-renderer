@@ -10,7 +10,7 @@ import { Particle } from "../RendererThreeD/Particles/Particle.js";
 import ParticleManager from "../RendererThreeD/Particles/ParticleManager.js";
 import Renderer from "../RendererThreeD/Renderer.js";
 import { enqueueLight, enqueueMesh } from "../Scene.js";
-import { SetPosition } from "../ui/exports.svelte.js";
+import { SetPosition, settings } from "../ui/exports.svelte.js";
 import ChunkManager from "../World/ChunkManager.js";
 import { DecodeRLE, GetFromPositionInRLE, RLE } from "../World/RLE.js";
 
@@ -31,14 +31,13 @@ class Player {
 	focalLength = 300;
 	near = 0.1;
 	far = 10000;
+
 	fov = 60;
 
 	chunkX = 0;
 	chunkZ = 0;
 
 	yVel = 0;
-
-	renderDistance = 4;
 
 	keyMap = new Set();
 
@@ -66,6 +65,8 @@ class Player {
 
 		this.chunkX = (x + 1) >> 4;
 		this.chunkZ = (z + 1) >> 4;
+
+		this.fov = settings.fov;
 	}
 
 	Update() {
@@ -78,12 +79,14 @@ class Player {
 		if (this.keyMap.has("shift")) {
 			speed *= 2;
 
-			this.fov += 3;
-		} else {
+			if (this.fov < settings.fov + 15) {
+				this.fov += 3;
+			}
+		} else if (this.fov > settings.fov) {
 			this.fov -= 3;
 		}
 
-		this.fov = Math.max(Math.min(this.fov, 75), 60);
+		this.fov = Math.max(Math.min(this.fov, 120), settings.fov);
 
 		const dx = speed * Math.sin((this.view.yaw * Math.PI) / 180);
 		const dz = speed * Math.cos((this.view.yaw * Math.PI) / 180);

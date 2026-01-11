@@ -1,6 +1,6 @@
 # 3D Voxel Terrain Renderer
 
-A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore infinite procedurally generated worlds with multiple biomes, caves, and dynamic terrain.
+A WebGL2-based voxel terrain renderer built with JS/TS + Svelte for UI. Explore infinite procedurally generated worlds with multiple biomes, caves, and dynamic terrain.
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow) ![WebGL](https://img.shields.io/badge/WebGL-2.0-red) ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -17,8 +17,8 @@ A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore inf
 ## 🚀 Getting Started
 
 1. Clone the repository and navigate to the folder
-2. Start a local web server (e.g., `python -m http.server 8000`)
-3. Open `http://localhost:8000` in your browser
+2. Run `npm install` in the terminal
+3. Run `npm run dev` and navigate to http://localhost:5173
 
 **Note**: Requires a modern browser with WebGL2 support.
 
@@ -30,30 +30,18 @@ A WebGL2-based voxel terrain renderer built with vanilla JavaScript. Explore inf
 | **Mouse**   | Look around (click canvas first) |
 | **Shift**   | Sprint (increased speed + FOV)   |
 | **LMB**     | Remove targeted block            |
-| **RMB**     | Place glowstone                  |
+| **RMB**     | Place selected block             |
+| **Scroll**  | Change selected block            |
 | **Alt + G** | Toggle chunk borders (debug)     |
-| **ESC**     | Release pointer lock             |
-
-## 📂 Project Structure
-
-```
-├── Chunks/              # Chunk loading and management
-├── Globals/             # Game constants and configuration
-├── Noise/               # Procedural generation algorithms
-├── Player/              # Player movement and camera
-├── RendererThreeD/      # WebGL rendering and shaders
-├── shaders/             # GLSL shader files
-└── worker/              # Web workers for terrain generation
-```
+| **ESC / P** | Pause game & release pointer     |
 
 ## 🐛 Known Issues
 
--   Occasional z-fighting on chunk borders
--   Some chunks refuse to generate
+-   Game freezes when rapidly increasing render distance
 
 ## 🙏 Acknowledgments
 
-Built with WebGL2, vanilla JavaScript, and [gl-matrix](https://glmatrix.net/). Inspired by Minecraft and voxel-based games.
+Built with WebGL2, JS/TS + Svelte for UI, and [gl-matrix](https://glmatrix.net/). Inspired by Minecraft and voxel-based games.
 
 ---
 
