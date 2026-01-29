@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
@@ -18,13 +18,5 @@
 		<script type="module" src="/src/main.ts" defer></script>
 
 		<div id="ui"></div>
-
-		<script type="module">
-			import { mountUI } from "./src/ui/main.js";
-
-			const ui = mountUI(document.getElementById("ui"), {
-				debug: { fps: 0, entities: 100 },
-			});
-		</script>
 	</body>
 </html>

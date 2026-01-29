@@ -4,5 +4,9 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
 	plugins: [svelte(), tailwindcss()],
-	base: "/3d-JS-renderer/"
+	base: process.env.NODE_ENV === "production" ? "/3d-JS-renderer/" : "/",
+
+	resolve: {
+		extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json"],
+	},
 });

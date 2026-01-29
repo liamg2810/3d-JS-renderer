@@ -2,6 +2,9 @@ import { canvas } from "./Globals/Window";
 import Player from "./Player/Player.js";
 import Renderer from "./RendererThreeD/Renderer.js";
 import { debug } from "./ui/exports.svelte.js";
+import { mountUI } from "./ui/main";
+
+mountUI(document.getElementById("ui"));
 
 document.addEventListener("keydown", (ev) => {
 	if (ev.key === "F11" || ev.key === "F5") {
