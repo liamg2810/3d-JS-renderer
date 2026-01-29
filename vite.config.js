@@ -4,4 +4,5 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
 	plugins: [svelte(), tailwindcss()],
+	base: "/3d-JS-renderer/"
 });
