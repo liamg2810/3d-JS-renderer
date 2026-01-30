@@ -3,7 +3,7 @@ import { ROOT } from "../Window";
 import { BLOCK_ARRAY, HOTBAR_ICONS_ARRAY, InputBlocks } from "./Blocks.js";
 
 export async function LoadBlocks() {
-	let json = await (await fetch(ROOT + "static/blocks.json")).json();
+	let json = await (await fetch("../../static/blocks.json")).json();
 
 	InputBlocks(json);
 }
