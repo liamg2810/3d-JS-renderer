@@ -1,5 +1,5 @@
 const shaders = import.meta.glob("../shaders/*", {
-	query: "?raw",
+	query: "raw",
 	import: "default",
 	eager: true,
 });
