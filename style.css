@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+body {
+	background-color: #222222;
+	display: flex;
+	flex-direction: column;
+	font-family: sans-serif;
+}
+
+.debug {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	margin:8px;
+	position:absolute;
+}
+
+.debug span {
+	width: auto;
+	padding: 4px;
+	background-color: rgba(50, 50, 50, 0.5);
+	color:white;
+}
+
+#canvas {
+	width: 100vw;
+	height: 100vh;
+	background-color: white;
+	image-rendering: pixelated;
+}
+
+.crosshair {
+	position: absolute;
+	background-color: rgba(50, 50, 50, 0.5);
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 9999;
+	width: 10px;
+	height: 10px;
+}
