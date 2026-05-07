@@ -70,17 +70,17 @@ export class DebugRenderer {
 			gl.FLOAT,
 			false,
 			0,
-			0
+			0,
 		);
 		gl.enableVertexAttribArray(
-			this.DebugProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+			this.DebugProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 		);
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.ColorBuffer);
 		gl.bufferData(
 			gl.ARRAY_BUFFER,
 			new Float32Array(colors),
-			gl.STATIC_DRAW
+			gl.STATIC_DRAW,
 		);
 
 		gl.vertexAttribPointer(
@@ -89,18 +89,18 @@ export class DebugRenderer {
 			gl.FLOAT,
 			false,
 			0,
-			0
+			0,
 		);
 
 		gl.enableVertexAttribArray(
-			this.DebugProgram.GetLocation("aColor", INFO_TYPES.ATTRIBUTE)
+			this.DebugProgram.GetLocation("aColor", INFO_TYPES.ATTRIBUTE),
 		);
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.IndicesBuffer);
 		gl.bufferData(
 			gl.ELEMENT_ARRAY_BUFFER,
 			new Uint16Array(indices),
-			gl.STATIC_DRAW
+			gl.STATIC_DRAW,
 		);
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.IndicesBuffer);
 	}
@@ -108,7 +108,7 @@ export class DebugRenderer {
 	CalculateChunkBorders() {
 		let chunk = ChunkManager.GetChunkAtPos(
 			Math.floor(Player.position.x / 16),
-			Math.floor(Player.position.z / 16)
+			Math.floor(Player.position.z / 16),
 		);
 
 		if (!chunk) return;
@@ -143,7 +143,7 @@ export class DebugRenderer {
 					...yellow,
 					...yellow,
 					...yellow,
-					...yellow
+					...yellow,
 				);
 			}
 		}
@@ -159,7 +159,7 @@ export class DebugRenderer {
 					...yellow,
 					...yellow,
 					...yellow,
-					...yellow
+					...yellow,
 				);
 			}
 		}
@@ -172,7 +172,7 @@ export class DebugRenderer {
 				baseZ,
 				baseX + 16,
 				y,
-				baseZ + 16
+				baseZ + 16,
 			);
 			this.ChunkBorderVerts.push(
 				baseX + 16,
@@ -180,7 +180,7 @@ export class DebugRenderer {
 				baseZ + 16,
 				baseX,
 				y,
-				baseZ + 16
+				baseZ + 16,
 			);
 			this.ChunkBorderVerts.push(baseX, y, baseZ + 16, baseX, y, baseZ);
 
@@ -188,13 +188,13 @@ export class DebugRenderer {
 				...yellow,
 				...yellow,
 				...yellow,
-				...yellow
+				...yellow,
 			);
 			this.ChunkBorderColors.push(
 				...yellow,
 				...yellow,
 				...yellow,
-				...yellow
+				...yellow,
 			);
 		}
 
@@ -221,14 +221,14 @@ export class DebugRenderer {
 		this.SetAttributes(
 			this.ChunkBorderVerts,
 			this.ChunkBorderColors,
-			this.ChunkBorderIndices
+			this.ChunkBorderIndices,
 		);
 
 		gl.drawElements(
 			gl.LINES,
 			this.ChunkBorderIndices.length,
 			gl.UNSIGNED_SHORT,
-			0
+			0,
 		);
 	}
 
@@ -298,14 +298,14 @@ export class DebugRenderer {
 		this.SetAttributes(
 			this.TargetedBlockVerts,
 			this.TargetedBlockColors,
-			this.TargetedBlockIndices
+			this.TargetedBlockIndices,
 		);
 
 		gl.drawElements(
 			gl.LINE_STRIP,
 			this.TargetedBlockIndices.length,
 			gl.UNSIGNED_SHORT,
-			0
+			0,
 		);
 	}
 

@@ -1,15 +1,11 @@
-const shaderMap: Record<string, string> = {};
+const shaders = import.meta.glob("../shaders/*", {
+	query: "?raw",
+	import: "default",
+	eager: true,
+});
 
 export async function GetShader(path: string) {
-	if (shaderMap[path]) {
-		return shaderMap[path];
-	}
-
-	const shader = (await import(`../shaders/${path}?raw`)).default;
-
-	shaderMap[path] = shader;
-
-	return shader;
+	return shaders[`../shaders/${path}`];
 }
 
 export const SHADERS = {
