@@ -126,7 +126,7 @@ export function CreateChunk(
 	blocks,
 	solidHeightmap,
 	transparentHeightmap,
-	lightSources
+	lightSources,
 ) {
 	const key = `${chunkX}, ${chunkZ}`;
 	const chunk = new Chunk(
@@ -135,7 +135,7 @@ export function CreateChunk(
 		chunkZ,
 		blocks,
 		solidHeightmap,
-		transparentHeightmap
+		transparentHeightmap,
 	);
 	activeChunks.delete(key);
 	completedChunks.add(key);
@@ -163,7 +163,7 @@ function ProcessTerrainFinish(i, ev) {
 		blocks,
 		solidHeightmap,
 		transparentHeightmap,
-		lightSources
+		lightSources,
 	);
 
 	busy[i] = false;
@@ -322,9 +322,12 @@ function processQueue() {
 
 export function InitWorkers() {
 	for (let i = 0; i < poolSize; i++) {
-		const worker = new Worker("./src/worker/WorkerHandler.js", {
-			type: "module",
-		});
+		const worker = new Worker(
+			new URL("./worker/WorkerHandler.js", import.meta.url),
+			{
+				type: "module",
+			},
+		);
 		workers.push(worker);
 
 		worker.onmessage = (ev) => {
