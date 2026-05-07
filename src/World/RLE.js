@@ -89,7 +89,7 @@ export function GetFromPositionInRLE(x, y, z, rle) {
 		if (flatPos === currentPos) return rle[i] & RLE_DATA;
 	}
 
-	throw new Error("Position not found");
+	throw new Error(`Position not found ${x} ${y} ${z}`);
 }
 
 export function LastNonAirIndex(rle) {

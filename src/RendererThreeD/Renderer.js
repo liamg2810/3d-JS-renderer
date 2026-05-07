@@ -72,8 +72,8 @@ class Renderer {
 				8,
 				100,
 				1,
-				100
-			)
+				100,
+			),
 		);
 
 		this.InitShaders();
@@ -81,7 +81,7 @@ class Renderer {
 		this.DebugRenderer = new DebugRenderer();
 
 		this.texture = new TextureManager(
-			TEXTURE_ROOT + "/blocks/textures.png"
+			TEXTURE_ROOT + "/blocks/textures.png",
 		);
 	}
 
@@ -101,13 +101,25 @@ class Renderer {
 	}
 
 	async InitShaders() {
+		console.log(0);
+
 		await LoadBlocks();
+
+		console.log(0.1);
 		await LoadBiomes();
+
+		console.log(0.2);
 		await HotbarIconShaderProgram.InitShaders();
+
+		console.log(0.3);
 		InitWorkers();
+
+		console.log(1);
 
 		const vs = await GetShader(SHADERS.CHUNK_VERT);
 		const fs = await GetShader(SHADERS.CHUNK_FRAG);
+
+		console.log(2);
 
 		this.blockProgram = new ShaderProgram(vs, fs, [
 			// Attributes
@@ -121,8 +133,12 @@ class Renderer {
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
 		]);
 
+		console.log(3);
+
 		const fluidsVS = await GetShader(SHADERS.FLUIDS_VERT);
 		const fluidsFS = await GetShader(SHADERS.FLUIDS_FRAG);
+
+		console.log(4);
 
 		this.fluidsProgram = new ShaderProgram(fluidsVS, fluidsFS, [
 			// Attributes
@@ -135,6 +151,8 @@ class Renderer {
 			{ name: "uChunkPos", type: INFO_TYPES.UNIFORM },
 			{ name: "uTime", type: INFO_TYPES.UNIFORM },
 		]);
+
+		console.log(5);
 
 		this.shadersInit = true;
 		//prettier-ignore
@@ -156,7 +174,7 @@ class Renderer {
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
 
 		gl.enableVertexAttribArray(
-			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 		);
 		gl.vertexAttribPointer(
 			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE), // location
@@ -164,15 +182,15 @@ class Renderer {
 			gl.FLOAT, // type of data in buffer
 			false, // normalize
 			0, // stride (0 = compute from size and type above)
-			0 // offset in buffer
+			0, // offset in buffer
 		);
 		gl.vertexAttribDivisor(
 			this.blockProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
-			0
+			0,
 		);
 
 		gl.enableVertexAttribArray(
-			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE)
+			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
 		);
 		gl.vertexAttribPointer(
 			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE), // location
@@ -180,11 +198,11 @@ class Renderer {
 			gl.FLOAT, // type of data in buffer
 			false, // normalize
 			0, // stride (0 = compute from size and type above)
-			0 // offset in buffer
+			0, // offset in buffer
 		);
 		gl.vertexAttribDivisor(
 			this.fluidsProgram.GetLocation("aVertex", INFO_TYPES.ATTRIBUTE),
-			0
+			0,
 		);
 
 		gl.bindVertexArray(null);
@@ -200,7 +218,7 @@ class Renderer {
 			0.2,
 			PARTICLES.ENCHANT,
 			0,
-			Infinity
+			Infinity,
 		);
 	}
 
@@ -281,32 +299,32 @@ class Renderer {
 			gl.uniform2f(
 				this.blockProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				(chunk.x - cx) * 16,
-				(chunk.z - cz) * 16
+				(chunk.z - cz) * 16,
 			);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.blockBuffer);
 			gl.vertexAttribIPointer(
 				this.blockProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
+					INFO_TYPES.ATTRIBUTE,
 				),
 				2,
 				gl.UNSIGNED_INT,
 				0,
-				0
+				0,
 			);
 			gl.enableVertexAttribArray(
 				this.blockProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
-				)
+					INFO_TYPES.ATTRIBUTE,
+				),
 			);
 			gl.vertexAttribDivisor(
 				this.blockProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
+					INFO_TYPES.ATTRIBUTE,
 				),
-				1
+				1,
 			);
 
 			// 4 is a placeholder for the amount of verts in a face
@@ -328,39 +346,39 @@ class Renderer {
 			gl.uniform2f(
 				this.fluidsProgram.GetLocation("uChunkPos", INFO_TYPES.UNIFORM),
 				(chunk.x - cx) * 16,
-				(chunk.z - cz) * 16
+				(chunk.z - cz) * 16,
 			);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, chunk.waterBuffer);
 			gl.vertexAttribIPointer(
 				this.fluidsProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
+					INFO_TYPES.ATTRIBUTE,
 				),
 				2,
 				gl.UNSIGNED_INT,
 				0,
-				0
+				0,
 			);
 			gl.enableVertexAttribArray(
 				this.fluidsProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
-				)
+					INFO_TYPES.ATTRIBUTE,
+				),
 			);
 			gl.vertexAttribDivisor(
 				this.blockProgram.GetLocation(
 					"aVertexInstance",
-					INFO_TYPES.ATTRIBUTE
+					INFO_TYPES.ATTRIBUTE,
 				),
-				1
+				1,
 			);
 
 			gl.drawArraysInstanced(
 				gl.TRIANGLES,
 				0,
 				6,
-				chunk.waterVertCount / 2
+				chunk.waterVertCount / 2,
 			);
 		}
 
@@ -388,7 +406,7 @@ class Renderer {
 			Player.selectedBlock,
 			0 / 10,
 			-0.8,
-			true
+			true,
 		);
 
 		for (let i = -3; i < 4; i++) {
@@ -407,7 +425,7 @@ class Renderer {
 				ix % BLOCK_ARRAY.length,
 				0 + gap * i,
 				-0.8,
-				false
+				false,
 			);
 		}
 

@@ -1,11 +1,10 @@
+import blocks from "../../../static/blocks.json";
 import { HotbarIcon } from "../../RendererThreeD/GUI/Hotbar/Icon.js";
 import { ROOT } from "../Window";
 import { BLOCK_ARRAY, HOTBAR_ICONS_ARRAY, InputBlocks } from "./Blocks.js";
 
 export async function LoadBlocks() {
-	let json = await (await fetch("../../static/blocks.json")).json();
-
-	InputBlocks(json);
+	InputBlocks(blocks);
 }
 
 export function InitializeHotbarIcons() {

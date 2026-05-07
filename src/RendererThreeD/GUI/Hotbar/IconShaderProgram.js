@@ -11,8 +11,11 @@ class HotbarIconShaderProgram {
 	atlasTextureManager;
 
 	async InitShaders() {
+		console.log("a");
+
 		const vs = await GetShader(SHADERS.CHUNK_VERT);
 		const fs = await GetShader(SHADERS.CHUNK_FRAG);
+		console.log("b");
 
 		this.shaderProgram = new ShaderProgram(vs, fs, [
 			// Attributes
@@ -29,10 +32,14 @@ class HotbarIconShaderProgram {
 		this.atlasTextureManager = new TextureManager(
 			TEXTURE_ROOT + "blocks/textures.png",
 			false,
-			false
+			false,
 		);
 
+		console.log("c");
+
 		await this.atlasTextureManager.LoadTex();
+
+		console.log("d");
 	}
 }
 

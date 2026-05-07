@@ -1,4 +1,5 @@
 <script>
+	import "../../static/style.css";
 	import { canvas } from "../Globals/Window";
 	import Player from "../Player/Player";
 	import ChunkManager from "../World/ChunkManager";

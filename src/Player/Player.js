@@ -138,11 +138,11 @@ class Player {
 
 		if (this.flight) {
 			if (this.keyMap.has("e")) {
-				this.position.y += 1;
+				this.position.y += speed;
 			}
 
 			if (this.keyMap.has("q")) {
-				this.position.y -= 1;
+				this.position.y -= speed;
 			}
 		}
 
@@ -324,8 +324,8 @@ class Player {
 	}
 
 	IsGrounded() {
-		let camBlockX = Math.round(Math.abs(this.position.x)) % 16;
-		let camBlockZ = Math.round(Math.abs(this.position.z)) % 16;
+		let camBlockX = Math.floor(Math.abs(this.position.x)) % 16;
+		let camBlockZ = Math.floor(Math.abs(this.position.z)) % 16;
 
 		if (this.position.x < 0) {
 			camBlockX = 15 - camBlockX;
@@ -335,14 +335,18 @@ class Player {
 			camBlockZ = 15 - camBlockZ;
 		}
 
-		const camY = this.position.y - this.HEIGHT;
+		const camY = Math.floor(this.position.y - this.HEIGHT);
 
 		const chunk = ChunkManager.GetChunkAtPos(this.chunkX, this.chunkZ);
 
 		if (!chunk) return false;
 
-		const blockBelow =
-			chunk.blocks[camBlockX + camBlockZ * 16 + Math.floor(camY) * 256];
+		const blockBelow = GetFromPositionInRLE(
+			camBlockX,
+			camY,
+			camBlockZ,
+			chunk.blocks
+		);
 
 		return blockBelow !== 0;
 	}
@@ -386,7 +390,7 @@ class Player {
 			bz = 16 - bz;
 		}
 
-		const block = chunk.blocks[bx + bz * 16 + fy * 256];
+		const block = GetFromPositionInRLE(bx, fy, bz, chunk.blocks);
 
 		return block !== 0;
 	}
