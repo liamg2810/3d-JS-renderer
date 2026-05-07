@@ -1,4 +1,4 @@
-import blocks from "../../../static/blocks.json";
+import blocks from "../../../public/blocks.json";
 import { HotbarIcon } from "../../RendererThreeD/GUI/Hotbar/Icon.js";
 import { ROOT } from "../Window";
 import { BLOCK_ARRAY, HOTBAR_ICONS_ARRAY, InputBlocks } from "./Blocks.js";

@@ -1,4 +1,4 @@
-import biomes from "../../../static/biomes.json";
+import biomes from "../../../public/biomes.json";
 import { GetBlock } from "../Blocks/Blocks.js";
 import { ROOT } from "../Window";
 import { BIOME_DATA } from "./Biomes.js";

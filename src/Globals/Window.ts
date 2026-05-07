@@ -1,5 +1,5 @@
 export const canvas: HTMLCanvasElement = document.getElementById(
-	"canvas"
+	"canvas",
 ) as HTMLCanvasElement;
 
 if (canvas === null) {
@@ -12,5 +12,5 @@ if (gl === null) {
 	alert("Unable to initialize WebGL.");
 }
 
-export const ROOT = window.location.href;
-export const TEXTURE_ROOT = ROOT + "static/textures/";
+export const ROOT = import.meta.env.BASE_URL;
+export const TEXTURE_ROOT = ROOT + "textures/";
